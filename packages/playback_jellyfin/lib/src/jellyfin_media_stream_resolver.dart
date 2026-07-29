@@ -1,4 +1,3 @@
-
 import 'package:playback_core/playback_core.dart';
 import 'package:server_core/server_core.dart';
 
@@ -48,11 +47,18 @@ class JellyfinMediaStreamResolver implements MediaStreamResolver {
       throw Exception('No media sources available for item $itemId');
     }
 
-    final source = _selectBestSource(info.mediaSources, preferredId: mediaSourceId);
+    final source = _selectBestSource(
+      info.mediaSources,
+      preferredId: mediaSourceId,
+    );
     var (url, playMethod) = _resolveStreamUrl(itemId, source);
 
     if (playMethod == StreamPlayMethod.transcode) {
-      url = MediaStreamResolver.applyStreamIndices(url, audioStreamIndex, subtitleStreamIndex);
+      url = MediaStreamResolver.applyStreamIndices(
+        url,
+        audioStreamIndex,
+        subtitleStreamIndex,
+      );
       if (startTimeTicks != null) {
         final sttRegex = RegExp(r'StartTimeTicks=\d+');
         if (sttRegex.hasMatch(url)) {
@@ -62,7 +68,9 @@ class JellyfinMediaStreamResolver implements MediaStreamResolver {
         }
       }
       // Force burn-in when direct play was disabled for subtitle encoding.
-      if (!enableDirectPlay && subtitleStreamIndex != null && subtitleStreamIndex >= 0) {
+      if (!enableDirectPlay &&
+          subtitleStreamIndex != null &&
+          subtitleStreamIndex >= 0) {
         final smRegex = RegExp(r'SubtitleMethod=\w+');
         if (smRegex.hasMatch(url)) {
           url = url.replaceFirst(smRegex, 'SubtitleMethod=Encode');
@@ -70,21 +78,29 @@ class JellyfinMediaStreamResolver implements MediaStreamResolver {
           url = '$url&SubtitleMethod=Encode';
         }
       }
+      url = applyLegacyFireTvTranscodeLimits(url, deviceProfile);
     }
 
     // Append auth token for mpv (which doesn't use our Dio interceptors).
     url = _appendAuth(url);
 
-    final externalSubs = MediaStreamResolver.extractExternalSubtitles(source.mediaStreams, _client.baseUrl);
-    final authedSubs = externalSubs.map((s) => ExternalSubtitle(
-      deliveryUrl: _appendAuth(s.deliveryUrl),
-      title: s.title,
-      language: s.language,
-      codec: s.codec,
-      isDefault: s.isDefault,
-      isForced: s.isForced,
-      streamIndex: s.streamIndex,
-    )).toList();
+    final externalSubs = MediaStreamResolver.extractExternalSubtitles(
+      source.mediaStreams,
+      _client.baseUrl,
+    );
+    final authedSubs = externalSubs
+        .map(
+          (s) => ExternalSubtitle(
+            deliveryUrl: _appendAuth(s.deliveryUrl),
+            title: s.title,
+            language: s.language,
+            codec: s.codec,
+            isDefault: s.isDefault,
+            isForced: s.isForced,
+            streamIndex: s.streamIndex,
+          ),
+        )
+        .toList();
 
     return StreamResolutionResult(
       streamUrl: url,
@@ -118,7 +134,10 @@ class JellyfinMediaStreamResolver implements MediaStreamResolver {
   String _appendAuth(String url) {
     final token = _client.accessToken;
     if (token == null || token.isEmpty) return url;
-    if (url.toLowerCase().contains('api_key=') || url.toLowerCase().contains('apikey=')) return url;
+    if (url.toLowerCase().contains('api_key=') ||
+        url.toLowerCase().contains('apikey=')) {
+      return url;
+    }
     final separator = url.contains('?') ? '&' : '?';
     return '$url${separator}api_key=${Uri.encodeComponent(token)}';
   }
@@ -129,27 +148,80 @@ class JellyfinMediaStreamResolver implements MediaStreamResolver {
   ) {
     if (source.supportsDirectPlay) {
       return (
-        _client.playbackApi.getStreamUrl(itemId, mediaSourceId: source.id, liveStreamId: source.liveStreamId),
+        _client.playbackApi.getStreamUrl(
+          itemId,
+          mediaSourceId: source.id,
+          liveStreamId: source.liveStreamId,
+        ),
         StreamPlayMethod.directPlay,
       );
     }
     if (source.supportsDirectStream && source.directStreamUrl != null) {
       var dsUrl = '${_client.baseUrl}${source.directStreamUrl}';
       if (source.liveStreamId != null) {
-        dsUrl = '$dsUrl${dsUrl.contains('?') ? '&' : '?'}LiveStreamId=${Uri.encodeComponent(source.liveStreamId!)}';
+        dsUrl =
+            '$dsUrl${dsUrl.contains('?') ? '&' : '?'}LiveStreamId=${Uri.encodeComponent(source.liveStreamId!)}';
       }
       return (dsUrl, StreamPlayMethod.directStream);
     }
     if (source.supportsTranscoding && source.transcodingUrl != null) {
       var tcUrl = '${_client.baseUrl}${source.transcodingUrl}';
       if (source.liveStreamId != null) {
-        tcUrl = '$tcUrl${tcUrl.contains('?') ? '&' : '?'}LiveStreamId=${Uri.encodeComponent(source.liveStreamId!)}';
+        tcUrl =
+            '$tcUrl${tcUrl.contains('?') ? '&' : '?'}LiveStreamId=${Uri.encodeComponent(source.liveStreamId!)}';
       }
       return (tcUrl, StreamPlayMethod.transcode);
     }
     return (
-      _client.playbackApi.getStreamUrl(itemId, mediaSourceId: source.id, liveStreamId: source.liveStreamId),
+      _client.playbackApi.getStreamUrl(
+        itemId,
+        mediaSourceId: source.id,
+        liveStreamId: source.liveStreamId,
+      ),
       StreamPlayMethod.directPlay,
     );
   }
+}
+
+/// Applies the final compatibility ceiling for the dedicated API 22 Fire TV
+/// build. Jellyfin normally derives these values from the device profile, but
+/// older or already-warmed transcoding routes can return a URL with the source
+/// resolution. Enforcing the same limits in the returned URL keeps the MT8127
+/// decoder below its observed ION memory ceiling.
+String applyLegacyFireTvTranscodeLimits(
+  String url,
+  Map<String, dynamic>? deviceProfile,
+) {
+  if (deviceProfile?['Name'] != 'Moonfin for Fire TV (32-bit)') {
+    return url;
+  }
+
+  final uri = Uri.parse(url);
+  final parameters = Map<String, String>.from(uri.queryParameters);
+  final maxStreamingBitrate = deviceProfile?['MaxStreamingBitrate'] as int?;
+  const maxWidth = 1280;
+  const maxHeight = 720;
+
+  parameters['maxWidth'] = _lowerInt(parameters['maxWidth'], maxWidth);
+  parameters['maxHeight'] = _lowerInt(parameters['maxHeight'], maxHeight);
+
+  if (maxStreamingBitrate != null) {
+    final audioBitrate =
+        int.tryParse(parameters['audioBitrate'] ?? '') ?? 224000;
+    final availableVideoBitrate = (maxStreamingBitrate - audioBitrate).clamp(
+      250000,
+      maxStreamingBitrate,
+    );
+    parameters['videoBitrate'] = _lowerInt(
+      parameters['videoBitrate'],
+      availableVideoBitrate,
+    );
+  }
+
+  return uri.replace(queryParameters: parameters).toString();
+}
+
+String _lowerInt(String? currentValue, int ceiling) {
+  final current = int.tryParse(currentValue ?? '');
+  return (current == null || current > ceiling ? ceiling : current).toString();
 }

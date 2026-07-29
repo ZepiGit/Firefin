@@ -56,7 +56,8 @@ class PlaybackManager {
     final url = queueService.currentItem;
     if (url is! String) return const [];
     final meta = _offlineMetadataByUrl[url];
-    return (meta?['MediaStreams'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+    return (meta?['MediaStreams'] as List?)?.cast<Map<String, dynamic>>() ??
+        const [];
   }
 
   void setBackend(PlayerBackend backend) {
@@ -74,7 +75,9 @@ class PlaybackManager {
     _service = service;
   }
 
-  void setResolverConfigurator(Future<void> Function(dynamic item) configurator) {
+  void setResolverConfigurator(
+    Future<void> Function(dynamic item) configurator,
+  ) {
     _resolverConfigurator = configurator;
   }
 
@@ -139,7 +142,12 @@ class PlaybackManager {
 
   void _onTrackCompleted(bool completed) {
     if (!completed) return;
-    if (_waitingForMedia || _isAutoNexting || _isManualNexting || suppressAutoNext) return;
+    if (_waitingForMedia ||
+        _isAutoNexting ||
+        _isManualNexting ||
+        suppressAutoNext) {
+      return;
+    }
     // Ignore completed events that fire during initial load/seek.
     if (_playbackStartTime != null &&
         DateTime.now().difference(_playbackStartTime!).inSeconds < 5) {
@@ -223,15 +231,22 @@ class PlaybackManager {
       throw StateError('No MediaStreamResolver configured');
     }
 
-    final startTicks =
-        startPosition > Duration.zero ? startPosition.inMicroseconds * 10 : null;
+    final startTicks = startPosition > Duration.zero
+        ? startPosition.inMicroseconds * 10
+        : null;
 
     final forceTranscode = !enableDirectPlay && !enableDirectStream;
     final profile = _backend!.getDeviceProfile(
       useProgressiveTranscode: forceTranscode,
     );
     if (_maxBitrateOverrideMbps != null) {
-      profile['MaxStreamingBitrate'] = _maxBitrateOverrideMbps! * 1000000;
+      final requestedBitrate = _maxBitrateOverrideMbps! * 1000000;
+      final deviceLimit = profile['MaxStreamingBitrate'] as int?;
+      // A user's temporary quality choice may lower the device profile's
+      // bitrate, but it must never raise a hardware compatibility ceiling.
+      profile['MaxStreamingBitrate'] = deviceLimit == null
+          ? requestedBitrate
+          : (requestedBitrate < deviceLimit ? requestedBitrate : deviceLimit);
     }
     final maxBitrate = profile['MaxStreamingBitrate'] as int?;
 
@@ -270,7 +285,8 @@ class PlaybackManager {
     );
     _waitingForMedia = false;
 
-    if (startTicks != null && resolution.playMethod != StreamPlayMethod.transcode) {
+    if (startTicks != null &&
+        resolution.playMethod != StreamPlayMethod.transcode) {
       try {
         await _backend!.seekTo(startPosition);
 
@@ -293,14 +309,16 @@ class PlaybackManager {
     }
 
     if (resolution.playMethod == StreamPlayMethod.directPlay) {
-      if (_audioStreamIndex != null || (_subtitleStreamIndex != null && _subtitleStreamIndex != -1)) {
+      if (_audioStreamIndex != null ||
+          (_subtitleStreamIndex != null && _subtitleStreamIndex != -1)) {
         _waitAndApplyTrackSelections();
       } else if (_subtitleStreamIndex == -1) {
         _waitAndDisableSubtitles();
       }
     } else if (resolution.playMethod == StreamPlayMethod.transcode) {
       if (_subtitleStreamIndex != null && _subtitleStreamIndex != -1) {
-        final isBurnedIn = _isSubtitleBitmap(_subtitleStreamIndex!) &&
+        final isBurnedIn =
+            _isSubtitleBitmap(_subtitleStreamIndex!) &&
             !(_backend?.canRenderBitmapSubtitles ?? false);
         if (!isBurnedIn) {
           _waitAndApplyExternalSubtitle(resolution);
@@ -430,7 +448,8 @@ class PlaybackManager {
   Future<void> changeAudioTrack(int streamIndex) async {
     _audioStreamIndex = streamIndex;
 
-    if (_currentResolution?.playMethod == StreamPlayMethod.directPlay || _isOfflinePlayback) {
+    if (_currentResolution?.playMethod == StreamPlayMethod.directPlay ||
+        _isOfflinePlayback) {
       final mpvId = _mpvTrackIdForStream(streamIndex, 'Audio');
       if (mpvId != null) {
         await _backend?.setAudioTrack(mpvId);
@@ -440,15 +459,26 @@ class PlaybackManager {
     }
   }
 
-  static const _bitmapSubCodecs = {'pgs', 'pgssub', 'dvbsub', 'dvdsub', 'hdmv_pgs_subtitle', 'dvd_subtitle', 'dvb_subtitle', 'xsub'};
+  static const _bitmapSubCodecs = {
+    'pgs',
+    'pgssub',
+    'dvbsub',
+    'dvdsub',
+    'hdmv_pgs_subtitle',
+    'dvd_subtitle',
+    'dvb_subtitle',
+    'xsub',
+  };
 
   bool _isSubtitleBitmap(int streamIndex) {
     final streams = _currentMediaStreams;
     if (streams.isEmpty) return false;
-    final sub = streams.where((s) => s['Type'] == 'Subtitle').firstWhere(
-      (s) => s['Index'] == streamIndex,
-      orElse: () => <String, dynamic>{},
-    );
+    final sub = streams
+        .where((s) => s['Type'] == 'Subtitle')
+        .firstWhere(
+          (s) => s['Index'] == streamIndex,
+          orElse: () => <String, dynamic>{},
+        );
     final codec = ((sub['Codec'] as String?) ?? '').toLowerCase();
     return _bitmapSubCodecs.contains(codec);
   }
@@ -457,7 +487,8 @@ class PlaybackManager {
     final isBitmap = _isSubtitleBitmap(streamIndex);
     _subtitleStreamIndex = streamIndex;
 
-    if (_currentResolution?.playMethod == StreamPlayMethod.directPlay || _isOfflinePlayback) {
+    if (_currentResolution?.playMethod == StreamPlayMethod.directPlay ||
+        _isOfflinePlayback) {
       if (isBitmap && !(_backend?.canRenderBitmapSubtitles ?? false)) {
         await _backend?.disableSubtitleTrack();
         if (!_isOfflinePlayback) {
@@ -492,13 +523,16 @@ class PlaybackManager {
   /// Change the transcode bitrate and re-resolve the stream.
   Future<void> changeBitrate(int? mbps) async {
     _maxBitrateOverrideMbps = mbps;
-    final isTranscode = _currentResolution?.playMethod == StreamPlayMethod.transcode;
+    final isTranscode =
+        _currentResolution?.playMethod == StreamPlayMethod.transcode;
     if (isTranscode) {
       await _reResolveAtCurrentPosition(forceTranscode: true);
     }
   }
 
-  Future<void> _reResolveAtCurrentPosition({bool forceTranscode = false}) async {
+  Future<void> _reResolveAtCurrentPosition({
+    bool forceTranscode = false,
+  }) async {
     final rawBackendPos = _backend?.position ?? Duration.zero;
     final backendPos = rawBackendPos + _transcodeStartOffset;
     final statePos = state.position;
@@ -545,7 +579,9 @@ class PlaybackManager {
   }
 
   void _waitAndDisableSubtitles() {
-    _backend?.waitForTracksReady().then((_) => _backend?.disableSubtitleTrack());
+    _backend?.waitForTracksReady().then(
+      (_) => _backend?.disableSubtitleTrack(),
+    );
   }
 
   void _waitAndApplyExternalSubtitle(StreamResolutionResult resolution) {
@@ -574,7 +610,9 @@ class PlaybackManager {
     }
 
     if (type == 'Subtitle') {
-      final targetIdx = typeStreams.indexWhere((s) => s['Index'] == streamIndex);
+      final targetIdx = typeStreams.indexWhere(
+        (s) => s['Index'] == streamIndex,
+      );
       if (targetIdx < 0) {
         return null;
       }
@@ -582,15 +620,25 @@ class PlaybackManager {
       final isExternal = target['IsExternal'] == true;
 
       if (isExternal) {
-        final embeddedCount = typeStreams.where((s) => s['IsExternal'] != true).length;
-        final externalStreams = typeStreams.where((s) => s['IsExternal'] == true).toList();
-        final externalPos = externalStreams.indexWhere((s) => s['Index'] == streamIndex);
+        final embeddedCount = typeStreams
+            .where((s) => s['IsExternal'] != true)
+            .length;
+        final externalStreams = typeStreams
+            .where((s) => s['IsExternal'] == true)
+            .toList();
+        final externalPos = externalStreams.indexWhere(
+          (s) => s['Index'] == streamIndex,
+        );
         if (externalPos < 0) return null;
         final mpvId = embeddedCount + externalPos + 1;
         return mpvId;
       } else {
-        final embeddedStreams = typeStreams.where((s) => s['IsExternal'] != true).toList();
-        final embeddedPos = embeddedStreams.indexWhere((s) => s['Index'] == streamIndex);
+        final embeddedStreams = typeStreams
+            .where((s) => s['IsExternal'] != true)
+            .toList();
+        final embeddedPos = embeddedStreams.indexWhere(
+          (s) => s['Index'] == streamIndex,
+        );
         if (embeddedPos < 0) return null;
         final mpvId = embeddedPos + 1;
         return mpvId;
