@@ -78,7 +78,10 @@ class JellyfinMediaStreamResolver implements MediaStreamResolver {
           url = '$url&SubtitleMethod=Encode';
         }
       }
-      url = applyLegacyFireTvTranscodeLimits(url, deviceProfile);
+      url = MediaStreamResolver.applyLegacyFireTvTranscodeLimits(
+        url,
+        deviceProfile,
+      );
     }
 
     // Append auth token for mpv (which doesn't use our Dio interceptors).
@@ -181,66 +184,4 @@ class JellyfinMediaStreamResolver implements MediaStreamResolver {
       StreamPlayMethod.directPlay,
     );
   }
-}
-
-/// Applies the final compatibility ceiling for the dedicated API 22 Fire TV
-/// build. Jellyfin normally derives these values from the device profile, but
-/// older or already-warmed transcoding routes can return a URL with the source
-/// resolution. Enforcing the same limits in the returned URL keeps the MT8127
-/// decoder below its observed ION memory ceiling.
-String applyLegacyFireTvTranscodeLimits(
-  String url,
-  Map<String, dynamic>? deviceProfile,
-) {
-  if (deviceProfile?['Name'] != 'Moonfin for Fire TV (32-bit)') {
-    return url;
-  }
-
-  final uri = Uri.parse(url);
-  final parameters = Map<String, String>.from(uri.queryParameters);
-  final maxStreamingBitrate = deviceProfile?['MaxStreamingBitrate'] as int?;
-  const maxWidth = 1280;
-  const maxHeight = 720;
-
-  _setLowerInt(parameters, 'MaxWidth', maxWidth);
-  _setLowerInt(parameters, 'MaxHeight', maxHeight);
-
-  if (maxStreamingBitrate != null) {
-    final audioBitrate =
-        int.tryParse(_valueIgnoreCase(parameters, 'AudioBitrate') ?? '') ??
-        224000;
-    final availableVideoBitrate = (maxStreamingBitrate - audioBitrate).clamp(
-      250000,
-      maxStreamingBitrate,
-    );
-    _setLowerInt(parameters, 'VideoBitrate', availableVideoBitrate);
-  }
-
-  return uri.replace(queryParameters: parameters).toString();
-}
-
-String? _keyIgnoreCase(Map<String, String> parameters, String name) {
-  final lowerName = name.toLowerCase();
-  for (final key in parameters.keys) {
-    if (key.toLowerCase() == lowerName) return key;
-  }
-  return null;
-}
-
-String? _valueIgnoreCase(Map<String, String> parameters, String name) {
-  final key = _keyIgnoreCase(parameters, name);
-  return key == null ? null : parameters[key];
-}
-
-void _setLowerInt(
-  Map<String, String> parameters,
-  String canonicalName,
-  int ceiling,
-) {
-  final existingKey = _keyIgnoreCase(parameters, canonicalName);
-  final current = int.tryParse(
-    existingKey == null ? '' : parameters[existingKey] ?? '',
-  );
-  final value = current == null || current > ceiling ? ceiling : current;
-  parameters[existingKey ?? canonicalName] = value.toString();
 }

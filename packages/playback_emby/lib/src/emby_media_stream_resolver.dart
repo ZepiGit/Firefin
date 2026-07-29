@@ -1,4 +1,3 @@
-
 import 'package:playback_core/playback_core.dart';
 import 'package:server_core/server_core.dart';
 
@@ -47,14 +46,28 @@ class EmbyMediaStreamResolver implements MediaStreamResolver {
       throw Exception('No media sources available for item $itemId');
     }
 
-    final source = _selectBestSource(info.mediaSources, preferredId: mediaSourceId);
+    final source = _selectBestSource(
+      info.mediaSources,
+      preferredId: mediaSourceId,
+    );
     var (url, playMethod) = _resolveStreamUrl(itemId, source);
 
     if (playMethod == StreamPlayMethod.transcode) {
-      url = MediaStreamResolver.applyStreamIndices(url, audioStreamIndex, subtitleStreamIndex);
+      url = MediaStreamResolver.applyStreamIndices(
+        url,
+        audioStreamIndex,
+        subtitleStreamIndex,
+      );
+      url = MediaStreamResolver.applyLegacyFireTvTranscodeLimits(
+        url,
+        deviceProfile,
+      );
     }
 
-    final externalSubs = MediaStreamResolver.extractExternalSubtitles(source.mediaStreams, _client.baseUrl);
+    final externalSubs = MediaStreamResolver.extractExternalSubtitles(
+      source.mediaStreams,
+      _client.baseUrl,
+    );
 
     return StreamResolutionResult(
       streamUrl: url,

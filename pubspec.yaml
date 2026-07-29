@@ -1,7 +1,7 @@
 name: moonfin
 description: "Moonfin — Jellyfin & Emby media client for mobile, tablet, and desktop"
 publish_to: 'none'
-version: 1.1.0+3000018
+version: 1.1.0+3000020
 
 environment:
   # Fire OS 5 compatibility build: Flutter 3.32.8 ships Dart 3.8.
