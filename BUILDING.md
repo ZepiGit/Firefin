@@ -40,15 +40,15 @@ format. Never commit the real properties file or keystore.
 ```text
 flutter clean
 flutter pub get
-flutter analyze lib test/image_api_url_test.dart
-flutter test test/image_api_url_test.dart
+flutter analyze lib test packages/playback_core packages/playback_jellyfin packages/playback_emby packages/server_core
+flutter test test/legacy_firetv_transcode_limits_test.dart
 flutter build apk --release --target-platform android-arm
 ```
 
 The release APK must be renamed to:
 
 ```text
-Moonfin_FireTV32_Unofficial_1.1.0-r1.apk
+Moonfin_FireTV32_Unofficial_1.1.0-r20.apk
 ```
 
 ## Validation
@@ -56,15 +56,15 @@ Moonfin_FireTV32_Unofficial_1.1.0-r1.apk
 Before publishing:
 
 ```text
-aapt2 dump badging Moonfin_FireTV32_Unofficial_1.1.0-r1.apk
-apksigner verify --verbose --print-certs Moonfin_FireTV32_Unofficial_1.1.0-r1.apk
-zipalign -c -v 4 Moonfin_FireTV32_Unofficial_1.1.0-r1.apk
+aapt2 dump badging Moonfin_FireTV32_Unofficial_1.1.0-r20.apk
+apksigner verify --verbose --print-certs Moonfin_FireTV32_Unofficial_1.1.0-r20.apk
+zipalign -c -v 4 Moonfin_FireTV32_Unofficial_1.1.0-r20.apk
 ```
 
 Verify that:
 
 - package is `org.moonfin.firetv32`
-- version is `1.1.0-firetv32-r1` (`3000008`)
+- version is `1.1.0-firetv32-r20` (`3000027`)
 - minimum SDK is 21
 - a Leanback launcher and application banner are present
 - touchscreen is not required
