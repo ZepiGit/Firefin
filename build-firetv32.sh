@@ -4,7 +4,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FLUTTER_BIN="${FLUTTER_BIN:-flutter}"
 APK_SOURCE="$REPO_ROOT/build/app/outputs/flutter-apk/app-release.apk"
-APK_OUTPUT="$REPO_ROOT/Moonfin_FireTV32_Unofficial_1.1.0-r1.apk"
+APK_OUTPUT="$REPO_ROOT/Moonfin_FireTV32_Unofficial_1.1.0-r2.apk"
 
 for variable in \
   MOONFIN_KEYSTORE_FILE \
@@ -20,12 +20,13 @@ done
 cd "$REPO_ROOT"
 
 "$FLUTTER_BIN" --version
+"$FLUTTER_BIN" clean
 "$FLUTTER_BIN" pub get
 "$FLUTTER_BIN" build apk \
   --release \
   --target-platform android-arm \
   --build-name 1.1.0 \
-  --build-number 3000008
+  --build-number 3000009
 
 if [ ! -f "$APK_SOURCE" ]; then
   echo "APK not found at $APK_SOURCE" >&2

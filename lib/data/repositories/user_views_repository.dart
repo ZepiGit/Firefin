@@ -5,10 +5,14 @@ import '../models/aggregated_library.dart';
 class UserViewsRepository {
   final MediaServerClient _client;
   UserConfiguration? _cachedConfig;
+  Future<List<AggregatedLibrary>>? _inFlightViews;
 
   UserViewsRepository(this._client);
 
-  Future<List<AggregatedLibrary>> getAllViews() async {
+  Future<List<AggregatedLibrary>> getAllViews() => _inFlightViews ??=
+      _loadAllViews().whenComplete(() => _inFlightViews = null);
+
+  Future<List<AggregatedLibrary>> _loadAllViews() async {
     final response = await _client.userViewsApi.getUserViews();
     final items = response['Items'] as List? ?? [];
 

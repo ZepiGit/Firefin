@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -75,6 +76,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
   String? _backdropUrl;
   bool _themeMusicStarted = false;
   String? _selectedMediaSourceId;
+  final _navigationFocusAllowed = ValueNotifier<bool>(true);
 
   @override
   void initState() {
@@ -135,6 +137,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
     _viewModel.removeListener(_onChanged);
     _prefs.removeListener(_onPrefsChanged);
     _viewModel.dispose();
+    _navigationFocusAllowed.dispose();
     super.dispose();
   }
 
@@ -186,7 +189,11 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: NavigationLayout(showBackButton: true, child: _buildBody(context)),
+      body: NavigationLayout(
+        showBackButton: true,
+        navigationFocusAllowed: _navigationFocusAllowed,
+        child: _buildBody(context),
+      ),
     );
   }
 
@@ -218,6 +225,7 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
         prefs: _prefs,
         backdropUrl: _backdropUrl,
         selectedMediaSourceId: _selectedMediaSourceId,
+        navigationFocusAllowed: _navigationFocusAllowed,
         onSelectedMediaSourceChanged: (id) =>
             setState(() => _selectedMediaSourceId = id),
       ),
@@ -225,11 +233,12 @@ class _ItemDetailScreenState extends State<ItemDetailScreen>
   }
 }
 
-class _DetailContent extends StatelessWidget {
+class _DetailContent extends StatefulWidget {
   final ItemDetailViewModel viewModel;
   final UserPreferences prefs;
   final String? backdropUrl;
   final String? selectedMediaSourceId;
+  final ValueNotifier<bool> navigationFocusAllowed;
   final ValueChanged<String?> onSelectedMediaSourceChanged;
 
   const _DetailContent({
@@ -237,8 +246,257 @@ class _DetailContent extends StatelessWidget {
     required this.prefs,
     this.backdropUrl,
     this.selectedMediaSourceId,
+    required this.navigationFocusAllowed,
     required this.onSelectedMediaSourceChanged,
   });
+
+  @override
+  State<_DetailContent> createState() => _DetailContentState();
+}
+
+class _DetailContentState extends State<_DetailContent> {
+  static const _topEpsilon = 0.5;
+  final _scrollController = ScrollController();
+  final _contentFocusNode = FocusNode(
+    debugLabel: 'DetailContentRoot',
+    skipTraversal: true,
+  );
+  final _primaryActionFocusNode = FocusNode(debugLabel: 'DetailPrimaryAction');
+  ScrollPosition? _observedPosition;
+  bool _isScrollingToTop = false;
+  bool _consumeUpUntilRelease = false;
+  int _scrollGeneration = 0;
+
+  ItemDetailViewModel get viewModel => widget.viewModel;
+  UserPreferences get prefs => widget.prefs;
+  String? get selectedMediaSourceId => widget.selectedMediaSourceId;
+  ValueChanged<String?> get onSelectedMediaSourceChanged =>
+      widget.onSelectedMediaSourceChanged;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScrollChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _attachPosition());
+  }
+
+  @override
+  void didUpdateWidget(covariant _DetailContent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(
+      oldWidget.navigationFocusAllowed,
+      widget.navigationFocusAllowed,
+    )) {
+      oldWidget.navigationFocusAllowed.value = true;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) => _attachPosition());
+  }
+
+  @override
+  void dispose() {
+    _scrollGeneration++;
+    _observedPosition?.isScrollingNotifier.removeListener(_onScrollChanged);
+    widget.navigationFocusAllowed.value = true;
+    _scrollController.removeListener(_onScrollChanged);
+    _scrollController.dispose();
+    _contentFocusNode.dispose();
+    _primaryActionFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _attachPosition() {
+    if (!mounted || !_scrollController.hasClients) {
+      _syncNavigationFocus();
+      return;
+    }
+    final position = _scrollController.position;
+    if (!identical(position, _observedPosition)) {
+      _observedPosition?.isScrollingNotifier.removeListener(_onScrollChanged);
+      _observedPosition = position;
+      position.isScrollingNotifier.addListener(_onScrollChanged);
+    }
+    _syncNavigationFocus();
+  }
+
+  bool get _isAtTop {
+    if (!_scrollController.hasClients) return true;
+    final position = _scrollController.position;
+    return position.pixels <= position.minScrollExtent + _topEpsilon;
+  }
+
+  bool get _isScrollSettled =>
+      !_scrollController.hasClients ||
+      !_scrollController.position.isScrollingNotifier.value;
+
+  void _onScrollChanged() => _syncNavigationFocus();
+
+  void _syncNavigationFocus() {
+    if (!mounted) return;
+    final allowed =
+        _isAtTop &&
+        _isScrollSettled &&
+        !_isScrollingToTop &&
+        !_consumeUpUntilRelease;
+    if (widget.navigationFocusAllowed.value != allowed) {
+      widget.navigationFocusAllowed.value = allowed;
+    }
+  }
+
+  KeyEventResult _onDetailKeyEvent(FocusNode node, KeyEvent event) {
+    final key = event.logicalKey;
+    final isDirectional =
+        key == LogicalKeyboardKey.arrowUp ||
+        key == LogicalKeyboardKey.arrowDown ||
+        key == LogicalKeyboardKey.arrowLeft ||
+        key == LogicalKeyboardKey.arrowRight;
+
+    if (_isScrollingToTop &&
+        isDirectional &&
+        key != LogicalKeyboardKey.arrowUp &&
+        event is KeyDownEvent) {
+      _cancelScrollToTop();
+      return KeyEventResult.ignored;
+    }
+
+    if (key != LogicalKeyboardKey.arrowUp) {
+      return KeyEventResult.ignored;
+    }
+
+    if (event is KeyUpEvent) {
+      if (!_consumeUpUntilRelease) return KeyEventResult.ignored;
+      _consumeUpUntilRelease = false;
+      _syncNavigationFocus();
+      return KeyEventResult.handled;
+    }
+
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+      return KeyEventResult.ignored;
+    }
+
+    if (_consumeUpUntilRelease) {
+      // A fresh KeyDown after reaching the top means the matching KeyUp was
+      // lost by the platform. Treat it as a new press; KeyRepeat stays gated.
+      if (event is KeyDownEvent &&
+          !_isScrollingToTop &&
+          _isAtTop &&
+          _isScrollSettled) {
+        _consumeUpUntilRelease = false;
+        _syncNavigationFocus();
+      } else {
+        return KeyEventResult.handled;
+      }
+    }
+
+    if (!_isAtTop || !_isScrollSettled || _isScrollingToTop) {
+      _consumeUpUntilRelease = true;
+      _syncNavigationFocus();
+      _startScrollToTop();
+      return KeyEventResult.handled;
+    }
+
+    final primary = FocusManager.instance.primaryFocus;
+    if (identical(primary, _primaryActionFocusNode) ||
+        identical(primary, _contentFocusNode)) {
+      final focusNavbar = NavigationLayout.focusNavbarNotifier.value;
+      if (focusNavbar != null) {
+        focusNavbar();
+        return KeyEventResult.handled;
+      }
+    }
+    return KeyEventResult.ignored;
+  }
+
+  void _cancelScrollToTop() {
+    _scrollGeneration++;
+    _isScrollingToTop = false;
+    _consumeUpUntilRelease = false;
+    if (_scrollController.hasClients) {
+      final position = _scrollController.position;
+      _scrollController.jumpTo(position.pixels);
+    }
+    _syncNavigationFocus();
+  }
+
+  void _startScrollToTop() {
+    if (_isScrollingToTop || !_scrollController.hasClients) return;
+    final generation = ++_scrollGeneration;
+    _isScrollingToTop = true;
+    _syncNavigationFocus();
+    unawaited(_scrollToTopAndSettle(generation));
+  }
+
+  Future<void> _scrollToTopAndSettle(int generation) async {
+    try {
+      while (mounted &&
+          generation == _scrollGeneration &&
+          _scrollController.hasClients) {
+        final position = _scrollController.position;
+        if (position.pixels > position.minScrollExtent + _topEpsilon) {
+          await _scrollController.animateTo(
+            position.minScrollExtent,
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+          );
+          continue;
+        }
+
+        if (position.isScrollingNotifier.value) {
+          await _waitForScrollEnd(position);
+          continue;
+        }
+
+        await WidgetsBinding.instance.endOfFrame;
+        if (!mounted ||
+            generation != _scrollGeneration ||
+            !_scrollController.hasClients) {
+          return;
+        }
+        final settledPosition = _scrollController.position;
+        if (settledPosition.pixels <=
+                settledPosition.minScrollExtent + _topEpsilon &&
+            !settledPosition.isScrollingNotifier.value) {
+          break;
+        }
+      }
+
+      if (!mounted || generation != _scrollGeneration) return;
+      _isScrollingToTop = false;
+      _focusTopContent();
+      _syncNavigationFocus();
+    } catch (_) {
+      if (!mounted || generation != _scrollGeneration) return;
+      _isScrollingToTop = false;
+      _syncNavigationFocus();
+    }
+  }
+
+  Future<void> _waitForScrollEnd(ScrollPosition position) async {
+    if (!position.isScrollingNotifier.value) return;
+    final completer = Completer<void>();
+    void listener() {
+      if (!position.isScrollingNotifier.value && !completer.isCompleted) {
+        completer.complete();
+      }
+    }
+
+    position.isScrollingNotifier.addListener(listener);
+    try {
+      if (!position.isScrollingNotifier.value && !completer.isCompleted) {
+        completer.complete();
+      }
+      await completer.future;
+    } finally {
+      position.isScrollingNotifier.removeListener(listener);
+    }
+  }
+
+  void _focusTopContent() {
+    if (_primaryActionFocusNode.context != null) {
+      _primaryActionFocusNode.requestFocus();
+    } else {
+      _contentFocusNode.requestFocus();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -262,41 +520,48 @@ class _DetailContent extends StatelessWidget {
         ? MediaQuery.paddingOf(context).top + toolbarHeight
         : 0.0;
 
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        if (backdropEnabled)
-          _Backdrop(url: backdropUrl, blurAmount: blurAmount),
-        const _GradientScrim(),
-        Positioned.fill(
-          top: toolbarSafeTop,
-          child: CustomScrollView(
-            slivers: [
-              if (item.type != 'Person' &&
-                  item.type != 'MusicArtist' &&
-                  item.type != 'MusicAlbum' &&
-                  item.type != 'Playlist')
-                SliverToBoxAdapter(
-                  child: _HeaderSection(
-                    viewModel: viewModel,
-                    prefs: prefs,
-                    selectedMediaSource: selectedMediaSource,
+    WidgetsBinding.instance.addPostFrameCallback((_) => _attachPosition());
+
+    return Focus(
+      focusNode: _contentFocusNode,
+      onKeyEvent: _onDetailKeyEvent,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (backdropEnabled)
+            _Backdrop(url: widget.backdropUrl, blurAmount: blurAmount),
+          const _GradientScrim(),
+          Positioned.fill(
+            top: toolbarSafeTop,
+            child: CustomScrollView(
+              controller: _scrollController,
+              slivers: [
+                if (item.type != 'Person' &&
+                    item.type != 'MusicArtist' &&
+                    item.type != 'MusicAlbum' &&
+                    item.type != 'Playlist')
+                  SliverToBoxAdapter(
+                    child: _HeaderSection(
+                      viewModel: viewModel,
+                      prefs: prefs,
+                      selectedMediaSource: selectedMediaSource,
+                    ),
+                  ),
+                SliverPadding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: _isCompact(context) ? 16 : 48,
+                  ),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate(
+                      _buildContentForType(context, item),
+                    ),
                   ),
                 ),
-              SliverPadding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: _isCompact(context) ? 16 : 48,
-                ),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate(
-                    _buildContentForType(context, item),
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -334,6 +599,7 @@ class _DetailContent extends StatelessWidget {
     return [
       _ActionButtons(
         viewModel: viewModel,
+        primaryActionFocusNode: _primaryActionFocusNode,
         selectedMediaSourceId: selectedMediaSourceId,
         onSelectedMediaSourceChanged: onSelectedMediaSourceChanged,
       ),
@@ -371,6 +637,7 @@ class _DetailContent extends StatelessWidget {
     return [
       _ActionButtons(
         viewModel: viewModel,
+        primaryActionFocusNode: _primaryActionFocusNode,
         selectedMediaSourceId: selectedMediaSourceId,
         onSelectedMediaSourceChanged: onSelectedMediaSourceChanged,
       ),
@@ -427,6 +694,7 @@ class _DetailContent extends StatelessWidget {
     return [
       _ActionButtons(
         viewModel: viewModel,
+        primaryActionFocusNode: _primaryActionFocusNode,
         selectedMediaSourceId: selectedMediaSourceId,
         onSelectedMediaSourceChanged: onSelectedMediaSourceChanged,
       ),
@@ -484,6 +752,7 @@ class _DetailContent extends StatelessWidget {
     return [
       _ActionButtons(
         viewModel: viewModel,
+        primaryActionFocusNode: _primaryActionFocusNode,
         selectedMediaSourceId: selectedMediaSourceId,
         onSelectedMediaSourceChanged: onSelectedMediaSourceChanged,
       ),
@@ -506,6 +775,7 @@ class _DetailContent extends StatelessWidget {
     return [
       _ActionButtons(
         viewModel: viewModel,
+        primaryActionFocusNode: _primaryActionFocusNode,
         selectedMediaSourceId: selectedMediaSourceId,
         onSelectedMediaSourceChanged: onSelectedMediaSourceChanged,
       ),
@@ -1768,11 +2038,13 @@ class _MetadataRow extends StatelessWidget {
 
 class _ActionButtons extends StatefulWidget {
   final ItemDetailViewModel viewModel;
+  final FocusNode? primaryActionFocusNode;
   final String? selectedMediaSourceId;
   final ValueChanged<String?> onSelectedMediaSourceChanged;
 
   const _ActionButtons({
     required this.viewModel,
+    this.primaryActionFocusNode,
     this.selectedMediaSourceId,
     required this.onSelectedMediaSourceChanged,
   });
@@ -1881,6 +2153,8 @@ class _ActionButtonsState extends State<_ActionButtons> {
 
     final allButtons = <Widget>[
       _DetailActionButton(
+        key: const ValueKey('detail-action-primary'),
+        focusNode: widget.primaryActionFocusNode,
         label: isPhoto
             ? 'View'
             : isBook
@@ -1897,12 +2171,14 @@ class _ActionButtonsState extends State<_ActionButtons> {
       ),
       if (hasProgress && !isPhoto)
         _DetailActionButton(
+          key: const ValueKey('detail-action-restart'),
           label: isBook ? 'Start Over' : 'Restart',
           icon: Icons.restart_alt,
           onPressed: () => _play(context, item),
         ),
       if (_offlineRow != null)
         _DetailActionButton(
+          key: const ValueKey('detail-action-offline'),
           label: isBook ? 'Read Offline' : 'Play Offline',
           icon: isBook ? Icons.menu_book : Icons.offline_pin,
           onPressed: () async {
@@ -1925,12 +2201,14 @@ class _ActionButtonsState extends State<_ActionButtons> {
         ),
       if (audioStreams.length > 1)
         _DetailActionButton(
+          key: const ValueKey('detail-action-audio'),
           label: 'Audio',
           icon: Icons.audiotrack,
           onPressed: () => _showAudioSelector(context, audioStreams),
         ),
       if (subtitleStreams.isNotEmpty || _canDownloadRemoteSubtitles(item))
         _DetailActionButton(
+          key: const ValueKey('detail-action-subtitles'),
           label: 'Subtitles',
           icon: Icons.subtitles,
           onPressed: () => _showSubtitleSelector(
@@ -1942,6 +2220,7 @@ class _ActionButtonsState extends State<_ActionButtons> {
         ),
       if (item.mediaSources.length > 1)
         _DetailActionButton(
+          key: const ValueKey('detail-action-version'),
           label: 'Version',
           icon: Icons.video_file,
           onPressed: () => _showVersionSelector(context, item.mediaSources),
@@ -1950,18 +2229,21 @@ class _ActionButtonsState extends State<_ActionButtons> {
         ),
       if (!isBook)
         _DetailActionButton(
+          key: const ValueKey('detail-action-cast'),
           label: 'Cast',
           icon: Icons.cast,
           onPressed: () => _castToDevice(context, item),
         ),
       if (_hasTrailer(item))
         _DetailActionButton(
+          key: const ValueKey('detail-action-trailer'),
           label: 'Trailer',
           icon: Icons.movie_outlined,
           onPressed: () => _playTrailer(context, item),
         ),
       if (!isBook)
         _DetailActionButton(
+          key: const ValueKey('detail-action-watched'),
           label: item.isPlayed ? 'Watched' : 'Unwatched',
           icon: item.isPlayed ? Icons.check_circle : Icons.check_circle_outline,
           onPressed: viewModel.togglePlayed,
@@ -1969,6 +2251,7 @@ class _ActionButtonsState extends State<_ActionButtons> {
           activeColor: const Color(0xFF00A4DC),
         ),
       _DetailActionButton(
+        key: const ValueKey('detail-action-favorite'),
         label: item.isFavorite ? 'Favorited' : 'Favorite',
         icon: Icons.favorite,
         onPressed: viewModel.toggleFavorite,
@@ -1977,17 +2260,26 @@ class _ActionButtonsState extends State<_ActionButtons> {
       ),
       if (!isBook)
         _DetailActionButton(
+          key: const ValueKey('detail-action-playlist'),
           label: 'Playlist',
           icon: Icons.playlist_add,
           onPressed: () =>
               AddToPlaylistDialog.show(context, itemIds: [item.id]),
         ),
       if (_isDownloadable(item.type) && _canUserDownload())
-        _DownloadButton(item: item, viewModel: viewModel),
+        _DownloadButton(
+          key: const ValueKey('detail-action-download'),
+          item: item,
+          viewModel: viewModel,
+        ),
       if (_isDownloadable(item.type) && _canUserDownload())
-        _DeleteDownloadButton(item: item),
+        _DeleteDownloadButton(
+          key: const ValueKey('detail-action-delete-download'),
+          item: item,
+        ),
       if (item.type == 'Episode' && item.seriesId != null)
         _DetailActionButton(
+          key: const ValueKey('detail-action-series'),
           label: 'Go to Series',
           icon: Icons.tv,
           onPressed: () => context.push(
@@ -1998,6 +2290,7 @@ class _ActionButtonsState extends State<_ActionButtons> {
               false) &&
           GetIt.instance<MediaServerClient>().serverType == ServerType.jellyfin)
         _DetailActionButton(
+          key: const ValueKey('detail-action-edit-metadata'),
           label: 'Edit Metadata',
           icon: Icons.edit_note,
           onPressed: () => context.push(Destinations.adminMetadata(item.id)),
@@ -2033,6 +2326,7 @@ class _ActionButtonsState extends State<_ActionButtons> {
             children: [
               ...primaryButtons,
               _DetailActionButton(
+                key: const ValueKey('detail-action-overflow'),
                 label: _expanded ? 'Less' : 'More',
                 icon: _expanded ? Icons.expand_less : Icons.expand_more,
                 onPressed: () => setState(() => _expanded = !_expanded),
@@ -2808,7 +3102,11 @@ class _DownloadButton extends StatefulWidget {
   final AggregatedItem item;
   final ItemDetailViewModel viewModel;
 
-  const _DownloadButton({required this.item, required this.viewModel});
+  const _DownloadButton({
+    super.key,
+    required this.item,
+    required this.viewModel,
+  });
 
   @override
   State<_DownloadButton> createState() => _DownloadButtonState();
@@ -3082,7 +3380,7 @@ class _DownloadButtonState extends State<_DownloadButton> {
 class _DeleteDownloadButton extends StatefulWidget {
   final AggregatedItem item;
 
-  const _DeleteDownloadButton({required this.item});
+  const _DeleteDownloadButton({super.key, required this.item});
 
   @override
   State<_DeleteDownloadButton> createState() => _DeleteDownloadButtonState();
@@ -3198,13 +3496,16 @@ class _DetailActionButton extends StatefulWidget {
   final VoidCallback onPressed;
   final bool isActive;
   final Color? activeColor;
+  final FocusNode? focusNode;
 
   const _DetailActionButton({
+    super.key,
     required this.label,
     required this.icon,
     required this.onPressed,
     this.isActive = false,
     this.activeColor,
+    this.focusNode,
   });
 
   @override
@@ -3235,6 +3536,7 @@ class _DetailActionButtonState extends State<_DetailActionButton>
       onEnter: (_) => setHovered(true),
       onExit: (_) => setHovered(false),
       child: Focus(
+        focusNode: widget.focusNode,
         onFocusChange: (focused) => setFocused(focused),
         onKeyEvent: (_, event) {
           if (event is KeyDownEvent &&

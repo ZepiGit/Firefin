@@ -304,6 +304,104 @@ class _SliderPreferenceTileState extends State<SliderPreferenceTile> {
   }
 }
 
+class DoubleSliderPreferenceTile extends StatefulWidget {
+  final Preference<double> preference;
+  final String title;
+  final IconData? icon;
+  final double min;
+  final double max;
+  final int? divisions;
+  final String Function(double value)? labelOf;
+  final VoidCallback? onChangeEnd;
+
+  const DoubleSliderPreferenceTile({
+    super.key,
+    required this.preference,
+    required this.title,
+    this.icon,
+    required this.min,
+    required this.max,
+    this.divisions,
+    this.labelOf,
+    this.onChangeEnd,
+  });
+
+  @override
+  State<DoubleSliderPreferenceTile> createState() =>
+      _DoubleSliderPreferenceTileState();
+}
+
+class _DoubleSliderPreferenceTileState
+    extends State<DoubleSliderPreferenceTile> {
+  late final PreferenceBinding<double> _binding;
+
+  @override
+  void initState() {
+    super.initState();
+    _binding = PreferenceBinding(
+      GetIt.instance<PreferenceStore>(),
+      widget.preference,
+    );
+  }
+
+  @override
+  void dispose() {
+    _binding.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<double>(
+      valueListenable: _binding,
+      builder: (context, value, _) {
+        final slider = Slider(
+          value: value.clamp(widget.min, widget.max),
+          min: widget.min,
+          max: widget.max,
+          divisions: widget.divisions,
+          label: widget.labelOf?.call(value) ?? value.toString(),
+          onChanged: (next) => _binding.value = next,
+          onChangeEnd: (_) => widget.onChangeEnd?.call(),
+        );
+        final tile = ListTile(
+          leading: widget.icon != null ? Icon(widget.icon) : null,
+          title: Text(widget.title),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (widget.labelOf != null) Text(widget.labelOf!(value)),
+              if (PlatformDetection.useLeanbackUi)
+                ExcludeFocus(child: IgnorePointer(child: slider))
+              else
+                slider,
+            ],
+          ),
+        );
+
+        if (!PlatformDetection.useLeanbackUi) return tile;
+
+        void changeBy(int direction) {
+          final step = widget.divisions != null && widget.divisions! > 0
+              ? (widget.max - widget.min) / widget.divisions!
+              : 1.0;
+          final next = (value + direction * step).clamp(widget.min, widget.max);
+          if ((next - value).abs() < 0.000001) return;
+          _binding.value = next;
+          widget.onChangeEnd?.call();
+        }
+
+        return _TvPreferenceSurface(
+          onLeft: () => changeBy(-1),
+          onRight: () => changeBy(1),
+          semanticLabel: widget.title,
+          child: tile,
+        );
+      },
+    );
+  }
+}
+
 class StringPickerPreferenceTile extends StatefulWidget {
   final Preference<String> preference;
   final String title;

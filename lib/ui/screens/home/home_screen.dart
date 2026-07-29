@@ -674,6 +674,9 @@ class _ContentRowsState extends State<_ContentRows>
   }
 
   bool _isMediaBarIncluded() {
+    if (PlatformDetection.isAndroid && PlatformDetection.useLeanbackUi) {
+      return false;
+    }
     if (!widget.prefs.get(UserPreferences.mediaBarEnabled)) {
       return false;
     }
@@ -1117,9 +1120,7 @@ class _ContentRowsState extends State<_ContentRows>
     bool useSeriesThumbs,
   ) {
     final maxH = (height * 2).toInt();
-    if (useSeriesThumbs &&
-        item.type == 'Episode' &&
-        item.seriesId != null) {
+    if (useSeriesThumbs && item.type == 'Episode' && item.seriesId != null) {
       return imageApi.getPrimaryImageUrl(
         item.seriesId!,
         maxHeight: maxH,
@@ -1134,10 +1135,7 @@ class _ContentRowsState extends State<_ContentRows>
       );
     }
     if (item.type == 'Episode' && item.seriesId != null) {
-      return imageApi.getPrimaryImageUrl(
-        item.seriesId!,
-        maxHeight: maxH,
-      );
+      return imageApi.getPrimaryImageUrl(item.seriesId!, maxHeight: maxH);
     }
     return imageApi.getPrimaryImageUrl(item.id, maxHeight: maxH);
   }

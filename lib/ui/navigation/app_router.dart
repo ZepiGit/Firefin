@@ -275,7 +275,7 @@ final appRouter = GoRouter(
         final itemId = state.pathParameters['itemId']!;
         final serverId = state.uri.queryParameters['serverId'];
         return ItemDetailScreen(
-          key: ValueKey(itemId),
+          key: ValueKey('${serverId ?? 'default'}:$itemId'),
           itemId: itemId,
           serverId: serverId,
         );

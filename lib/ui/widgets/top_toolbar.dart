@@ -19,6 +19,7 @@ import '../../util/platform_detection.dart';
 import '../navigation/destinations.dart';
 import '../navigation/home_refresh_bus.dart';
 import 'expandable_icon_button.dart';
+import 'navigation_layout.dart';
 import 'seerr_icons.dart';
 import 'shuffle_options_dialog.dart';
 import 'user_menu_dialog.dart';
@@ -51,6 +52,9 @@ class _TopToolbarState extends State<TopToolbar> {
   final _pluginSync = GetIt.instance<PluginSyncService>();
 
   final _avatarFocus = FocusNode();
+  final _homeFocus = FocusNode(debugLabel: 'TopToolbarHome');
+  late final VoidCallback _focusNavbarCallback;
+  VoidCallback? _previousFocusNavbarCallback;
   List<AggregatedLibrary> _libraries = [];
   Timer? _clockTimer;
   String _currentTime = '';
@@ -60,6 +64,12 @@ class _TopToolbarState extends State<TopToolbar> {
   @override
   void initState() {
     super.initState();
+    _focusNavbarCallback = () {
+      if (!mounted || _homeFocus.context == null) return;
+      _homeFocus.requestFocus();
+    };
+    _previousFocusNavbarCallback = NavigationLayout.focusNavbarNotifier.value;
+    NavigationLayout.focusNavbarNotifier.value = _focusNavbarCallback;
     _updateClock();
     _clockTimer = Timer.periodic(
       const Duration(seconds: 30),
@@ -76,6 +86,13 @@ class _TopToolbarState extends State<TopToolbar> {
   void dispose() {
     _clockTimer?.cancel();
     _avatarFocus.dispose();
+    _homeFocus.dispose();
+    if (identical(
+      NavigationLayout.focusNavbarNotifier.value,
+      _focusNavbarCallback,
+    )) {
+      NavigationLayout.focusNavbarNotifier.value = _previousFocusNavbarCallback;
+    }
     _userSub?.cancel();
     _prefs.removeListener(_onPrefsChanged);
     _pluginSync.removeListener(_onPluginSyncChanged);
@@ -364,6 +381,7 @@ class _TopToolbarState extends State<TopToolbar> {
                 child: ExpandableIconButton(
                   icon: Icons.home_rounded,
                   label: 'Home',
+                  focusNode: _homeFocus,
                   isActive: _isActive(Destinations.home),
                   onPressed: () {
                     if (_isActive(Destinations.home)) {

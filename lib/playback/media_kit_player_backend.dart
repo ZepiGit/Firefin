@@ -85,7 +85,9 @@ class MediaKitPlayerBackend implements PlayerBackend {
   VideoController get videoController => _videoController;
 
   @override
-  Map<String, dynamic> getDeviceProfile({bool useProgressiveTranscode = false}) {
+  Map<String, dynamic> getDeviceProfile({
+    bool useProgressiveTranscode = false,
+  }) {
     final maxBitrate = int.tryParse(_prefs.get(UserPreferences.maxBitrate));
     final ac3Enabled = _prefs.get(UserPreferences.ac3Enabled);
     final trueHdEnabled = _prefs.get(UserPreferences.trueHdEnabled);
@@ -93,7 +95,8 @@ class MediaKitPlayerBackend implements PlayerBackend {
         _prefs.get(UserPreferences.pgsDirectPlay) && canRenderBitmapSubtitles;
     final assDirectPlay = _prefs.get(UserPreferences.assDirectPlay);
     final stereoDownmix =
-        _prefs.get(UserPreferences.audioBehavior) == AudioBehavior.downmixToStereo;
+        _prefs.get(UserPreferences.audioBehavior) ==
+        AudioBehavior.downmixToStereo;
 
     return DeviceProfileBuilder.build(
       maxBitrateMbps: maxBitrate,
@@ -113,7 +116,7 @@ class MediaKitPlayerBackend implements PlayerBackend {
     await _configureAppleMobileLibassFont();
     await _applyCustomMpvConfIfEnabled();
     await _applyAssOverrideMode();
-    _player.open(Media(url));
+    await _player.open(Media(url));
     if (!_useLibass) {
       _enableNativeSubtitleRendering();
     }
@@ -159,7 +162,9 @@ class MediaKitPlayerBackend implements PlayerBackend {
         length: length,
       );
       final native = _player.platform as NativePlayer;
-      final unsafeAdvanced = _prefs.get(UserPreferences.customMpvConfUnsafeAdvanced);
+      final unsafeAdvanced = _prefs.get(
+        UserPreferences.customMpvConfUnsafeAdvanced,
+      );
 
       for (final parsed in parsedEntries) {
         final key = parsed.$1;
@@ -363,10 +368,7 @@ class MediaKitPlayerBackend implements PlayerBackend {
     'input-ipc-server',
   };
 
-  static const List<String> _deniedMpvPrefixes = [
-    'script-',
-    'ipc-',
-  ];
+  static const List<String> _deniedMpvPrefixes = ['script-', 'ipc-'];
 
   static const Set<String> _allowedMpvKeys = {
     'scale',
@@ -419,8 +421,9 @@ class MediaKitPlayerBackend implements PlayerBackend {
     }
     try {
       final supportDirectory = await getApplicationSupportDirectory();
-      final fontsDirectory =
-          Directory('${supportDirectory.path}/moonfin-subfonts');
+      final fontsDirectory = Directory(
+        '${supportDirectory.path}/moonfin-subfonts',
+      );
       await fontsDirectory.create(recursive: true);
 
       final fontFile = File('${fontsDirectory.path}/NotoSans-Regular.ttf');
@@ -534,7 +537,10 @@ class MediaKitPlayerBackend implements PlayerBackend {
       final tracks = _player.state.tracks.audio;
       AudioTrack? match;
       for (final t in tracks) {
-        if (t.id == id) { match = t; break; }
+        if (t.id == id) {
+          match = t;
+          break;
+        }
       }
       if (match != null) {
         await _player.setAudioTrack(match);
@@ -550,7 +556,10 @@ class MediaKitPlayerBackend implements PlayerBackend {
   }
 
   @override
-  Future<void> setSubtitleTrack(int mpvTrackId, {bool isBitmapSubtitle = false}) async {
+  Future<void> setSubtitleTrack(
+    int mpvTrackId, {
+    bool isBitmapSubtitle = false,
+  }) async {
     if (mpvTrackId < 1) return;
     final id = mpvTrackId.toString();
     try {
@@ -559,7 +568,10 @@ class MediaKitPlayerBackend implements PlayerBackend {
       final tracks = _player.state.tracks.subtitle;
       SubtitleTrack? match;
       for (final t in tracks) {
-        if (t.id == id) { match = t; break; }
+        if (t.id == id) {
+          match = t;
+          break;
+        }
       }
 
       if (match != null) {
@@ -591,8 +603,7 @@ class MediaKitPlayerBackend implements PlayerBackend {
       await _player.stream.tracks
           .firstWhere((t) => t.audio.isNotEmpty)
           .timeout(const Duration(seconds: 5));
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   @override
@@ -644,11 +655,15 @@ class MediaKitPlayerBackend implements PlayerBackend {
       }
       if (backgroundColor != null) {
         await native.setProperty(
-            'sub-back-color', _argbToMpvColor(backgroundColor));
+          'sub-back-color',
+          _argbToMpvColor(backgroundColor),
+        );
       }
       if (strokeColor != null) {
         await native.setProperty(
-            'sub-border-color', _argbToMpvColor(strokeColor));
+          'sub-border-color',
+          _argbToMpvColor(strokeColor),
+        );
         await native.setProperty('sub-border-size', '2');
       }
       if (fontSize != null) {

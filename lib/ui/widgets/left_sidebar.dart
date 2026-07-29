@@ -17,6 +17,7 @@ import '../../preference/user_preferences.dart';
 import '../../util/platform_detection.dart';
 import '../navigation/destinations.dart';
 import '../navigation/home_refresh_bus.dart';
+import 'navigation_layout.dart';
 import 'seerr_icons.dart';
 import 'shuffle_options_dialog.dart';
 import 'user_menu_dialog.dart';
@@ -31,7 +32,12 @@ class LeftSidebar extends StatefulWidget {
   final FocusNode? contentFocusNode;
   final bool showBackButton;
 
-  const LeftSidebar({super.key, this.activeRoute, this.contentFocusNode, this.showBackButton = false});
+  const LeftSidebar({
+    super.key,
+    this.activeRoute,
+    this.contentFocusNode,
+    this.showBackButton = false,
+  });
 
   @override
   State<LeftSidebar> createState() => _LeftSidebarState();
@@ -41,6 +47,9 @@ class _LeftSidebarState extends State<LeftSidebar> {
   final _userRepo = GetIt.instance<UserRepository>();
   final _prefs = GetIt.instance<UserPreferences>();
   final _sidebarFocus = FocusScopeNode(debugLabel: 'LeftSidebar');
+  final _homeFocusNode = FocusNode(debugLabel: 'LeftSidebarHome');
+  late final VoidCallback _focusNavbarCallback;
+  VoidCallback? _previousFocusNavbarCallback;
   final _scrollController = ScrollController();
 
   List<AggregatedLibrary> _libraries = [];
@@ -58,8 +67,18 @@ class _LeftSidebarState extends State<LeftSidebar> {
   @override
   void initState() {
     super.initState();
+    _focusNavbarCallback = () {
+      if (!mounted || _homeFocusNode.context == null) return;
+      _expand();
+      _homeFocusNode.requestFocus();
+    };
+    _previousFocusNavbarCallback = NavigationLayout.focusNavbarNotifier.value;
+    NavigationLayout.focusNavbarNotifier.value = _focusNavbarCallback;
     _updateClock();
-    _clockTimer = Timer.periodic(const Duration(seconds: 30), (_) => _updateClock());
+    _clockTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => _updateClock(),
+    );
     _loadUserImage();
     _userSub = _userRepo.currentUserStream.listen((_) => _loadUserImage());
     _prefs.addListener(_onPrefsChanged);
@@ -71,6 +90,13 @@ class _LeftSidebarState extends State<LeftSidebar> {
     _clockTimer?.cancel();
     _labelTimer?.cancel();
     _sidebarFocus.dispose();
+    _homeFocusNode.dispose();
+    if (identical(
+      NavigationLayout.focusNavbarNotifier.value,
+      _focusNavbarCallback,
+    )) {
+      NavigationLayout.focusNavbarNotifier.value = _previousFocusNavbarCallback;
+    }
     _scrollController.dispose();
     _userSub?.cancel();
     _prefs.removeListener(_onPrefsChanged);
@@ -91,7 +117,9 @@ class _LeftSidebarState extends State<LeftSidebar> {
       final hour = now.hour.toString().padLeft(2, '0');
       if (mounted) setState(() => _currentTime = '$hour:$minute');
     } else {
-      final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
+      final hour = now.hour > 12
+          ? now.hour - 12
+          : (now.hour == 0 ? 12 : now.hour);
       final period = now.hour >= 12 ? 'PM' : 'AM';
       if (mounted) setState(() => _currentTime = '$hour:$minute $period');
     }
@@ -114,7 +142,8 @@ class _LeftSidebarState extends State<LeftSidebar> {
   Future<void> _loadLibraries() async {
     try {
       final libs = _prefs.get(UserPreferences.enableMultiServerLibraries)
-          ? await GetIt.instance<MultiServerRepository>().getAggregatedLibraries()
+          ? await GetIt.instance<MultiServerRepository>()
+                .getAggregatedLibraries()
           : await GetIt.instance<UserViewsRepository>().getUserViews();
       if (mounted) setState(() => _libraries = libs);
     } catch (_) {}
@@ -177,7 +206,8 @@ class _LeftSidebarState extends State<LeftSidebar> {
   }
 
   KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
-    if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.arrowRight) {
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.arrowRight) {
       _collapse();
       widget.contentFocusNode?.requestFocus();
       return KeyEventResult.handled;
@@ -193,7 +223,9 @@ class _LeftSidebarState extends State<LeftSidebar> {
   }
 
   Widget _buildDrawerLayout() {
-    final expandedWidth = _isMobile ? _kExpandedWidthMobile : _kExpandedWidthDesktop;
+    final expandedWidth = _isMobile
+        ? _kExpandedWidthMobile
+        : _kExpandedWidthDesktop;
     return Stack(
       children: [
         if (_isExpanded)
@@ -223,14 +255,24 @@ class _LeftSidebarState extends State<LeftSidebar> {
                         end: Alignment.centerRight,
                         colors: [
                           _overlayColor().withValues(alpha: _overlayOpacity()),
-                          _overlayColor().withValues(alpha: _overlayOpacity() * 0.75),
+                          _overlayColor().withValues(
+                            alpha: _overlayOpacity() * 0.75,
+                          ),
                           Colors.transparent,
                         ],
                         stops: [0.0, 0.7, 1.0],
                       ),
-                color: _isMobile ? _overlayColor().withValues(alpha: _overlayOpacity()) : null,
+                color: _isMobile
+                    ? _overlayColor().withValues(alpha: _overlayOpacity())
+                    : null,
                 boxShadow: _isExpanded
-                    ? [BoxShadow(color: Colors.black.withValues(alpha: 0.6), blurRadius: 20, offset: const Offset(4, 0))]
+                    ? [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.6),
+                          blurRadius: 20,
+                          offset: const Offset(4, 0),
+                        ),
+                      ]
                     : null,
               ),
               child: _isMobile
@@ -305,7 +347,8 @@ class _LeftSidebarState extends State<LeftSidebar> {
     final showFolders = _prefs.get(UserPreferences.enableFolderView);
     final showSyncPlay = _prefs.get(UserPreferences.syncPlayEnabled);
     final clockBehavior = _prefs.get(UserPreferences.clockBehavior);
-    final showClock = clockBehavior == ClockBehavior.always ||
+    final showClock =
+        clockBehavior == ClockBehavior.always ||
         clockBehavior == ClockBehavior.inMenus;
 
     return Column(
@@ -320,6 +363,7 @@ class _LeftSidebarState extends State<LeftSidebar> {
               _SidebarItem(
                 icon: Icons.home_rounded,
                 label: 'Home',
+                focusNode: _homeFocusNode,
                 showLabel: _showLabels,
                 isActive: _isActive(Destinations.home),
                 onPressed: () {
@@ -337,7 +381,10 @@ class _LeftSidebarState extends State<LeftSidebar> {
                 label: 'Search',
                 showLabel: _showLabels,
                 isActive: _isActive(Destinations.search),
-                onPressed: () { _onNavigate(); context.push(Destinations.search); },
+                onPressed: () {
+                  _onNavigate();
+                  context.push(Destinations.search);
+                },
               ),
               if (showShuffle)
                 _SidebarItem(
@@ -364,7 +411,10 @@ class _LeftSidebarState extends State<LeftSidebar> {
                   label: 'Genres',
                   showLabel: _showLabels,
                   isActive: _isActive(Destinations.allGenres),
-                  onPressed: () { _onNavigate(); context.push(Destinations.allGenres); },
+                  onPressed: () {
+                    _onNavigate();
+                    context.push(Destinations.allGenres);
+                  },
                 ),
               if (showFavorites)
                 _SidebarItem(
@@ -372,7 +422,10 @@ class _LeftSidebarState extends State<LeftSidebar> {
                   label: 'Favorites',
                   showLabel: _showLabels,
                   isActive: _isActive(Destinations.allFavorites),
-                  onPressed: () { _onNavigate(); context.push(Destinations.allFavorites); },
+                  onPressed: () {
+                    _onNavigate();
+                    context.push(Destinations.allFavorites);
+                  },
                 ),
               if (showFolders)
                 _SidebarItem(
@@ -380,7 +433,10 @@ class _LeftSidebarState extends State<LeftSidebar> {
                   label: 'Folders',
                   showLabel: _showLabels,
                   isActive: _isActive(Destinations.folderView),
-                  onPressed: () { _onNavigate(); context.push(Destinations.folderView); },
+                  onPressed: () {
+                    _onNavigate();
+                    context.push(Destinations.folderView);
+                  },
                 ),
               if (showSyncPlay)
                 _SidebarItem(
@@ -391,22 +447,27 @@ class _LeftSidebarState extends State<LeftSidebar> {
                 ),
               if (GetIt.instance<PluginSyncService>().pluginAvailable &&
                   _prefs.get(UserPreferences.seerrEnabled))
-                Builder(builder: (context) {
-                  final seerrPrefs = GetIt.instance<SeerrPreferences>();
-                  final isSeerr = seerrPrefs.isSeerrVariant;
-                  final label = seerrPrefs.moonfinDisplayName.isNotEmpty
-                      ? seerrPrefs.moonfinDisplayName
-                      : (isSeerr ? 'Seerr' : 'Jellyseerr');
-                  return _SidebarItem(
-                    iconBuilder: (size, color) => isSeerr
-                        ? SeerrIcon(size: size, color: color)
-                        : JellyseerrIcon(size: size, color: color),
-                    label: label,
-                    showLabel: _showLabels,
-                    isActive: _isActive(Destinations.seerrDiscover),
-                    onPressed: () { _onNavigate(); context.push(Destinations.seerrDiscover); },
-                  );
-                }),
+                Builder(
+                  builder: (context) {
+                    final seerrPrefs = GetIt.instance<SeerrPreferences>();
+                    final isSeerr = seerrPrefs.isSeerrVariant;
+                    final label = seerrPrefs.moonfinDisplayName.isNotEmpty
+                        ? seerrPrefs.moonfinDisplayName
+                        : (isSeerr ? 'Seerr' : 'Jellyseerr');
+                    return _SidebarItem(
+                      iconBuilder: (size, color) => isSeerr
+                          ? SeerrIcon(size: size, color: color)
+                          : JellyseerrIcon(size: size, color: color),
+                      label: label,
+                      showLabel: _showLabels,
+                      isActive: _isActive(Destinations.seerrDiscover),
+                      onPressed: () {
+                        _onNavigate();
+                        context.push(Destinations.seerrDiscover);
+                      },
+                    );
+                  },
+                ),
               if (showLibraries && _libraries.isNotEmpty) ...[
                 _buildSeparator(),
                 _SidebarItem(
@@ -424,11 +485,15 @@ class _LeftSidebarState extends State<LeftSidebar> {
                       ? AnimatedRotation(
                           turns: _librariesExpanded ? 0.5 : 0,
                           duration: _kExpandDuration,
-                          child: Icon(Icons.expand_more, size: 16,
-                              color: Colors.white.withValues(alpha: 0.5)),
+                          child: Icon(
+                            Icons.expand_more,
+                            size: 16,
+                            color: Colors.white.withValues(alpha: 0.5),
+                          ),
                         )
                       : null,
-                  onPressed: () => setState(() => _librariesExpanded = !_librariesExpanded),
+                  onPressed: () =>
+                      setState(() => _librariesExpanded = !_librariesExpanded),
                 ),
                 AnimatedSize(
                   duration: const Duration(milliseconds: 250),
@@ -436,20 +501,22 @@ class _LeftSidebarState extends State<LeftSidebar> {
                   child: _librariesExpanded
                       ? Column(
                           children: _libraries
-                              .map((lib) => _SidebarLibraryItem(
-                                    label: lib.name,
-                                    showLabel: _showLabels,
-                                    onPressed: () {
-                                      _onNavigate();
-                                      if (lib.collectionType == 'music') {
-                                        context.push('/music/${lib.id}');
-                                      } else if (lib.collectionType == 'livetv') {
-                                        context.push(Destinations.liveTvGuide);
-                                      } else {
-                                        context.push('/library/${lib.id}');
-                                      }
-                                    },
-                                  ))
+                              .map(
+                                (lib) => _SidebarLibraryItem(
+                                  label: lib.name,
+                                  showLabel: _showLabels,
+                                  onPressed: () {
+                                    _onNavigate();
+                                    if (lib.collectionType == 'music') {
+                                      context.push('/music/${lib.id}');
+                                    } else if (lib.collectionType == 'livetv') {
+                                      context.push(Destinations.liveTvGuide);
+                                    } else {
+                                      context.push('/library/${lib.id}');
+                                    }
+                                  },
+                                ),
+                              )
                               .toList(),
                         )
                       : const SizedBox.shrink(),
@@ -466,7 +533,10 @@ class _LeftSidebarState extends State<LeftSidebar> {
             label: 'Settings',
             showLabel: _showLabels,
             isActive: _isActive(Destinations.settings),
-            onPressed: () { _onNavigate(); context.push(Destinations.settings); },
+            onPressed: () {
+              _onNavigate();
+              context.push(Destinations.settings);
+            },
           ),
         ),
         if (showClock && _showLabels)
@@ -498,17 +568,27 @@ class _LeftSidebarState extends State<LeftSidebar> {
 
   Widget _buildUserSection() {
     final user = _userRepo.currentUser;
-    final initial = (user?.name.isNotEmpty == true) ? user!.name[0].toUpperCase() : '?';
+    final initial = (user?.name.isNotEmpty == true)
+        ? user!.name[0].toUpperCase()
+        : '?';
     final fallback = Center(
-      child: Text(initial,
-          style: const TextStyle(
-              color: Colors.white, fontWeight: FontWeight.w600, fontSize: 18)),
+      child: Text(
+        initial,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          fontSize: 18,
+        ),
+      ),
     );
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 16, 8, 8),
       child: GestureDetector(
-        onTap: () { _onNavigate(); showUserMenu(context); },
+        onTap: () {
+          _onNavigate();
+          showUserMenu(context);
+        },
         child: Container(
           padding: const EdgeInsets.all(6),
           child: Row(
@@ -560,10 +640,7 @@ class _LeftSidebarState extends State<LeftSidebar> {
   Widget _buildSeparator() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      child: Container(
-        height: 1,
-        color: Colors.white.withValues(alpha: 0.1),
-      ),
+      child: Container(height: 1, color: Colors.white.withValues(alpha: 0.1)),
     );
   }
 }
@@ -577,6 +654,7 @@ class _SidebarItem extends StatefulWidget {
   final VoidCallback onPressed;
   final VoidCallback? onLongPress;
   final Widget? trailing;
+  final FocusNode? focusNode;
 
   const _SidebarItem({
     this.icon,
@@ -587,6 +665,7 @@ class _SidebarItem extends StatefulWidget {
     required this.onPressed,
     this.onLongPress,
     this.trailing,
+    this.focusNode,
   });
 
   @override
@@ -595,19 +674,22 @@ class _SidebarItem extends StatefulWidget {
 
 class _SidebarItemState extends State<_SidebarItem> {
   final _prefs = GetIt.instance<UserPreferences>();
-  final _focusNode = FocusNode();
+  late final FocusNode _focusNode;
   bool _isFocused = false;
   bool _isHovered = false;
 
   @override
   void initState() {
     super.initState();
-    _focusNode.addListener(() => setState(() => _isFocused = _focusNode.hasFocus));
+    _focusNode = widget.focusNode ?? FocusNode();
+    _focusNode.addListener(
+      () => setState(() => _isFocused = _focusNode.hasFocus),
+    );
   }
 
   @override
   void dispose() {
-    _focusNode.dispose();
+    if (widget.focusNode == null) _focusNode.dispose();
     super.dispose();
   }
 
@@ -618,8 +700,8 @@ class _SidebarItemState extends State<_SidebarItem> {
     final fgColor = widget.isActive
         ? _kAccent
         : highlighted
-            ? focusColor
-            : Colors.white.withValues(alpha: 0.6);
+        ? focusColor
+        : Colors.white.withValues(alpha: 0.6);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 1),
@@ -648,15 +730,17 @@ class _SidebarItemState extends State<_SidebarItem> {
                 color: highlighted
                     ? focusColor.withValues(alpha: 0.12)
                     : widget.isActive
-                        ? _kAccent.withValues(alpha: 0.15)
-                        : Colors.transparent,
+                    ? _kAccent.withValues(alpha: 0.15)
+                    : Colors.transparent,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 children: [
                   SizedBox(
                     width: 32,
-                    child: widget.iconBuilder?.call(24, fgColor) ?? Icon(widget.icon, size: 24, color: fgColor),
+                    child:
+                        widget.iconBuilder?.call(24, fgColor) ??
+                        Icon(widget.icon, size: 24, color: fgColor),
                   ),
                   if (widget.showLabel) ...[
                     const SizedBox(width: 12),
