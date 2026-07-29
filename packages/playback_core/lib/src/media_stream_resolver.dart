@@ -49,7 +49,10 @@ abstract class MediaStreamResolver {
     String url,
     Map<String, dynamic>? deviceProfile,
   ) {
-    if (deviceProfile?['Name'] != 'Moonfin for Fire TV (32-bit)') {
+    final isLegacyFireTv =
+        deviceProfile?['MoonfinLegacyFireTv'] == true ||
+        deviceProfile?['Name'] == 'Moonfin for Fire TV (32-bit)';
+    if (!isLegacyFireTv) {
       return url;
     }
 
