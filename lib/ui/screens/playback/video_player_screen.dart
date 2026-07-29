@@ -36,7 +36,8 @@ class VideoPlayerScreen extends StatefulWidget {
   State<VideoPlayerScreen> createState() => _VideoPlayerScreenState();
 }
 
-class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindingObserver {
+class _VideoPlayerScreenState extends State<VideoPlayerScreen>
+    with WidgetsBindingObserver {
   static final _camelCaseSpaceRe = RegExp(r'(?<=[a-z])(?=[A-Z])');
 
   final _manager = GetIt.instance<PlaybackManager>();
@@ -129,11 +130,19 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     _positionSub = _state.positionStream.listen(_onPositionUpdate);
     if (PlatformDetection.isAndroid || PlatformDetection.isIOS) {
       _castEventsSub = _nativeCast.googleCastEventStream().listen(
-        (e) => _onRemoteEvent(e, expectedKind: 'googleCast', castKind: CastTargetKind.googleCast),
+        (e) => _onRemoteEvent(
+          e,
+          expectedKind: 'googleCast',
+          castKind: CastTargetKind.googleCast,
+        ),
         onError: (_) {},
       );
       _dlnaEventsSub = _nativeDlna.dlnaEventStream().listen(
-        (e) => _onRemoteEvent(e, expectedKind: 'dlna', castKind: CastTargetKind.dlna),
+        (e) => _onRemoteEvent(
+          e,
+          expectedKind: 'dlna',
+          castKind: CastTargetKind.dlna,
+        ),
         onError: (_) {},
       );
       if (PlatformDetection.isIOS) {
@@ -208,7 +217,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     final kind = event['kind'] as String?;
     if (kind != 'airPlay') return;
 
-    _onRemoteEvent(event, expectedKind: 'airPlay', castKind: CastTargetKind.airPlay);
+    _onRemoteEvent(
+      event,
+      expectedKind: 'airPlay',
+      castKind: CastTargetKind.airPlay,
+    );
   }
 
   void _onRemoteEvent(
@@ -224,7 +237,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
       case 'connected':
         _castService.setActiveKind(castKind);
         _castService.remoteStateNotifier.value = null;
-        if (castKind == CastTargetKind.googleCast || castKind == CastTargetKind.dlna) {
+        if (castKind == CastTargetKind.googleCast ||
+            castKind == CastTargetKind.dlna) {
           _refreshRemoteVolume();
         }
         if (castKind == CastTargetKind.airPlay) {
@@ -252,8 +266,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
         }
       case 'error':
         if (mounted) {
-          final protocolLabel = castKind == CastTargetKind.googleCast ? 'Google Cast' : 'DLNA';
-          final message = event['message'] as String? ?? '$protocolLabel session error';
+          final protocolLabel = castKind == CastTargetKind.googleCast
+              ? 'Google Cast'
+              : 'DLNA';
+          final message =
+              event['message'] as String? ?? '$protocolLabel session error';
           _showThrottledCastError(message);
         }
     }
@@ -263,12 +280,16 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     final now = DateTime.now();
     final lastAt = _lastCastErrorAt;
     final repeated = _lastCastErrorMessage == message;
-    if (repeated && lastAt != null && now.difference(lastAt) < const Duration(seconds: 3)) {
+    if (repeated &&
+        lastAt != null &&
+        now.difference(lastAt) < const Duration(seconds: 3)) {
       return;
     }
     _lastCastErrorAt = now;
     _lastCastErrorMessage = message;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _refreshRemoteVolume() async {
@@ -433,8 +454,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
         )
         .catchError((_) {});
     _castService.remotePositionNotifier.value = ticks;
-    _castService.remoteStateNotifier.value =
-        _state.isBuffering ? 'buffering' : (_state.isPlaying ? 'playing' : 'paused');
+    _castService.remoteStateNotifier.value = _state.isBuffering
+        ? 'buffering'
+        : (_state.isPlaying ? 'playing' : 'paused');
   }
 
   void _checkSegments(Duration position) {
@@ -462,7 +484,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
 
   void _checkNextUp(Duration position) {
     final nextUpBehavior = _prefs.get(UserPreferences.nextUpBehavior);
-    if (nextUpBehavior == NextUpBehavior.disabled || _nextUpDismissed || _showNextUp) return;
+    if (nextUpBehavior == NextUpBehavior.disabled ||
+        _nextUpDismissed ||
+        _showNextUp) {
+      return;
+    }
 
     final duration = _state.duration;
     if (duration <= Duration.zero) return;
@@ -586,7 +612,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   void _seekRelative(int ms) {
     final target = _state.position + Duration(milliseconds: ms);
     final clamped = Duration(
-      milliseconds: target.inMilliseconds.clamp(0, _state.duration.inMilliseconds),
+      milliseconds: target.inMilliseconds.clamp(
+        0,
+        _state.duration.inMilliseconds,
+      ),
     );
     _manager.seekTo(clamped);
     _showControls();
@@ -596,7 +625,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     final h = d.inHours;
     final m = d.inMinutes.remainder(60);
     final s = d.inSeconds.remainder(60);
-    if (h > 0) return '$h:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+    if (h > 0) {
+      return '$h:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+    }
     return '$m:${s.toString().padLeft(2, '0')}';
   }
 
@@ -620,7 +651,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     // Offset 0.0 = bottom edge, 0.5 = halfway up.
     // Mobile: smaller base padding to keep subs near bottom.
     final basePadding = PlatformDetection.isMobile ? 16.0 : 24.0;
-    final bottomPadding = basePadding + (offset * MediaQuery.sizeOf(context).height * 0.5);
+    final bottomPadding =
+        basePadding + (offset * MediaQuery.sizeOf(context).height * 0.5);
 
     return SubtitleViewConfiguration(
       visible: true,
@@ -717,10 +749,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     if (_isInPiP) {
       return Scaffold(
         backgroundColor: Colors.black,
-        body: Stack(
-          fit: StackFit.expand,
-          children: [_buildVideoSurface()],
-        ),
+        body: Stack(fit: StackFit.expand, children: [_buildVideoSurface()]),
       );
     }
 
@@ -741,69 +770,69 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
             autofocus: true,
             onKeyEvent: _handleKeyEvent,
             child: GestureDetector(
-            onTap: _toggleControls,
-            onPanDown: (_) {
-              if (PlatformDetection.isDesktop) {
-                _showControls();
-              }
-            },
-            behavior: HitTestBehavior.opaque,
-            child: MouseRegion(
-              onHover: (_) {
+              onTap: _toggleControls,
+              onPanDown: (_) {
                 if (PlatformDetection.isDesktop) {
-                  if (_controlsVisible) {
-                    _scheduleHide();
-                  } else {
-                    _showControls();
-                  }
+                  _showControls();
                 }
               },
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                _buildVideoSurface(),
-                if (_isRestoringPosition)
-                  const Positioned.fill(
-                    child: ColoredBox(color: Colors.black),
-                  ),
-                _buildPausedDescriptionOverlay(),
-                if (_controlsVisible) ...[
-                  _buildTopOverlay(context),
-                  _buildBottomOverlay(context),
-                  Positioned.fill(
-                    child: Center(
-                      child: _buildCenterTransportControls(),
-                    ),
-                  ),
-                ],
-                _buildCastMiniBar(),
-                _buildBufferingIndicator(),
-                if (_skipSegment != null)
-                  SkipSegmentOverlay(
-                    segment: _skipSegment!,
-                    onSkip: _skipCurrentSegment,
-                    onDismiss: () => setState(() {
-                      _skipSegment = null;
-                      _skipTo = null;
-                    }),
-                  ),
-                  if (_showNextUp && _nextUpItem != null)
-                    NextUpOverlay(
-                      nextItem: _nextUpItem!,
-                      imageUrl: _nextUpItem!.primaryImageTag != null
-                          ? _clientForItem(_nextUpItem!).imageApi.getPrimaryImageUrl(
-                              _nextUpItem!.id,
-                              maxWidth: 400,
-                              tag: _nextUpItem!.primaryImageTag,
-                            )
-                          : null,
-                      timeoutMs: _prefs.get(UserPreferences.nextUpTimeout),
-                      onPlayNext: _handleNextUpPlay,
-                      onDismiss: _handleNextUpDismiss,
-                    ),
-                ],
+              behavior: HitTestBehavior.opaque,
+              child: MouseRegion(
+                onHover: (_) {
+                  if (PlatformDetection.isDesktop) {
+                    if (_controlsVisible) {
+                      _scheduleHide();
+                    } else {
+                      _showControls();
+                    }
+                  }
+                },
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    _buildVideoSurface(),
+                    if (_isRestoringPosition)
+                      const Positioned.fill(
+                        child: ColoredBox(color: Colors.black),
+                      ),
+                    _buildPausedDescriptionOverlay(),
+                    if (_controlsVisible) ...[
+                      _buildTopOverlay(context),
+                      _buildBottomOverlay(context),
+                      Positioned.fill(
+                        child: Center(child: _buildCenterTransportControls()),
+                      ),
+                    ],
+                    _buildCastMiniBar(),
+                    _buildBufferingIndicator(),
+                    if (_skipSegment != null)
+                      SkipSegmentOverlay(
+                        segment: _skipSegment!,
+                        onSkip: _skipCurrentSegment,
+                        onDismiss: () => setState(() {
+                          _skipSegment = null;
+                          _skipTo = null;
+                        }),
+                      ),
+                    if (_showNextUp && _nextUpItem != null)
+                      NextUpOverlay(
+                        nextItem: _nextUpItem!,
+                        imageUrl: _nextUpItem!.primaryImageTag != null
+                            ? _clientForItem(
+                                _nextUpItem!,
+                              ).imageApi.getPrimaryImageUrl(
+                                _nextUpItem!.id,
+                                maxWidth: 400,
+                                tag: _nextUpItem!.primaryImageTag,
+                              )
+                            : null,
+                        timeoutMs: _prefs.get(UserPreferences.nextUpTimeout),
+                        onPlayNext: _handleNextUpPlay,
+                        onDismiss: _handleNextUpDismiss,
+                      ),
+                  ],
+                ),
               ),
-            ),
             ),
           ),
         ),
@@ -935,16 +964,18 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     }
     if (item is Map) {
       return _firstNonEmptyText([
-        item['SeriesName'] as String?,
-        item['Name'] as String?,
-      ]) ?? '';
+            item['SeriesName'] as String?,
+            item['Name'] as String?,
+          ]) ??
+          '';
     }
     if (item is String) {
       final meta = _manager.currentOfflineMetadata;
       return _firstNonEmptyText([
-        meta?['SeriesName'] as String?,
-        meta?['Name'] as String?,
-      ]) ?? item.split('/').last;
+            meta?['SeriesName'] as String?,
+            meta?['Name'] as String?,
+          ]) ??
+          item.split('/').last;
     }
     return '';
   }
@@ -1002,7 +1033,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
             if (!PlatformDetection.useLeanbackUi)
               IconButton(
                 onPressed: _exitPlayback,
-                icon: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
+                icon: const Icon(
+                  Icons.arrow_back,
+                  color: Colors.white,
+                  size: 24,
+                ),
               ),
             const SizedBox(width: AppSpacing.spaceSm),
             Expanded(child: _buildTitleInfo()),
@@ -1038,8 +1073,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
       seriesName = meta?['SeriesName'] as String?;
       final idx = meta?['IndexNumber'] as int?;
       final parentIdx = meta?['ParentIndexNumber'] as int?;
-      episodeInfo =
-          idx != null ? 'S${parentIdx ?? '?'}:E$idx' : null;
+      episodeInfo = idx != null ? 'S${parentIdx ?? '?'}:E$idx' : null;
     } else {
       title = item.toString();
       seriesName = null;
@@ -1061,9 +1095,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
             overflow: TextOverflow.ellipsis,
           ),
         Text(
-          [if (episodeInfo != null) episodeInfo, title]
-              .where((s) => s.isNotEmpty)
-              .join(' — '),
+          [
+            if (episodeInfo != null) episodeInfo,
+            title,
+          ].where((s) => s.isNotEmpty).join(' — '),
           style: const TextStyle(
             color: Colors.white,
             fontSize: AppTypography.fontSizeLg,
@@ -1127,7 +1162,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
               onTap: _showCastControls,
               borderRadius: BorderRadius.circular(999),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFF1B5E20).withValues(alpha: 0.94),
                   borderRadius: BorderRadius.circular(999),
@@ -1135,7 +1173,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.cast_connected, color: Colors.white, size: 16),
+                    const Icon(
+                      Icons.cast_connected,
+                      color: Colors.white,
+                      size: 16,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       '$label$stateLabel$positionLabel',
@@ -1200,7 +1242,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
             final durationMs = math.max(duration.inMilliseconds, 1).toDouble();
             final double positionMs = _isSeeking
                 ? _seekValue
-                : position.inMilliseconds.clamp(0, duration.inMilliseconds).toDouble();
+                : position.inMilliseconds
+                      .clamp(0, duration.inMilliseconds)
+                      .toDouble();
 
             return Column(
               mainAxisSize: MainAxisSize.min,
@@ -1208,12 +1252,18 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                 SliderTheme(
                   data: SliderThemeData(
                     trackHeight: 4,
-                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
-                    overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                    thumbShape: const RoundSliderThumbShape(
+                      enabledThumbRadius: 7,
+                    ),
+                    overlayShape: const RoundSliderOverlayShape(
+                      overlayRadius: 14,
+                    ),
                     activeTrackColor: AppColorScheme.rangeProgress,
                     inactiveTrackColor: AppColorScheme.rangeTrack,
                     thumbColor: AppColorScheme.rangeThumb,
-                    overlayColor: AppColorScheme.rangeThumb.withValues(alpha: 0.2),
+                    overlayColor: AppColorScheme.rangeThumb.withValues(
+                      alpha: 0.2,
+                    ),
                   ),
                   child: Slider(
                     value: positionMs.clamp(0.0, durationMs),
@@ -1236,14 +1286,18 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.spaceLg),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.spaceLg,
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        _formatDuration(_isSeeking
-                            ? Duration(milliseconds: _seekValue.round())
-                            : position),
+                        _formatDuration(
+                          _isSeeking
+                              ? Duration(milliseconds: _seekValue.round())
+                              : position,
+                        ),
                         style: const TextStyle(
                           color: Colors.white70,
                           fontSize: AppTypography.fontSizeXs,
@@ -1278,11 +1332,15 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
             MediaQuery.of(context).orientation == Orientation.landscape;
         final secondaryIconSize = isLandscape ? 28.0 : 24.0;
         final secondaryExtent = isLandscape ? 56.0 : 48.0;
-        final secondaryTextSize =
-            isLandscape ? AppTypography.fontSizeMd : AppTypography.fontSizeSm;
+        final secondaryTextSize = isLandscape
+            ? AppTypography.fontSizeMd
+            : AppTypography.fontSizeSm;
 
         final secondaryButtons = <Widget>[
-          _buildSpeedButton(extent: secondaryExtent, textSize: secondaryTextSize),
+          _buildSpeedButton(
+            extent: secondaryExtent,
+            textSize: secondaryTextSize,
+          ),
           if (hasChapters)
             _controlButton(
               Icons.bookmark_outline_rounded,
@@ -1338,7 +1396,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
               size: secondaryIconSize,
               extent: secondaryExtent,
             ),
-          if (_manager.currentResolution?.playMethod == StreamPlayMethod.transcode)
+          if (_manager.currentResolution?.playMethod ==
+              StreamPlayMethod.transcode)
             _buildBitrateButton(
               extent: secondaryExtent,
               iconSize: secondaryIconSize,
@@ -1463,23 +1522,22 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
               ),
             _controlButton(
               Icons.replay_10_rounded,
-              onPressed: () => _seekRelative(
-                  -_prefs.get(UserPreferences.skipBackLength)),
+              onPressed: () =>
+                  _seekRelative(-_prefs.get(UserPreferences.skipBackLength)),
               size: 46,
               extent: 78,
             ),
             _controlButton(
               isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
               focusNode: _playPauseFocus,
-              onPressed: () =>
-                  isPlaying ? _manager.pause() : _manager.resume(),
+              onPressed: () => isPlaying ? _manager.pause() : _manager.resume(),
               size: 64,
               extent: 92,
             ),
             _controlButton(
               Icons.forward_30_rounded,
-              onPressed: () => _seekRelative(
-                  _prefs.get(UserPreferences.skipForwardLength)),
+              onPressed: () =>
+                  _seekRelative(_prefs.get(UserPreferences.skipForwardLength)),
               size: 46,
               extent: 78,
             ),
@@ -1503,31 +1561,40 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     double size = 24,
     double extent = 48,
   }) {
+    void activate() {
+      onPressed();
+      _showControls();
+    }
+
     return SizedBox(
       width: extent,
       height: extent,
-      child: IconButton(
-        focusNode: focusNode,
-        onPressed: () {
-          onPressed();
-          _showControls();
+      child: CallbackShortcuts(
+        bindings: <ShortcutActivator, VoidCallback>{
+          const SingleActivator(LogicalKeyboardKey.enter): activate,
+          const SingleActivator(LogicalKeyboardKey.select): activate,
+          const SingleActivator(LogicalKeyboardKey.gameButtonA): activate,
         },
-        style: ButtonStyle(
-          foregroundColor: WidgetStateProperty.resolveWith(
-            (states) => states.contains(WidgetState.focused)
-                ? Colors.black
-                : Colors.white,
+        child: IconButton(
+          focusNode: focusNode,
+          onPressed: activate,
+          style: ButtonStyle(
+            foregroundColor: WidgetStateProperty.resolveWith(
+              (states) => states.contains(WidgetState.focused)
+                  ? Colors.black
+                  : Colors.white,
+            ),
+            backgroundColor: WidgetStateProperty.resolveWith(
+              (states) => states.contains(WidgetState.focused)
+                  ? Colors.white
+                  : Colors.transparent,
+            ),
+            shape: const WidgetStatePropertyAll(CircleBorder()),
           ),
-          backgroundColor: WidgetStateProperty.resolveWith(
-            (states) => states.contains(WidgetState.focused)
-                ? Colors.white
-                : Colors.transparent,
-          ),
-          shape: const WidgetStatePropertyAll(CircleBorder()),
+          icon: Icon(icon, size: size),
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
         ),
-        icon: Icon(icon, size: size),
-        padding: EdgeInsets.zero,
-        constraints: const BoxConstraints(),
       ),
     );
   }
@@ -1547,35 +1614,31 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
         offset: const Offset(0, -200),
         color: AppColorScheme.surface,
         itemBuilder: (_) => [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
-            .map((s) => PopupMenuItem(
-                  value: s,
-                  child: Text(
-                    '${s}x',
-                    style: TextStyle(
-                      color: _state.playbackSpeed == s
-                          ? AppColorScheme.accent
-                          : Colors.white,
-                    ),
+            .map(
+              (s) => PopupMenuItem(
+                value: s,
+                child: Text(
+                  '${s}x',
+                  style: TextStyle(
+                    color: _state.playbackSpeed == s
+                        ? AppColorScheme.accent
+                        : Colors.white,
                   ),
-                ))
+                ),
+              ),
+            )
             .toList(),
         child: Center(
           child: Text(
             '${_state.playbackSpeed}x',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: textSize,
-            ),
+            style: TextStyle(color: Colors.white, fontSize: textSize),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildBitrateButton({
-    double extent = 48,
-    double iconSize = 24,
-  }) {
+  Widget _buildBitrateButton({double extent = 48, double iconSize = 24}) {
     // null means auto (profile default)
     final options = <int?>[null, 40, 20, 12, 8, 4, 2];
     final current = _manager.maxBitrateOverrideMbps;
@@ -1593,17 +1656,19 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
         offset: const Offset(0, -280),
         color: AppColorScheme.surface,
         itemBuilder: (_) => options
-            .map((mbps) => PopupMenuItem(
-                  value: mbps,
-                  child: Text(
-                    label(mbps),
-                    style: TextStyle(
-                      color: current == mbps
-                          ? AppColorScheme.accent
-                          : Colors.white,
-                    ),
+            .map(
+              (mbps) => PopupMenuItem(
+                value: mbps,
+                child: Text(
+                  label(mbps),
+                  style: TextStyle(
+                    color: current == mbps
+                        ? AppColorScheme.accent
+                        : Colors.white,
                   ),
-                ))
+                ),
+              ),
+            )
             .toList(),
         child: Center(
           child: Icon(
@@ -1620,21 +1685,24 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     final resolution = _manager.currentResolution;
     final streamType = audio ? 'Audio' : 'Subtitle';
     final offlineMeta = _manager.currentOfflineMetadata;
-    final allStreams = resolution?.mediaStreams
-      ?? (offlineMeta?['MediaStreams'] as List?)?.cast<Map<String, dynamic>>()
-      ?? const <Map<String, dynamic>>[];
-    final streams = allStreams
-        .where((s) => s['Type'] == streamType)
-        .toList();
+    final allStreams =
+        resolution?.mediaStreams ??
+        (offlineMeta?['MediaStreams'] as List?)?.cast<Map<String, dynamic>>() ??
+        const <Map<String, dynamic>>[];
+    final streams = allStreams.where((s) => s['Type'] == streamType).toList();
 
     final int? currentStreamIndex;
     if (audio) {
-      currentStreamIndex = _manager.audioStreamIndex ??
-          streams.where((s) => s['IsDefault'] == true).firstOrNull?['Index'] as int?;
+      currentStreamIndex =
+          _manager.audioStreamIndex ??
+          streams.where((s) => s['IsDefault'] == true).firstOrNull?['Index']
+              as int?;
     } else {
       final subIdx = _manager.subtitleStreamIndex;
-      currentStreamIndex = subIdx ?? // null = server default
-          streams.where((s) => s['IsDefault'] == true).firstOrNull?['Index'] as int?;
+      currentStreamIndex =
+          subIdx ?? // null = server default
+          streams.where((s) => s['IsDefault'] == true).firstOrNull?['Index']
+              as int?;
     }
     final isSubsOff = !audio && _manager.subtitleStreamIndex == -1;
 
@@ -1668,11 +1736,16 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                   children: [
                     if (!audio)
                       ListTile(
-                        title: const Text('Off',
-                            style: TextStyle(color: Colors.white)),
+                        title: const Text(
+                          'Off',
+                          style: TextStyle(color: Colors.white),
+                        ),
                         leading: Icon(
                           Icons.radio_button_checked,
-                          color: isSubsOff || (currentStreamIndex == null && streams.isNotEmpty)
+                          color:
+                              isSubsOff ||
+                                  (currentStreamIndex == null &&
+                                      streams.isNotEmpty)
                               ? AppColorScheme.accent
                               : Colors.white38,
                         ),
@@ -1689,24 +1762,31 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                       final language = stream['Language'] as String?;
                       final codec = stream['Codec'] as String?;
 
-                      final label = displayTitle ??
+                      final label =
+                          displayTitle ??
                           title ??
                           language ??
                           '$streamType ${e.key + 1}';
                       final subtitle = [
                         if (language != null && displayTitle != null) language,
                         if (codec != null) codec.toUpperCase(),
-                        if (stream['Channels'] != null) '${stream['Channels']}ch',
+                        if (stream['Channels'] != null)
+                          '${stream['Channels']}ch',
                       ].join(' · ');
 
-                      final selected = !isSubsOff && currentStreamIndex == streamIndex;
+                      final selected =
+                          !isSubsOff && currentStreamIndex == streamIndex;
 
                       return ListTile(
-                        title: Text(label,
-                            style: const TextStyle(color: Colors.white)),
+                        title: Text(
+                          label,
+                          style: const TextStyle(color: Colors.white),
+                        ),
                         subtitle: subtitle.isNotEmpty
-                            ? Text(subtitle,
-                                style: const TextStyle(color: Colors.white54))
+                            ? Text(
+                                subtitle,
+                                style: const TextStyle(color: Colors.white54),
+                              )
                             : null,
                         leading: Icon(
                           Icons.radio_button_checked,
@@ -1735,10 +1815,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     _showControls();
   }
 
-  Widget _buildZoomButton({
-    double size = 24,
-    double extent = 48,
-  }) {
+  Widget _buildZoomButton({double size = 24, double extent = 48}) {
     final icon = switch (_zoomMode) {
       ZoomMode.fit => Icons.fit_screen_rounded,
       ZoomMode.autoCrop => Icons.crop_rounded,
@@ -1795,7 +1872,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                   final ticks = ch['StartPositionTicks'] as int? ?? 0;
                   final pos = Duration(microseconds: ticks ~/ 10);
                   return ListTile(
-                    title: Text(name, style: const TextStyle(color: Colors.white)),
+                    title: Text(
+                      name,
+                      style: const TextStyle(color: Colors.white),
+                    ),
                     trailing: Text(
                       _formatDuration(pos),
                       style: const TextStyle(color: Colors.white54),
@@ -1858,9 +1938,15 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                       backgroundColor: Colors.white12,
                       child: Icon(Icons.person, color: Colors.white54),
                     ),
-                    title: Text(name, style: const TextStyle(color: Colors.white)),
+                    title: Text(
+                      name,
+                      style: const TextStyle(color: Colors.white),
+                    ),
                     subtitle: subtitle.isNotEmpty
-                        ? Text(subtitle, style: const TextStyle(color: Colors.white54))
+                        ? Text(
+                            subtitle,
+                            style: const TextStyle(color: Colors.white54),
+                          )
                         : null,
                   );
                 },
@@ -1878,11 +1964,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     if (item is! AggregatedItem) return;
     final positionTicks = _state.position.inMicroseconds * 10;
     final startIndex = _queue.currentIndex < 0 ? 0 : _queue.currentIndex;
-    final queueItems =
-        _queue.items
-            .skip(startIndex)
-            .whereType<AggregatedItem>()
-            .toList(growable: false);
+    final queueItems = _queue.items
+        .skip(startIndex)
+        .whereType<AggregatedItem>()
+        .toList(growable: false);
     await showRemotePlayToSessionDialog(
       context,
       item: item,
@@ -1920,7 +2005,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
             ListTile(
               title: Text(
                 '$label Controls',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               subtitle: _remotePlaybackState != null
                   ? Text(
@@ -1930,35 +2018,48 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                     )
                   : null,
             ),
-              if (kind == CastTargetKind.googleCast || kind == CastTargetKind.dlna)
-                ListTile(
-                  leading: const Icon(Icons.volume_up_rounded, color: Colors.white),
-                  title: const Text('Device Volume', style: TextStyle(color: Colors.white)),
-                  subtitle: _remoteVolume == null
-                      ? const Text('Unavailable', style: TextStyle(color: Colors.white54))
-                      : SliderTheme(
-                          data: SliderTheme.of(context).copyWith(
-                            activeTrackColor: AppColorScheme.accent,
-                            inactiveTrackColor: Colors.white24,
-                            thumbColor: Colors.white,
-                            overlayColor: Colors.white24,
-                          ),
-                          child: Slider(
-                            value: _remoteVolume!.clamp(0.0, 1.0),
-                            min: 0,
-                            max: 1,
-                            onChanged: (value) => _setRemoteVolume(value),
-                          ),
-                        ),
-                  trailing: _remoteVolume == null
-                      ? null
-                      : Text(
-                          '${(_remoteVolume! * 100).round()}%',
-                          style: const TextStyle(color: Colors.white70),
-                        ),
+            if (kind == CastTargetKind.googleCast ||
+                kind == CastTargetKind.dlna)
+              ListTile(
+                leading: const Icon(
+                  Icons.volume_up_rounded,
+                  color: Colors.white,
                 ),
+                title: const Text(
+                  'Device Volume',
+                  style: TextStyle(color: Colors.white),
+                ),
+                subtitle: _remoteVolume == null
+                    ? const Text(
+                        'Unavailable',
+                        style: TextStyle(color: Colors.white54),
+                      )
+                    : SliderTheme(
+                        data: SliderTheme.of(context).copyWith(
+                          activeTrackColor: AppColorScheme.accent,
+                          inactiveTrackColor: Colors.white24,
+                          thumbColor: Colors.white,
+                          overlayColor: Colors.white24,
+                        ),
+                        child: Slider(
+                          value: _remoteVolume!.clamp(0.0, 1.0),
+                          min: 0,
+                          max: 1,
+                          onChanged: (value) => _setRemoteVolume(value),
+                        ),
+                      ),
+                trailing: _remoteVolume == null
+                    ? null
+                    : Text(
+                        '${(_remoteVolume! * 100).round()}%',
+                        style: const TextStyle(color: Colors.white70),
+                      ),
+              ),
             ListTile(
-              leading: const Icon(Icons.play_arrow_rounded, color: Colors.white),
+              leading: const Icon(
+                Icons.play_arrow_rounded,
+                color: Colors.white,
+              ),
               title: const Text('Play', style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.of(ctx).pop();
@@ -1975,7 +2076,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
             ),
             ListTile(
               leading: const Icon(Icons.sync_rounded, color: Colors.white),
-              title: const Text('Sync Position', style: TextStyle(color: Colors.white)),
+              title: const Text(
+                'Sync Position',
+                style: TextStyle(color: Colors.white),
+              ),
               onTap: () {
                 Navigator.of(ctx).pop();
                 final positionTicks = _state.position.inMicroseconds * 10;
@@ -1986,7 +2090,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
             ),
             ListTile(
               leading: const Icon(Icons.stop_rounded, color: Colors.white),
-              title: Text('Stop $label', style: const TextStyle(color: Colors.white)),
+              title: Text(
+                'Stop $label',
+                style: const TextStyle(color: Colors.white),
+              ),
               onTap: () {
                 Navigator.of(ctx).pop();
                 _runCastAction((k) => _castService.stop(k));
@@ -2057,10 +2164,20 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                         setSheetState(() {});
                         _applyDelay(audio: audio, delay: delay);
                       },
-                      icon: const Icon(Icons.remove_circle_outline, color: Colors.white, size: 32),
+                      icon: const Icon(
+                        Icons.remove_circle_outline,
+                        color: Colors.white,
+                        size: 32,
+                      ),
                     ),
                     const SizedBox(width: AppSpacing.spaceSm),
-                    Text('-100ms', style: const TextStyle(color: Colors.white54, fontSize: AppTypography.fontSizeXs)),
+                    Text(
+                      '-100ms',
+                      style: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: AppTypography.fontSizeXs,
+                      ),
+                    ),
                     const SizedBox(width: AppSpacing.spaceLg),
                     OutlinedButton(
                       onPressed: () {
@@ -2071,11 +2188,19 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: Colors.white38),
                       ),
-                      child: const Text('Reset',
-                          style: TextStyle(color: Colors.white)),
+                      child: const Text(
+                        'Reset',
+                        style: TextStyle(color: Colors.white),
+                      ),
                     ),
                     const SizedBox(width: AppSpacing.spaceLg),
-                    Text('+100ms', style: const TextStyle(color: Colors.white54, fontSize: AppTypography.fontSizeXs)),
+                    Text(
+                      '+100ms',
+                      style: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: AppTypography.fontSizeXs,
+                      ),
+                    ),
                     const SizedBox(width: AppSpacing.spaceSm),
                     IconButton(
                       onPressed: () {
@@ -2083,7 +2208,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                         setSheetState(() {});
                         _applyDelay(audio: audio, delay: delay);
                       },
-                      icon: const Icon(Icons.add_circle_outline, color: Colors.white, size: 32),
+                      icon: const Icon(
+                        Icons.add_circle_outline,
+                        color: Colors.white,
+                        size: 32,
+                      ),
                     ),
                   ],
                 ),
@@ -2109,7 +2238,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
 
   String _formatBitrate(int? bitrate) {
     if (bitrate == null) return 'Unknown';
-    if (bitrate >= 1000000) return '${(bitrate / 1000000).toStringAsFixed(1)} Mbps';
+    if (bitrate >= 1000000) {
+      return '${(bitrate / 1000000).toStringAsFixed(1)} Mbps';
+    }
     if (bitrate >= 1000) return '${(bitrate / 1000).toStringAsFixed(0)} Kbps';
     return '$bitrate bps';
   }
@@ -2151,9 +2282,15 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
 
   String _getHdrType(Map<String, dynamic> stream) {
     final rangeType = stream['VideoRangeType'] as String? ?? '';
-    if (rangeType.contains('DOVI') || rangeType.contains('DoVi')) return 'Dolby Vision';
-    if (rangeType.contains('HDR10Plus') || rangeType.contains('HDR10+')) return 'HDR10+';
-    if (rangeType.contains('HDR10') || rangeType.contains('HDR')) return 'HDR10';
+    if (rangeType.contains('DOVI') || rangeType.contains('DoVi')) {
+      return 'Dolby Vision';
+    }
+    if (rangeType.contains('HDR10Plus') || rangeType.contains('HDR10+')) {
+      return 'HDR10+';
+    }
+    if (rangeType.contains('HDR10') || rangeType.contains('HDR')) {
+      return 'HDR10';
+    }
     if (rangeType.contains('HLG')) return 'HLG';
     final range = stream['VideoRange'] as String?;
     if (range == 'HDR') return 'HDR';
@@ -2226,7 +2363,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     } else if (item is String) {
       final meta = _manager.currentOfflineMetadata;
       if (meta != null) {
-        final streams = (meta['MediaStreams'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+        final streams =
+            (meta['MediaStreams'] as List?)?.cast<Map<String, dynamic>>() ?? [];
         populateStreams(streams);
         final sources = meta['MediaSources'] as List?;
         if (sources != null && sources.isNotEmpty) {
@@ -2273,13 +2411,17 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     Widget sectionHeader(String title) {
       return Padding(
         padding: const EdgeInsets.fromLTRB(
-          AppSpacing.spaceLg, AppSpacing.spaceMd, AppSpacing.spaceLg, 4,
+          AppSpacing.spaceLg,
+          AppSpacing.spaceMd,
+          AppSpacing.spaceLg,
+          4,
         ),
         child: Text(title, style: headerStyle),
       );
     }
 
-    final container = (mediaSource?['Container'] as String?)?.toUpperCase() ?? 'Unknown';
+    final container =
+        (mediaSource?['Container'] as String?)?.toUpperCase() ?? 'Unknown';
     final bitrate = mediaSource?['Bitrate'] as int?;
 
     showModalBottomSheet(
@@ -2315,7 +2457,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                 infoRow(
                   'Transcode Reasons',
                   resolution.transcodingReasons
-                      .map((r) => r.replaceAllMapped(_camelCaseSpaceRe, (_) => ' '))
+                      .map(
+                        (r) =>
+                            r.replaceAllMapped(_camelCaseSpaceRe, (_) => ' '),
+                      )
                       .join(', '),
                 ),
               infoRow('Player', 'media_kit (libmpv)'),
@@ -2327,34 +2472,55 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                 infoRow(
                   'Resolution',
                   '${video['Width']}×${video['Height']}'
-                  '${video['RealFrameRate'] != null ? ' @ ${(video['RealFrameRate'] as num).round()}fps' : ''}',
+                      '${video['RealFrameRate'] != null ? ' @ ${(video['RealFrameRate'] as num).round()}fps' : ''}',
                 ),
                 infoRow('HDR', _getHdrType(video)),
                 infoRow('Codec', _formatVideoCodec(video)),
                 if (video['BitRate'] != null)
-                  infoRow('Video Bitrate', _formatBitrate(video['BitRate'] as int?)),
+                  infoRow(
+                    'Video Bitrate',
+                    _formatBitrate(video['BitRate'] as int?),
+                  ),
               ],
 
               if (audioStream case final audio?) ...[
                 sectionHeader('Audio'),
-                infoRow('Track', audio['DisplayTitle'] as String?
-                    ?? audio['Language'] as String?
-                    ?? 'Unknown'),
+                infoRow(
+                  'Track',
+                  audio['DisplayTitle'] as String? ??
+                      audio['Language'] as String? ??
+                      'Unknown',
+                ),
                 infoRow('Codec', _formatAudioCodec(audio)),
                 infoRow('Channels', _formatChannels(audio['Channels'] as int?)),
                 if (audio['BitRate'] != null)
-                  infoRow('Audio Bitrate', _formatBitrate(audio['BitRate'] as int?)),
+                  infoRow(
+                    'Audio Bitrate',
+                    _formatBitrate(audio['BitRate'] as int?),
+                  ),
                 if (audio['SampleRate'] != null)
-                  infoRow('Sample Rate', '${((audio['SampleRate'] as num) / 1000).toStringAsFixed(1)} kHz'),
+                  infoRow(
+                    'Sample Rate',
+                    '${((audio['SampleRate'] as num) / 1000).toStringAsFixed(1)} kHz',
+                  ),
               ],
 
               if (subtitleStream case final subtitle?) ...[
                 sectionHeader('Subtitles'),
-                infoRow('Track', subtitle['DisplayTitle'] as String?
-                    ?? subtitle['Language'] as String?
-                    ?? 'Unknown'),
-                infoRow('Format', ((subtitle['Codec'] as String?) ?? 'Unknown').toUpperCase()),
-                infoRow('Type', subtitle['IsExternal'] == true ? 'External' : 'Embedded'),
+                infoRow(
+                  'Track',
+                  subtitle['DisplayTitle'] as String? ??
+                      subtitle['Language'] as String? ??
+                      'Unknown',
+                ),
+                infoRow(
+                  'Format',
+                  ((subtitle['Codec'] as String?) ?? 'Unknown').toUpperCase(),
+                ),
+                infoRow(
+                  'Type',
+                  subtitle['IsExternal'] == true ? 'External' : 'Embedded',
+                ),
               ],
 
               const SizedBox(height: AppSpacing.spaceLg),

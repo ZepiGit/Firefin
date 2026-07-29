@@ -33,6 +33,7 @@ class MediaKitPlayerBackend implements PlayerBackend {
   bool _didNotifyNativeHandle = false;
   bool _didConfigureAppleMobileLibassFont = false;
   int _playGeneration = 0;
+  int? _legacyStartRecoveryGeneration;
   String? _appliedCustomMpvConfPath;
   DateTime? _appliedCustomMpvConfMtime;
   static final Map<String, _ParsedMpvConfCacheEntry> _parsedMpvConfCache =
@@ -125,7 +126,10 @@ class MediaKitPlayerBackend implements PlayerBackend {
     final openFuture = _player.open(Media(url));
     unawaited(openFuture);
     if (PlatformDetection.isAndroid && PlatformDetection.isTV) {
+      _legacyStartRecoveryGeneration = playGeneration;
       unawaited(_stabilizeLegacyFireTvStart(playGeneration));
+    } else {
+      _legacyStartRecoveryGeneration = null;
     }
     if (!_useLibass) {
       _enableNativeSubtitleRendering();
@@ -135,29 +139,51 @@ class MediaKitPlayerBackend implements PlayerBackend {
   Future<void> _stabilizeLegacyFireTvStart(int playGeneration) async {
     // On Fire OS 5, libmpv can expose the first decoded frame while its pause
     // property remains latched even though media_kit reports playing=true.
-    // Wait for actual media metadata, then perform one bounded pause/play
-    // cycle only if the clock has not moved at all. A new item or a deliberate
-    // user pause cancels the recovery.
+    // Only start measuring after the video surface has a real size. Recover
+    // once the player reports "playing" but its clock has remained unchanged
+    // for six seconds. A new item or a deliberate user pause cancels recovery.
+    Duration? lastPosition;
+    var stalledMilliseconds = 0;
+
     for (var attempt = 0; attempt < 600; attempt++) {
       await Future<void>.delayed(const Duration(milliseconds: 100));
-      if (playGeneration != _playGeneration) return;
+      if (playGeneration != _playGeneration ||
+          _legacyStartRecoveryGeneration != playGeneration) {
+        return;
+      }
 
       final state = _player.state;
-      final mediaReady =
-          state.duration > Duration.zero ||
-          ((state.width ?? 0) > 0 && (state.height ?? 0) > 0);
-      if (!mediaReady) continue;
+      final videoReady = (state.width ?? 0) > 0 && (state.height ?? 0) > 0;
+      if (!videoReady || !state.playing) {
+        lastPosition = null;
+        stalledMilliseconds = 0;
+        continue;
+      }
 
-      await Future<void>.delayed(const Duration(milliseconds: 1500));
-      if (playGeneration != _playGeneration) return;
-      if (!_player.state.playing) return;
-      if (_player.state.position > const Duration(milliseconds: 200)) return;
+      final currentPosition = state.position;
+      if (lastPosition == null) {
+        lastPosition = currentPosition;
+        continue;
+      }
+      if ((currentPosition - lastPosition).abs() >
+          const Duration(milliseconds: 100)) {
+        _legacyStartRecoveryGeneration = null;
+        return;
+      }
+      lastPosition = currentPosition;
+      stalledMilliseconds += 100;
+      if (stalledMilliseconds < 6000) continue;
 
+      _legacyStartRecoveryGeneration = null;
       await _player.pause();
       if (playGeneration != _playGeneration) return;
-      await Future<void>.delayed(const Duration(milliseconds: 100));
+      await Future<void>.delayed(const Duration(milliseconds: 200));
       await _player.play();
       return;
+    }
+
+    if (_legacyStartRecoveryGeneration == playGeneration) {
+      _legacyStartRecoveryGeneration = null;
     }
   }
 
@@ -513,11 +539,14 @@ class MediaKitPlayerBackend implements PlayerBackend {
 
   @override
   Future<void> pause() async {
+    _legacyStartRecoveryGeneration = null;
     await _player.pause();
   }
 
   @override
   Future<void> stop() async {
+    _legacyStartRecoveryGeneration = null;
+    _playGeneration++;
     await _player.stop();
   }
 
