@@ -116,7 +116,10 @@ class MediaKitPlayerBackend implements PlayerBackend {
     await _configureAppleMobileLibassFont();
     await _applyCustomMpvConfIfEnabled();
     await _applyAssOverrideMode();
-    await _player.open(Media(url));
+    // media_kit 1.2.6 can keep open() pending on Android 5.1 after the first
+    // decoded frame. Let PlaybackManager's bounded readiness polling observe
+    // the player streams instead of blocking the complete startup sequence.
+    _player.open(Media(url));
     if (!_useLibass) {
       _enableNativeSubtitleRendering();
     }
