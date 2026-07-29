@@ -90,7 +90,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   StreamSubscription<Map<String, dynamic>>? _airPlayEventsSub;
 
   final _overlayFocus = FocusNode();
-  final _playPauseFocus = FocusNode(debugLabel: 'PlayerPlayPause');
+  late final FocusNode _playPauseFocus;
   late final FocusNode _seekFocus;
   final _secondaryControlsFocus = FocusNode(
     debugLabel: 'PlayerSecondaryControls',
@@ -119,6 +119,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   @override
   void initState() {
     super.initState();
+    _playPauseFocus = FocusNode(
+      debugLabel: 'PlayerPlayPause',
+      onKeyEvent: _handlePrimaryControlKeyEvent,
+    );
     _seekFocus = FocusNode(
       debugLabel: 'PlayerSeek',
       onKeyEvent: _handleSeekKeyEvent,
@@ -778,6 +782,20 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
 
     // Left and right remain available to the Slider for seeking.
     return KeyEventResult.ignored;
+  }
+
+  KeyEventResult _handlePrimaryControlKeyEvent(FocusNode node, KeyEvent event) {
+    if (!PlatformDetection.useLeanbackUi ||
+        (event is! KeyDownEvent && event is! KeyRepeatEvent) ||
+        event.logicalKey != LogicalKeyboardKey.arrowDown) {
+      return KeyEventResult.ignored;
+    }
+
+    if (event is KeyDownEvent && _seekFocus.context != null) {
+      _seekFocus.requestFocus();
+      _scheduleHide();
+    }
+    return KeyEventResult.handled;
   }
 
   @override
