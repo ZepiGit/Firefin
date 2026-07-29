@@ -1,0 +1,14 @@
+name: playback_jellyfin
+description: Jellyfin playback plugin - server-side session reporting and stream resolution.
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ">=3.8.0 <4.0.0"
+
+dependencies:
+  playback_core:
+    path: ../playback_core
+  server_core:
+    path: ../server_core
+  logger: ^2.5.0

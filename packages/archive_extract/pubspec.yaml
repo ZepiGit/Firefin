@@ -1,0 +1,27 @@
+name: archive_extract
+description: Native 7z archive extraction using platform libraries.
+version: 0.1.0
+publish_to: 'none'
+
+environment:
+  sdk: ">=3.8.0 <4.0.0"
+  flutter: ">=3.27.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.moonfin.archiveextract
+        pluginClass: ArchiveExtractPlugin
+      ios:
+        pluginClass: ArchiveExtractPlugin
+      macos:
+        pluginClass: ArchiveExtractPlugin
+      linux:
+        pluginClass: ArchiveExtractPlugin
+      windows:
+        pluginClass: ArchiveExtractPluginCApi

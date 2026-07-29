@@ -1,0 +1,115 @@
+import 'dart:async';
+
+import 'package:flutter/widgets.dart';
+import 'package:playback_core/playback_core.dart';
+
+class PlaybackLifecycleHandler with WidgetsBindingObserver {
+  final PlaybackManager _manager;
+  Duration? _savedPosition;
+  bool? _wasPlaying;
+  Timer? _bgCorrectionTimer;
+  bool _bgSeekInFlight = false;
+
+  PlaybackLifecycleHandler(this._manager) {
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.paused:
+        _saveState();
+        break;
+      case AppLifecycleState.resumed:
+        _restoreState();
+        break;
+      default:
+        break;
+    }
+  }
+
+  void _saveState() {
+    if (_manager.queueService.currentItem == null) return;
+
+    final newPos = _manager.state.position;
+    if (_savedPosition != null && newPos < _savedPosition!) {
+      return;
+    }
+
+    _savedPosition = newPos;
+    _wasPlaying = _manager.state.isPlaying || (_wasPlaying == true);
+
+    if (_wasPlaying != true) {
+      _bgCorrectionTimer?.cancel();
+      _bgCorrectionTimer = null;
+      return;
+    }
+
+    _bgCorrectionTimer?.cancel();
+    _bgCorrectionTimer = Timer.periodic(
+      const Duration(milliseconds: 250),
+      (_) => _bgCorrect(),
+    );
+    unawaited(_bgCorrect());
+  }
+
+  Future<void> _bgCorrect() async {
+    final saved = _savedPosition;
+    if (saved == null) return;
+    if (_manager.queueService.currentItem == null) return;
+    if (_bgSeekInFlight) return;
+
+    final currentPos = _manager.backend?.position ?? _manager.state.position;
+    if (currentPos >= saved - const Duration(seconds: 1)) return;
+
+    final regressedBy = saved - currentPos;
+    if (saved > const Duration(seconds: 1) &&
+        regressedBy > const Duration(seconds: 2)) {
+      _bgSeekInFlight = true;
+      try {
+        await _manager.seekTo(saved);
+      } finally {
+        _bgSeekInFlight = false;
+      }
+    }
+  }
+
+  Future<void> _restoreState() async {
+    _bgCorrectionTimer?.cancel();
+    _bgCorrectionTimer = null;
+    _bgSeekInFlight = false;
+
+    final savedPos = _savedPosition;
+    final wasPlaying = _wasPlaying;
+    _savedPosition = null;
+    _wasPlaying = null;
+
+    if (savedPos == null || wasPlaying == null) return;
+    if (_manager.queueService.currentItem == null) return;
+
+    try {
+      if (!wasPlaying && _manager.state.isPlaying) {
+        await _manager.pause();
+      }
+
+      final currentPos = _manager.backend?.position ?? _manager.state.position;
+      final regressedBy = savedPos - currentPos;
+      if (savedPos > const Duration(seconds: 1) &&
+          regressedBy > const Duration(seconds: 2)) {
+        await _manager.seekTo(savedPos);
+
+        await Future.delayed(const Duration(milliseconds: 120));
+        final verifyPos = _manager.backend?.position ?? _manager.state.position;
+        if (verifyPos < savedPos - const Duration(seconds: 3)) {
+          await _manager.seekTo(savedPos);
+        }
+      }
+
+      if (wasPlaying && !_manager.state.isPlaying) {
+        await _manager.resume();
+      }
+    } catch (_) {}
+  }
+}

@@ -1,0 +1,108 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
+import 'package:server_core/server_core.dart';
+
+import '../database/offline_database.dart';
+import '../repositories/offline_repository.dart';
+
+enum SyncState { idle, syncing, done, error }
+
+class SyncResult {
+  final int synced;
+  final int failed;
+  const SyncResult({required this.synced, required this.failed});
+}
+
+class SyncService extends ChangeNotifier {
+  final OfflineRepository _offlineRepo;
+
+  SyncState _state = SyncState.idle;
+  SyncState get state => _state;
+
+  Timer? _doneResetTimer;
+
+  SyncService(this._offlineRepo);
+
+  Future<SyncResult> syncPlaybackProgress(MediaServerClient client) async {
+    if (_state == SyncState.syncing) {
+      return const SyncResult(synced: 0, failed: 0);
+    }
+
+    _setState(SyncState.syncing);
+
+    final unsynced = await _offlineRepo.getUnsyncedProgress();
+    if (unsynced.isEmpty) {
+      _setState(SyncState.done);
+      _scheduleDoneReset();
+      return const SyncResult(synced: 0, failed: 0);
+    }
+
+    int synced = 0, failed = 0;
+
+    for (final item in unsynced) {
+      try {
+        if (item.playbackPositionTicks == 0) {
+          await client.userLibraryApi.markPlayed(item.itemId);
+        } else {
+          final report = PlaybackStopReport(
+            itemId: item.itemId,
+            mediaSourceId: item.itemId,
+            positionTicks: item.playbackPositionTicks,
+          );
+          await client.playbackApi.reportPlaybackStopped(report.toJson());
+        }
+        await _offlineRepo.markProgressSynced(item.itemId);
+        synced++;
+      } catch (_) {
+        failed++;
+      }
+    }
+
+    _setState(failed > 0 && synced == 0 ? SyncState.error : SyncState.done);
+    _scheduleDoneReset();
+    return SyncResult(synced: synced, failed: failed);
+  }
+
+  Future<void> refreshMetadata(MediaServerClient client) async {
+    final items = await _offlineRepo.getItems();
+    for (final item in items.where((i) => i.downloadStatus == 2)) {
+      try {
+        final serverData = await client.itemsApi.getItem(item.itemId);
+        await _offlineRepo.upsertItem(
+          DownloadedItemsCompanion(
+            itemId: Value(item.itemId),
+            serverId: Value(item.serverId),
+            type: Value(item.type),
+            name: Value(item.name),
+            metadataJson: Value(jsonEncode(serverData)),
+            downloadStatus: Value(item.downloadStatus),
+          ),
+        );
+      } catch (_) {
+      }
+    }
+  }
+
+  void _setState(SyncState newState) {
+    _state = newState;
+    notifyListeners();
+  }
+
+  void _scheduleDoneReset() {
+    _doneResetTimer?.cancel();
+    _doneResetTimer = Timer(const Duration(seconds: 5), () {
+      if (_state == SyncState.done) {
+        _setState(SyncState.idle);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _doneResetTimer?.cancel();
+    super.dispose();
+  }
+}

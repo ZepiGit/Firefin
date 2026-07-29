@@ -1,0 +1,64 @@
+import 'package:dio/dio.dart';
+import 'package:server_core/server_core.dart';
+
+class JellyfinPlaybackApi implements PlaybackApi {
+  final Dio _dio;
+  final String _baseUrl;
+
+  JellyfinPlaybackApi(this._dio, this._baseUrl);
+
+  @override
+  Future<void> reportPlaybackStart(Map<String, dynamic> info) async {
+    await _dio.post('/Sessions/Playing', data: info);
+  }
+
+  @override
+  Future<void> reportPlaybackProgress(Map<String, dynamic> info) async {
+    await _dio.post('/Sessions/Playing/Progress', data: info);
+  }
+
+  @override
+  Future<void> reportPlaybackStopped(Map<String, dynamic> info) async {
+    await _dio.post('/Sessions/Playing/Stopped', data: info);
+  }
+
+  @override
+  Future<Map<String, dynamic>> getPlaybackInfo(
+    String itemId, {
+    Map<String, dynamic>? requestBody,
+    String? userId,
+  }) async {
+    final body = <String, dynamic>{
+      if (userId != null) 'UserId': userId,
+      ...?requestBody,
+    };
+    final response = await _dio.post(
+      '/Items/$itemId/PlaybackInfo',
+      data: body,
+      queryParameters: {
+        if (userId != null) 'userId': userId,
+      },
+    );
+    return response.data as Map<String, dynamic>;
+  }
+
+  @override
+  String getStreamUrl(
+    String itemId, {
+    String? mediaSourceId,
+    String? audioStreamIndex,
+    String? subtitleStreamIndex,
+    String? liveStreamId,
+  }) {
+    final params = <String, String>{
+      if (mediaSourceId != null) 'MediaSourceId': mediaSourceId,
+      if (audioStreamIndex != null) 'AudioStreamIndex': audioStreamIndex,
+      if (subtitleStreamIndex != null)
+        'SubtitleStreamIndex': subtitleStreamIndex,
+      if (liveStreamId != null) 'LiveStreamId': liveStreamId,
+      'Static': 'true',
+    };
+    final query = params.entries.map((e) => '${e.key}=${e.value}').join('&');
+    return '$_baseUrl/Videos/$itemId/stream?$query';
+  }
+}

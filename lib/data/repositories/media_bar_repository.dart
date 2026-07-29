@@ -1,0 +1,283 @@
+import 'dart:async';
+
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter/widgets.dart';
+import 'package:server_core/server_core.dart';
+
+import '../../preference/user_preferences.dart';
+import '../../util/platform_detection.dart';
+import '../models/media_bar_slide_item.dart';
+import '../models/media_bar_state.dart';
+
+class MediaBarRepository {
+  static const _precacheBackdropCount = 2;
+  static const _precacheLogoCount = 1;
+
+  final MediaServerClient _client;
+  final UserPreferences _prefs;
+
+  static const _fields =
+      'Type,Overview,Genres,OfficialRating,CommunityRating,CriticRating,'
+      'RunTimeTicks,ProductionYear,ImageTags,BackdropImageTags,'
+      'LocalTrailerCount';
+
+  MediaBarRepository(this._client, this._prefs);
+
+  Future<MediaBarState> loadItems() async {
+    if ((PlatformDetection.isAndroid && PlatformDetection.isTV) ||
+        !_prefs.get(UserPreferences.mediaBarEnabled)) {
+      return const MediaBarDisabled();
+    }
+
+    try {
+      final contentType = _prefs.get(UserPreferences.mediaBarContentType);
+      final maxItems =
+          int.tryParse(_prefs.get(UserPreferences.mediaBarItemCount)) ?? 10;
+      final libraryIds = _prefs
+          .get(UserPreferences.mediaBarLibraryIds)
+          .split(',')
+          .where((s) => s.isNotEmpty)
+          .toList();
+      final collectionIds = _prefs
+          .get(UserPreferences.mediaBarCollectionIds)
+          .split(',')
+          .where((s) => s.isNotEmpty)
+          .toList();
+      final excludedGenres = _prefs
+          .get(UserPreferences.mediaBarExcludedGenres)
+          .split(',')
+          .where((s) => s.isNotEmpty)
+          .toSet();
+
+      final allItems = <Map<String, dynamic>>[];
+      final fetchLimit = maxItems * 3;
+
+      final types = switch (contentType) {
+        'movies' => ['Movie'],
+        'tvshows' => ['Series'],
+        _ => ['Movie', 'Series'],
+      };
+
+      final fetchTasks = <Future<List<Map<String, dynamic>>>>[];
+
+      if (libraryIds.isEmpty) {
+        for (final type in types) {
+          fetchTasks.add(_fetchItems(type, fetchLimit));
+        }
+      } else {
+        for (final libraryId in libraryIds) {
+          for (final type in types) {
+            fetchTasks.add(_fetchItems(type, fetchLimit, parentId: libraryId));
+          }
+        }
+      }
+
+      for (final collectionId in collectionIds) {
+        fetchTasks.add(_fetchItems(null, fetchLimit, parentId: collectionId));
+      }
+
+      final fetchedBatches = await Future.wait(fetchTasks);
+      for (final batch in fetchedBatches) {
+        allItems.addAll(batch);
+      }
+
+      var withBackdrops =
+          allItems
+              .where(
+                (item) =>
+                    _hasBackdrop(item) &&
+                    !_isBoxSet(item) &&
+                    !_hasExcludedGenre(item, excludedGenres),
+              )
+              .toList()
+            ..shuffle();
+
+      var selected = withBackdrops.take(maxItems).toList();
+
+      if (selected.isEmpty &&
+          (libraryIds.isNotEmpty || collectionIds.isNotEmpty)) {
+        final fallbackItems = <Map<String, dynamic>>[];
+        for (final type in types) {
+          fallbackItems.addAll(await _fetchItems(type, fetchLimit));
+        }
+
+        withBackdrops =
+            fallbackItems
+                .where(
+                  (item) =>
+                      _hasBackdrop(item) &&
+                      !_isBoxSet(item) &&
+                      !_hasExcludedGenre(item, excludedGenres),
+                )
+                .toList()
+              ..shuffle();
+        selected = withBackdrops.take(maxItems).toList();
+      }
+
+      if (selected.isEmpty) {
+        return const MediaBarError('No items with backdrop images found');
+      }
+
+      final items = selected.map(_toSlideItem).toList();
+      return MediaBarReady(items);
+    } catch (e) {
+      return MediaBarError('Failed to load: $e');
+    }
+  }
+
+  void precacheImages(BuildContext context, List<MediaBarSlideItem> items) {
+    final backdropCount = PlatformDetection.isAndroid && PlatformDetection.isTV
+        ? 1
+        : _precacheBackdropCount;
+    for (final item in items.take(backdropCount)) {
+      if (item.backdropUrl != null) {
+        precacheImage(CachedNetworkImageProvider(item.backdropUrl!), context);
+      }
+    }
+    for (final item in items.take(_precacheLogoCount)) {
+      if (item.logoUrl != null) {
+        precacheImage(CachedNetworkImageProvider(item.logoUrl!), context);
+      }
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchItems(
+    String? itemType,
+    int limit, {
+    String? parentId,
+  }) async {
+    try {
+      final response = await _client.itemsApi
+          .getItems(
+            includeItemTypes: itemType != null ? [itemType] : null,
+            sortBy: 'Random',
+            sortOrder: 'Descending',
+            recursive: true,
+            parentId: parentId,
+            limit: limit,
+            fields: _fields,
+          )
+          .timeout(const Duration(seconds: 8));
+      final rawItems = response['Items'] as List? ?? [];
+      return rawItems.cast<Map<String, dynamic>>();
+    } on TimeoutException {
+      return _fetchItemsFromFallbackSource(itemType, limit, parentId: parentId);
+    } on DioException catch (e) {
+      final statusCode = e.response?.statusCode ?? 0;
+      if (statusCode != 400 && statusCode < 500) {
+        rethrow;
+      }
+
+      return _fetchItemsFromFallbackSource(itemType, limit, parentId: parentId);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchItemsFromFallbackSource(
+    String? itemType,
+    int limit, {
+    String? parentId,
+  }) async {
+    final reducedLimit = limit > 24 ? 24 : limit;
+
+    try {
+      final latestResponse = await _client.itemsApi
+          .getLatestItems(
+            includeItemTypes: itemType != null ? [itemType] : null,
+            parentId: parentId,
+            limit: reducedLimit,
+            fields: _fields,
+          )
+          .timeout(const Duration(seconds: 6));
+      final rawItems = latestResponse['Items'] as List? ?? [];
+      return rawItems.cast<Map<String, dynamic>>();
+    } catch (_) {}
+
+    try {
+      final fallbackResponse = await _client.itemsApi
+          .getItems(
+            includeItemTypes: itemType != null ? [itemType] : null,
+            sortBy: 'SortName',
+            sortOrder: 'Ascending',
+            recursive: true,
+            parentId: parentId,
+            limit: reducedLimit,
+            fields: _fields,
+            enableTotalRecordCount: false,
+          )
+          .timeout(const Duration(seconds: 6));
+      final rawItems = fallbackResponse['Items'] as List? ?? [];
+      return rawItems.cast<Map<String, dynamic>>();
+    } catch (_) {
+      return const <Map<String, dynamic>>[];
+    }
+  }
+
+  bool _hasBackdrop(Map<String, dynamic> item) {
+    final tags = item['BackdropImageTags'] as List?;
+    return tags != null && tags.isNotEmpty;
+  }
+
+  bool _isBoxSet(Map<String, dynamic> item) {
+    return item['Type'] == 'BoxSet';
+  }
+
+  bool _hasExcludedGenre(Map<String, dynamic> item, Set<String> excluded) {
+    if (excluded.isEmpty) return false;
+    final genres = (item['Genres'] as List?)?.cast<String>() ?? [];
+    return genres.any((g) => excluded.contains(g));
+  }
+
+  MediaBarSlideItem _toSlideItem(Map<String, dynamic> data) {
+    final itemId = data['Id'] as String;
+    final serverId = data['ServerId'] as String? ?? '';
+    final providerIds = data['ProviderIds'] as Map<String, dynamic>?;
+
+    final backdropTags = data['BackdropImageTags'] as List?;
+    final isLegacyTv = PlatformDetection.isAndroid && PlatformDetection.isTV;
+    final backdropUrl = (backdropTags != null && backdropTags.isNotEmpty)
+        ? _client.imageApi.getBackdropImageUrl(
+            itemId,
+            maxWidth: isLegacyTv ? 1280 : 1920,
+            tag: backdropTags[0] as String,
+          )
+        : null;
+
+    final logoTag = (data['ImageTags'] as Map?)?['Logo'] as String?;
+    final logoUrl = logoTag != null
+        ? _client.imageApi.getLogoImageUrl(
+            itemId,
+            maxWidth: isLegacyTv ? 400 : 800,
+            tag: logoTag,
+          )
+        : null;
+
+    final runTimeTicks = data['RunTimeTicks'] as int?;
+
+    return MediaBarSlideItem(
+      itemId: itemId,
+      serverId: serverId,
+      title: data['Name'] as String? ?? '',
+      overview: data['Overview'] as String?,
+      backdropUrl: backdropUrl,
+      logoUrl: logoUrl,
+      officialRating: data['OfficialRating'] as String?,
+      year: data['ProductionYear'] as int?,
+      genres:
+          (data['Genres'] as List?)?.cast<String>().take(3).toList() ??
+          const [],
+      runtime: runTimeTicks != null
+          ? Duration(microseconds: runTimeTicks ~/ 10)
+          : null,
+      communityRating: (data['CommunityRating'] as num?)?.toDouble(),
+      criticRating: (data['CriticRating'] as num?)?.toInt(),
+      tmdbId: providerIds?['Tmdb'] as String?,
+      imdbId: providerIds?['Imdb'] as String?,
+      itemType: data['Type'] as String? ?? 'Movie',
+      remoteTrailers:
+          (data['RemoteTrailers'] as List?)?.cast<Map<String, dynamic>>() ??
+          const [],
+      localTrailerCount: (data['LocalTrailerCount'] as int?) ?? 0,
+    );
+  }
+}
