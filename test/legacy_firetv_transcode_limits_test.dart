@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:playback_jellyfin/playback_jellyfin.dart';
+import 'package:playback_core/playback_core.dart';
 
 void main() {
   const legacyProfile = <String, dynamic>{
@@ -8,7 +8,7 @@ void main() {
   };
 
   test('caps legacy Fire TV transcode URL at 720p and 4 Mbps total', () {
-    final result = applyLegacyFireTvTranscodeLimits(
+    final result = MediaStreamResolver.applyLegacyFireTvTranscodeLimits(
       'https://example.test/video.m3u8?VideoBitrate=8554687&AudioBitrate=224000&MaxWidth=1920&MaxHeight=1080&PlaySessionId=abc',
       legacyProfile,
     );
@@ -23,7 +23,7 @@ void main() {
   });
 
   test('does not increase an already lower transcode setting', () {
-    final result = applyLegacyFireTvTranscodeLimits(
+    final result = MediaStreamResolver.applyLegacyFireTvTranscodeLimits(
       'https://example.test/video.m3u8?VideoBitrate=1750000&AudioBitrate=128000&MaxWidth=960&MaxHeight=540',
       legacyProfile,
     );
@@ -37,7 +37,9 @@ void main() {
   test('leaves other device profiles unchanged', () {
     const url = 'https://example.test/video.m3u8?videoBitrate=12000000';
     expect(
-      applyLegacyFireTvTranscodeLimits(url, const {'Name': 'Moonfin'}),
+      MediaStreamResolver.applyLegacyFireTvTranscodeLimits(url, const {
+        'Name': 'Moonfin',
+      }),
       url,
     );
   });
