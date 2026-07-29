@@ -70,7 +70,7 @@ try {
 
   Copy-Item -Path $apkSource -Destination $apkOutput -Force
 
-  if (Test-Path $checkerScript) {
+  if ($env:MOONFIN_RUN_16KB_CHECK -eq '1' -and (Test-Path $checkerScript)) {
     $bashCmd = Get-Command bash -ErrorAction SilentlyContinue
     if ($bashCmd) {
       Write-Host "Running 16 KB page-size compatibility check on APK..."
@@ -80,11 +80,14 @@ try {
       }
     }
     else {
-      Write-Warning "bash not found; skipping 16 KB page-size compatibility check"
+      throw "MOONFIN_RUN_16KB_CHECK=1 but bash was not found"
     }
   }
+  elseif ($env:MOONFIN_RUN_16KB_CHECK -eq '1') {
+    throw "MOONFIN_RUN_16KB_CHECK=1 but the checker script was not found: $checkerScript"
+  }
   else {
-    Write-Warning "16 KB checker script not found at $checkerScript"
+    Write-Host "Skipping optional 16 KB page-size check (set MOONFIN_RUN_16KB_CHECK=1 to enable it)."
   }
 
   Write-Host ""
