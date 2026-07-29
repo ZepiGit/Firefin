@@ -202,26 +202,45 @@ String applyLegacyFireTvTranscodeLimits(
   const maxWidth = 1280;
   const maxHeight = 720;
 
-  parameters['maxWidth'] = _lowerInt(parameters['maxWidth'], maxWidth);
-  parameters['maxHeight'] = _lowerInt(parameters['maxHeight'], maxHeight);
+  _setLowerInt(parameters, 'MaxWidth', maxWidth);
+  _setLowerInt(parameters, 'MaxHeight', maxHeight);
 
   if (maxStreamingBitrate != null) {
     final audioBitrate =
-        int.tryParse(parameters['audioBitrate'] ?? '') ?? 224000;
+        int.tryParse(_valueIgnoreCase(parameters, 'AudioBitrate') ?? '') ??
+        224000;
     final availableVideoBitrate = (maxStreamingBitrate - audioBitrate).clamp(
       250000,
       maxStreamingBitrate,
     );
-    parameters['videoBitrate'] = _lowerInt(
-      parameters['videoBitrate'],
-      availableVideoBitrate,
-    );
+    _setLowerInt(parameters, 'VideoBitrate', availableVideoBitrate);
   }
 
   return uri.replace(queryParameters: parameters).toString();
 }
 
-String _lowerInt(String? currentValue, int ceiling) {
-  final current = int.tryParse(currentValue ?? '');
-  return (current == null || current > ceiling ? ceiling : current).toString();
+String? _keyIgnoreCase(Map<String, String> parameters, String name) {
+  final lowerName = name.toLowerCase();
+  for (final key in parameters.keys) {
+    if (key.toLowerCase() == lowerName) return key;
+  }
+  return null;
+}
+
+String? _valueIgnoreCase(Map<String, String> parameters, String name) {
+  final key = _keyIgnoreCase(parameters, name);
+  return key == null ? null : parameters[key];
+}
+
+void _setLowerInt(
+  Map<String, String> parameters,
+  String canonicalName,
+  int ceiling,
+) {
+  final existingKey = _keyIgnoreCase(parameters, canonicalName);
+  final current = int.tryParse(
+    existingKey == null ? '' : parameters[existingKey] ?? '',
+  );
+  final value = current == null || current > ceiling ? ceiling : current;
+  parameters[existingKey ?? canonicalName] = value.toString();
 }
