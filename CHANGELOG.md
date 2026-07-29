@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.1.0-firetv32-r20
+
+- Stabilized Fire OS 5 playback by using synchronous media-player commands and
+  a direct native pause recovery path without the blocked player mutex.
+- Added a Fire TV transcode ceiling of 1280 x 720 and 4 Mbit/s across device
+  profiles, Jellyfin/Emby resolvers and playback request serialization.
+- Added regression coverage for the legacy Fire TV transcode limits.
+- Made the player D-pad path deterministic: Play/Pause, seek bar, then
+  Subtitles/Audio. Only Left/Right seeks; Up/Down changes control rows.
+- Increased the Fire TV player-control timeout and refresh it on remote input.
+- Corrected player button activation and high-contrast focus presentation.
+- Added stable detail scrolling and delayed toolbar focus until the content has
+  actually reached the top.
+- Prevented the top toolbar from overlapping detail content.
+- Kept static artwork and thumbnails enabled while disabling resource-heavy
+  inline video previews and the Media Bar on legacy Fire TV hardware.
+- Retained Seerr in the toolbar and Integrations settings when configured.
+- Added high-contrast TV settings surfaces and Left/Right-only value sliders.
+
 ## 1.1.0-firetv32-r1
 
 - Base updated to the public Moonfin Core 1.1.0 source.

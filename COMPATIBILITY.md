@@ -18,7 +18,7 @@
 
 ## Verified application behavior
 
-The `1.1.0-firetv32-r1` candidate was installed as an in-place update on the
+The `1.1.0-firetv32-r20` candidate was installed as an in-place update on the
 verified device. The following behavior was checked on the physical Fire TV:
 
 - package installation, reboot and direct activity start
@@ -30,7 +30,10 @@ verified device. The following behavior was checked on the physical Fire TV:
 - percentage slider changes with Left/Right and leaves the value unchanged
   when navigating with Up/Down
 - Seerr entry visible under Integrations
-- Play, Audio, Subtitles and other detail actions are focusable and selectable
+- Player Play/Pause, seek, Audio and Subtitles controls are reachable with the
+  D-pad; Up/Down traverses the rows without seeking
+- playback of `The Office` S2:E21 with server transcoding at the legacy-device
+  ceiling and successful opening of the subtitle selector
 - no false server-unavailable banner while online content is loading
 
 This test does not constitute compatibility certification for other Fire TV
@@ -40,9 +43,10 @@ recovery should be reported separately per device.
 ## Playback profile
 
 The compatibility profile advertises H.264 direct play up to 1080p and uses
-server transcoding for formats the legacy device cannot play reliably. HEVC
-content such as many x265 releases normally requires Jellyfin transcoding.
-PGS and ASS subtitles also force transcoding in the default profile.
+server transcoding for formats the legacy device cannot play reliably. On the
+legacy profile, transcoding is limited to 1280 x 720 and 4 Mbit/s. HEVC content
+such as many x265 releases normally requires Jellyfin transcoding. PGS and ASS
+subtitles also force transcoding in the default profile.
 
 Network quality, server transcoder configuration, subtitle formats and source
 bitrate can affect playback independently of the client.

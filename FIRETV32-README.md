@@ -10,8 +10,8 @@ Amazon, Jellyfin or Emby.
 
 ## Release
 
-- Release: `1.1.0-firetv32-r1`
-- Android version code: `3000008`
+- Release: `1.1.0-firetv32-r20`
+- Android version code: `3000027`
 - Package: `org.moonfin.firetv32`
 - Minimum Android API: 21
 - Architecture: ARMv7 / `armeabi-v7a` only
@@ -25,18 +25,19 @@ The FireTV32 build applies conservative defaults for stable navigation on
 legacy hardware:
 
 - Media Bar disabled
-- automatic trailer and episode video previews disabled
+- inline trailer and episode video playback previews disabled
 - preview audio disabled
+- posters, covers, thumbnails and static focus previews enabled
 - animated card enlargement disabled by default
 - posters, covers and static backdrops enabled at reduced resolution
 - cinema mode disabled by default
-- default remote-stream bitrate capped at 15 Mbit/s
+- legacy-device transcodes capped at 1280 x 720 and 4 Mbit/s
 - bitmap and ASS subtitles are transcoded instead of direct-played
 
 The Media Bar remains disabled internally on Android TV in this compatibility
 build even if an imported settings profile tries to enable it.
 
-## Fixes in r1
+## Fixes through r20
 
 - Jellyfin 10.11 device-profile fields use `Width` and `Height`, avoiding the
   HTTP 400 playback error caused by the obsolete `VideoWidth` and
@@ -49,6 +50,13 @@ build even if an imported settings profile tries to enable it.
   a black player at 0:00.
 - Media cards, detail actions and settings entries explicitly handle Fire TV
   OK/select, Enter and gamepad A events.
+- The player uses a deterministic D-pad path from Play/Pause to the seek bar
+  and then to Subtitles/Audio. Up/Down no longer seeks, and the control timeout
+  is refreshed while the remote is in use.
+- Fire OS 5 playback avoids the asynchronous media-player lock that could
+  leave playback or transport controls unresponsive.
+- Legacy transcode limits are preserved in Jellyfin and Emby resolver URLs and
+  at the playback API boundary.
 - TV settings use a high-contrast cyan focus state. Percentage sliders react
   only to Left/Right; Up/Down continues navigation.
 - The detail action row reserves its own vertical area and no longer overlaps
@@ -67,7 +75,7 @@ Enable ADB debugging on the Fire TV, then run:
 
 ```text
 adb connect FIRE_TV_IP:5555
-adb install Moonfin_FireTV32_Unofficial_1.1.0-r1.apk
+adb install Moonfin_FireTV32_Unofficial_1.1.0-r20.apk
 ```
 
 An older build signed with another certificate cannot be updated in place.
@@ -75,7 +83,7 @@ Remove that package first; uninstalling also removes its local app data:
 
 ```text
 adb uninstall org.moonfin.firetv32
-adb install Moonfin_FireTV32_Unofficial_1.1.0-r1.apk
+adb install Moonfin_FireTV32_Unofficial_1.1.0-r20.apk
 ```
 
 ## Build
