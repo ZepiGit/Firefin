@@ -585,7 +585,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
 
   void _scheduleHide() {
     _hideTimer?.cancel();
-    _hideTimer = Timer(const Duration(seconds: 5), () {
+    final delay = PlatformDetection.useLeanbackUi
+        ? const Duration(seconds: 12)
+        : const Duration(seconds: 5);
+    _hideTimer = Timer(delay, () {
       if (mounted && _state.isPlaying) {
         setState(() => _controlsVisible = false);
         _overlayFocus.requestFocus();
@@ -699,6 +702,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     }
 
     if (_controlsVisible) {
+      // TV users need enough time to traverse the seek bar and the secondary
+      // control row. Every D-pad action restarts the inactivity timeout.
+      _scheduleHide();
       switch (event.logicalKey) {
         case LogicalKeyboardKey.space:
           _state.isPlaying ? _manager.pause() : _manager.resume();
