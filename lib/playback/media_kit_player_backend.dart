@@ -53,6 +53,8 @@ class MediaKitPlayerBackend implements PlayerBackend {
     UserPreferences prefs, {
     Future<void> Function(int handle)? onNativeHandleReady,
   }) {
+    final isLegacyFireTv =
+        PlatformDetection.isAndroid && PlatformDetection.isTV;
     final player = Player(
       configuration: PlayerConfiguration(
         // media_kit's asynchronous libmpv commands can wait forever for
@@ -74,7 +76,13 @@ class MediaKitPlayerBackend implements PlayerBackend {
     final controller = VideoController(
       player,
       configuration: VideoControllerConfiguration(
-        hwdec: PlatformDetection.isLinux && !PlatformDetection.isLinuxWayland
+        // The old MT8127 cannot reliably allocate enough ION memory for
+        // MediaCodec copy-back into GPU textures at 1080p. Rendering the
+        // decoder directly into Android's Surface avoids those YUV copies.
+        vo: isLegacyFireTv ? 'mediacodec_embed' : null,
+        hwdec: isLegacyFireTv
+            ? 'mediacodec'
+            : PlatformDetection.isLinux && !PlatformDetection.isLinuxWayland
             ? 'no'
             : null,
       ),
