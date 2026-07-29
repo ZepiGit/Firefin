@@ -32,6 +32,7 @@ class MediaKitPlayerBackend implements PlayerBackend {
   final Future<void> Function(int handle)? _onNativeHandleReady;
   bool _didNotifyNativeHandle = false;
   bool _didConfigureAppleMobileLibassFont = false;
+  int _playGeneration = 0;
   String? _appliedCustomMpvConfPath;
   DateTime? _appliedCustomMpvConfMtime;
   static final Map<String, _ParsedMpvConfCacheEntry> _parsedMpvConfCache =
@@ -113,6 +114,7 @@ class MediaKitPlayerBackend implements PlayerBackend {
   @override
   Future<void> play(dynamic mediaItem) async {
     final url = mediaItem as String;
+    final playGeneration = ++_playGeneration;
     await _notifyNativeHandleReady();
     await _configureAppleMobileLibassFont();
     await _applyCustomMpvConfIfEnabled();
@@ -121,28 +123,41 @@ class MediaKitPlayerBackend implements PlayerBackend {
     // decoded frame. Let PlaybackManager's bounded readiness polling observe
     // the player streams instead of blocking the complete startup sequence.
     final openFuture = _player.open(Media(url));
+    unawaited(openFuture);
     if (PlatformDetection.isAndroid && PlatformDetection.isTV) {
-      unawaited(() async {
-        try {
-          await openFuture;
-          // Fire OS 5 may report playing=true while libmpv's pause property
-          // remains set after the video surface becomes available. Reassert
-          // playback once the open/surface race has settled. A user pause is
-          // respected because it changes state.playing to false.
-          await Future<void>.delayed(const Duration(milliseconds: 750));
-          if (_player.state.playing) {
-            await _player.play();
-          }
-        } catch (_) {
-          // PlaybackManager exposes backend failures through its regular
-          // readiness/error path.
-        }
-      }());
-    } else {
-      unawaited(openFuture);
+      unawaited(_stabilizeLegacyFireTvStart(playGeneration));
     }
     if (!_useLibass) {
       _enableNativeSubtitleRendering();
+    }
+  }
+
+  Future<void> _stabilizeLegacyFireTvStart(int playGeneration) async {
+    // On Fire OS 5, libmpv can expose the first decoded frame while its pause
+    // property remains latched even though media_kit reports playing=true.
+    // Wait for actual media metadata, then perform one bounded pause/play
+    // cycle only if the clock has not moved at all. A new item or a deliberate
+    // user pause cancels the recovery.
+    for (var attempt = 0; attempt < 600; attempt++) {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      if (playGeneration != _playGeneration) return;
+
+      final state = _player.state;
+      final mediaReady =
+          state.duration > Duration.zero ||
+          ((state.width ?? 0) > 0 && (state.height ?? 0) > 0);
+      if (!mediaReady) continue;
+
+      await Future<void>.delayed(const Duration(milliseconds: 1500));
+      if (playGeneration != _playGeneration) return;
+      if (!_player.state.playing) return;
+      if (_player.state.position > const Duration(milliseconds: 200)) return;
+
+      await _player.pause();
+      if (playGeneration != _playGeneration) return;
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      await _player.play();
+      return;
     }
   }
 
