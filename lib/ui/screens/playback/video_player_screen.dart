@@ -91,6 +91,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
 
   final _overlayFocus = FocusNode();
   final _playPauseFocus = FocusNode(debugLabel: 'PlayerPlayPause');
+  late final FocusNode _seekFocus;
+  final _secondaryControlsFocus = FocusNode(
+    debugLabel: 'PlayerSecondaryControls',
+  );
   bool _isDesktopFullscreen = false;
 
   PlayerState get _state => _manager.state;
@@ -115,6 +119,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
   @override
   void initState() {
     super.initState();
+    _seekFocus = FocusNode(
+      debugLabel: 'PlayerSeek',
+      onKeyEvent: _handleSeekKeyEvent,
+    );
     _segmentService = _createSegmentService();
     _zoomMode = _prefs.get(UserPreferences.playerZoomMode);
     _applySubtitleStyle();
@@ -206,6 +214,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     _screenLockSub?.cancel();
     _overlayFocus.dispose();
     _playPauseFocus.dispose();
+    _seekFocus.dispose();
+    _secondaryControlsFocus.dispose();
     _pipService.enableAutoPiP(false);
     if (!_isStopping) _manager.stop();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -744,6 +754,32 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
     }
   }
 
+  KeyEventResult _handleSeekKeyEvent(FocusNode node, KeyEvent event) {
+    if (!PlatformDetection.useLeanbackUi ||
+        (event is! KeyDownEvent && event is! KeyRepeatEvent)) {
+      return KeyEventResult.ignored;
+    }
+
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      if (event is KeyDownEvent && _secondaryControlsFocus.context != null) {
+        _secondaryControlsFocus.requestFocus();
+        _scheduleHide();
+      }
+      return KeyEventResult.handled;
+    }
+
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      if (event is KeyDownEvent && _playPauseFocus.context != null) {
+        _playPauseFocus.requestFocus();
+        _scheduleHide();
+      }
+      return KeyEventResult.handled;
+    }
+
+    // Left and right remain available to the Slider for seeking.
+    return KeyEventResult.ignored;
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isInPiP) {
@@ -1266,6 +1302,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
                     ),
                   ),
                   child: Slider(
+                    focusNode: _seekFocus,
                     value: positionMs.clamp(0.0, durationMs),
                     max: durationMs,
                     onChangeStart: (v) {
@@ -1350,6 +1387,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen>
             ),
           _controlButton(
             Icons.subtitles_outlined,
+            focusNode: _secondaryControlsFocus,
             onPressed: () => _showTrackSelector(audio: false),
             size: secondaryIconSize,
             extent: secondaryExtent,
