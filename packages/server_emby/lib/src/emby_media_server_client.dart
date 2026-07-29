@@ -14,21 +14,24 @@ import 'api/emby_instant_mix_api.dart';
 import 'api/emby_display_preferences_api.dart';
 import 'api/emby_users_api.dart';
 
+String _normalizeServerBaseUrl(String value) =>
+    value.replaceFirst(RegExp(r'/+$'), '');
+
 class EmbyMediaServerClient extends MediaServerClient {
   final Dio _dio;
 
   @override
   final DeviceInfo deviceInfo;
 
-  EmbyMediaServerClient({
-    required String baseUrl,
-    required this.deviceInfo,
-  }) : _dio = Dio(BaseOptions(
-         baseUrl: baseUrl,
-         connectTimeout: const Duration(seconds: 30),
-         receiveTimeout: const Duration(minutes: 3),
-       )) {
-    _baseUrl = baseUrl;
+  EmbyMediaServerClient({required String baseUrl, required this.deviceInfo})
+    : _dio = Dio(
+        BaseOptions(
+          baseUrl: _normalizeServerBaseUrl(baseUrl),
+          connectTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(minutes: 3),
+        ),
+      ) {
+    _baseUrl = _normalizeServerBaseUrl(baseUrl);
     configureServerDio(_dio);
     _setupInterceptors();
   }
@@ -38,16 +41,18 @@ class EmbyMediaServerClient extends MediaServerClient {
   String? _userId;
 
   void _setupInterceptors() {
-    _dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) {
-        options.headers['Authorization'] = buildServerAuthorizationHeader(
-          scheme: 'Emby',
-          deviceInfo: deviceInfo,
-          accessToken: _accessToken,
-        );
-        handler.next(options);
-      },
-    ));
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          options.headers['Authorization'] = buildServerAuthorizationHeader(
+            scheme: 'Emby',
+            deviceInfo: deviceInfo,
+            accessToken: _accessToken,
+          );
+          handler.next(options);
+        },
+      ),
+    );
   }
 
   String _requireUserId() {
@@ -64,8 +69,9 @@ class EmbyMediaServerClient extends MediaServerClient {
 
   @override
   set baseUrl(String url) {
-    _baseUrl = url;
-    _dio.options.baseUrl = url;
+    final normalized = _normalizeServerBaseUrl(url);
+    _baseUrl = normalized;
+    _dio.options.baseUrl = normalized;
   }
 
   @override
@@ -87,12 +93,13 @@ class EmbyMediaServerClient extends MediaServerClient {
   late final ItemsApi itemsApi = EmbyItemsApi(_dio, _requireUserId);
 
   @override
-  late final PlaybackApi playbackApi =
-      EmbyPlaybackApi(_dio, () => _baseUrl);
+  late final PlaybackApi playbackApi = EmbyPlaybackApi(_dio, () => _baseUrl);
 
   @override
-  late final ImageApi imageApi =
-      EmbyImageApi(() => _baseUrl, () => _accessToken);
+  late final ImageApi imageApi = EmbyImageApi(
+    () => _baseUrl,
+    () => _accessToken,
+  );
 
   @override
   late final SessionApi sessionApi = EmbySessionApi(_dio);
@@ -101,12 +108,16 @@ class EmbyMediaServerClient extends MediaServerClient {
   late final SystemApi systemApi = EmbySystemApi(_dio);
 
   @override
-  late final UserLibraryApi userLibraryApi =
-      EmbyUserLibraryApi(_dio, _requireUserId);
+  late final UserLibraryApi userLibraryApi = EmbyUserLibraryApi(
+    _dio,
+    _requireUserId,
+  );
 
   @override
-  late final EmbyUserViewsApi userViewsApi =
-      EmbyUserViewsApi(_dio, _requireUserId);
+  late final EmbyUserViewsApi userViewsApi = EmbyUserViewsApi(
+    _dio,
+    _requireUserId,
+  );
 
   @override
   late final LiveTvApi liveTvApi = EmbyLiveTvApi(_dio);

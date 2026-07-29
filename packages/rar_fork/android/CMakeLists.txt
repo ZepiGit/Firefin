@@ -7,7 +7,8 @@ include(FetchContent)
 
 FetchContent_Declare(
   libarchive
-  URL https://github.com/libarchive/libarchive/releases/download/v3.7.2/libarchive-3.7.2.tar.gz
+  URL "file://${CMAKE_CURRENT_LIST_DIR}/vendor/libarchive-3.7.2.tar.gz"
+  URL_HASH SHA256=df404eb7222cf30b4f8f93828677890a2986b66ff8bf39dac32a804e96ddf104
 )
 
 FetchContent_GetProperties(libarchive)

@@ -6,11 +6,7 @@ import 'package:flutter/foundation.dart';
 
 import 'book_reader_service.dart';
 
-enum BookDocumentTheme {
-  light,
-  dark,
-  sepia,
-}
+enum BookDocumentTheme { light, dark, sepia }
 
 class BookDocumentService {
   static Future<Uint8List> downloadBytes(
@@ -82,7 +78,9 @@ class BookDocumentService {
         await response.drain<void>();
 
         final fromDisposition =
-            BookReaderService.extractExtensionFromContentDisposition(disposition);
+            BookReaderService.extractExtensionFromContentDisposition(
+              disposition,
+            );
         if (BookReaderService.isSupportedExtension(fromDisposition)) {
           return fromDisposition;
         }
@@ -114,8 +112,8 @@ class BookDocumentService {
 
     final files = <String, List<int>>{};
     for (final file in archive.files) {
-      if (file.isFile && file.content is List<int>) {
-        files[file.name] = file.content as List<int>;
+      if (file.isFile) {
+        files[file.name] = file.content;
       }
     }
 
@@ -155,11 +153,9 @@ class BookDocumentService {
 
       final chapterBody = _extractHtmlBody(utf8.decode(chapterBytes));
       final sanitized = _stripLocalImages(chapterBody);
-      chapters.add(_wrapEpubChapterHtml(
-        cssBuffer.toString(),
-        sanitized,
-        theme: theme,
-      ));
+      chapters.add(
+        _wrapEpubChapterHtml(cssBuffer.toString(), sanitized, theme: theme),
+      );
     }
 
     if (chapters.isEmpty) {
@@ -194,13 +190,11 @@ class BookDocumentService {
     }
 
     final chapterHrefs = <String>[];
-    final spineRegex = RegExp(
-      r'<itemref\b([^>]*)/?\s*>',
-      caseSensitive: false,
-    );
+    final spineRegex = RegExp(r'<itemref\b([^>]*)/?\s*>', caseSensitive: false);
     for (final m in spineRegex.allMatches(xml)) {
-      final idref =
-          RegExp(r'idref="([^"]+)"').firstMatch(m.group(1)!)?.group(1);
+      final idref = RegExp(
+        r'idref="([^"]+)"',
+      ).firstMatch(m.group(1)!)?.group(1);
       if (idref != null && manifest.containsKey(idref)) {
         chapterHrefs.add(manifest[idref]!.href);
       }
@@ -228,14 +222,16 @@ class BookDocumentService {
       RegExp(r'<img\b[^>]*>', caseSensitive: false),
       (match) {
         final tag = match.group(0) ?? '';
-        final src = RegExp(r'src="([^"]*)"', caseSensitive: false)
-            .firstMatch(tag)
-            ?.group(1);
+        final src = RegExp(
+          r'src="([^"]*)"',
+          caseSensitive: false,
+        ).firstMatch(tag)?.group(1);
         if (src == null) {
           return '';
         }
 
-        final isRemote = src.startsWith('http://') ||
+        final isRemote =
+            src.startsWith('http://') ||
             src.startsWith('https://') ||
             src.startsWith('data:');
         return isRemote ? tag : '';
@@ -260,20 +256,20 @@ class BookDocumentService {
   }) {
     final colors = switch (theme) {
       BookDocumentTheme.light => (
-          background: '#fafafa',
-          foreground: '#222222',
-          link: '#1b4f9c',
-        ),
+        background: '#fafafa',
+        foreground: '#222222',
+        link: '#1b4f9c',
+      ),
       BookDocumentTheme.dark => (
-          background: '#121212',
-          foreground: '#e7e7e7',
-          link: '#8ab4f8',
-        ),
+        background: '#121212',
+        foreground: '#e7e7e7',
+        link: '#8ab4f8',
+      ),
       BookDocumentTheme.sepia => (
-          background: '#f4ecd8',
-          foreground: '#3e3023',
-          link: '#6b4e2a',
-        ),
+        background: '#f4ecd8',
+        foreground: '#3e3023',
+        link: '#6b4e2a',
+      ),
     };
 
     return '''<!DOCTYPE html>

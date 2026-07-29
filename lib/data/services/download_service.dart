@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
+import 'dart:typed_data';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
@@ -59,7 +60,9 @@ Future<void> _downloadIsolateMain(Map<String, Object?> args) async {
     client.idleTimeout = const Duration(seconds: 120);
 
     final request = await client.getUrl(Uri.parse(url));
-    headers.forEach((k, v) => request.headers.set(k, v, preserveHeaderCase: true));
+    headers.forEach(
+      (k, v) => request.headers.set(k, v, preserveHeaderCase: true),
+    );
     request.headers.set('accept-encoding', 'identity');
 
     final response = await request.close();
@@ -94,22 +97,30 @@ Future<void> _downloadIsolateMain(Map<String, Object?> args) async {
       if (cancelled) break;
       buf.add(chunk);
       received += chunk.length;
-      if (buf.length >= flushAt) await raf!.writeFrom(buf.takeBytes());
+      if (buf.length >= flushAt) await raf.writeFrom(buf.takeBytes());
 
       if (contentLength > 0) {
         final pct = received * 100 ~/ contentLength;
         if (pct != lastPct) {
           lastPct = pct;
-          sendPort.send(<String, Object?>{'t': 'p', 'r': received, 'l': contentLength});
+          sendPort.send(<String, Object?>{
+            't': 'p',
+            'r': received,
+            'l': contentLength,
+          });
         }
       } else if (received - lastReportedBytes >= bytesReportInterval) {
         lastReportedBytes = received;
-        sendPort.send(<String, Object?>{'t': 'p', 'r': received, 'l': contentLength});
+        sendPort.send(<String, Object?>{
+          't': 'p',
+          'r': received,
+          'l': contentLength,
+        });
       }
     }
 
-    if (buf.length > 0) await raf!.writeFrom(buf.takeBytes());
-    await raf!.close();
+    if (buf.length > 0) await raf.writeFrom(buf.takeBytes());
+    await raf.close();
     raf = null;
     client.close();
     client = null;
@@ -145,13 +156,16 @@ class DownloadService extends ChangeNotifier {
   int _completedCount = 0;
   int get totalQueued => _totalQueued;
   int get completedCount => _completedCount;
-  bool get isBatchDownloading => _totalQueued > 0 && _completedCount < _totalQueued;
+  bool get isBatchDownloading =>
+      _totalQueued > 0 && _completedCount < _totalQueued;
 
   DownloadService(this._client, this._notificationService) {
-    _downloadDio = Dio(BaseOptions(
-      connectTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(hours: 6),
-    ));
+    _downloadDio = Dio(
+      BaseOptions(
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(hours: 6),
+      ),
+    );
     configureServerDio(_downloadDio);
   }
 
@@ -160,7 +174,8 @@ class DownloadService extends ChangeNotifier {
   UserPreferences get _prefs => GetIt.instance<UserPreferences>();
 
   bool _canClearCancelAllGate() {
-    return _cancelTokens.isEmpty && _activeDownloads.values.every((d) => d.isComplete || d.error != null);
+    return _cancelTokens.isEmpty &&
+        _activeDownloads.values.every((d) => d.isComplete || d.error != null);
   }
 
   bool _shouldPersistProgress(String itemId, double progress) {
@@ -220,7 +235,10 @@ class DownloadService extends ChangeNotifier {
     }
   }
 
-  Future<void> _deleteEmptyDirectoriesUpTo(Directory start, Directory root) async {
+  Future<void> _deleteEmptyDirectoriesUpTo(
+    Directory start,
+    Directory root,
+  ) async {
     var current = start;
 
     while (current.path.startsWith(root.path) && current.path != root.path) {
@@ -244,7 +262,10 @@ class DownloadService extends ChangeNotifier {
     await _deleteFileArtifactsWithinRoot(savePath, offlineRoot);
   }
 
-  Future<void> _deleteFileArtifactsWithinRoot(String savePath, Directory offlineRoot) async {
+  Future<void> _deleteFileArtifactsWithinRoot(
+    String savePath,
+    Directory offlineRoot,
+  ) async {
     final file = File(savePath);
     if (await file.exists()) {
       await file.delete();
@@ -260,7 +281,10 @@ class DownloadService extends ChangeNotifier {
     AggregatedItem item,
     Directory offlineRoot,
   ) async {
-    final candidatePaths = _candidateSavePaths(dir, item).toList(growable: false);
+    final candidatePaths = _candidateSavePaths(
+      dir,
+      item,
+    ).toList(growable: false);
     final fileNameBases = candidatePaths.map(_fileNameBaseFromPath).toSet();
 
     for (final savePath in candidatePaths) {
@@ -277,15 +301,23 @@ class DownloadService extends ChangeNotifier {
     await _deleteEmptyDirectoriesUpTo(dir, offlineRoot);
   }
 
-  Future<void> _deleteImagesForIds(Iterable<String> itemIds, Directory imageDir) async {
+  Future<void> _deleteImagesForIds(
+    Iterable<String> itemIds,
+    Directory imageDir,
+  ) async {
     for (final itemId in itemIds.toSet()) {
       await _deleteItemImages(itemId, imageDir);
     }
   }
 
-  Future<void> _cleanupEpisodeContainers(AggregatedItem episode, Directory imageDir) async {
+  Future<void> _cleanupEpisodeContainers(
+    AggregatedItem episode,
+    Directory imageDir,
+  ) async {
     if (episode.seasonId != null) {
-      final seasonEpisodes = await _offlineRepo.getSeasonEpisodes(episode.seasonId!);
+      final seasonEpisodes = await _offlineRepo.getSeasonEpisodes(
+        episode.seasonId!,
+      );
       if (seasonEpisodes.isEmpty) {
         await _offlineRepo.deleteItem(episode.seasonId!);
         await _deleteItemImages(episode.seasonId!, imageDir);
@@ -293,7 +325,9 @@ class DownloadService extends ChangeNotifier {
     }
 
     if (episode.seriesId != null) {
-      final seriesEpisodes = await _offlineRepo.getSeriesEpisodes(episode.seriesId!);
+      final seriesEpisodes = await _offlineRepo.getSeriesEpisodes(
+        episode.seriesId!,
+      );
       if (seriesEpisodes.isEmpty) {
         await _offlineRepo.deleteItem(episode.seriesId!);
         await _deleteItemImages(episode.seriesId!, imageDir);
@@ -301,7 +335,10 @@ class DownloadService extends ChangeNotifier {
     }
   }
 
-  Iterable<String> _candidateSavePaths(Directory dir, AggregatedItem item) sync* {
+  Iterable<String> _candidateSavePaths(
+    Directory dir,
+    AggregatedItem item,
+  ) sync* {
     final seenPaths = <String>{};
 
     for (final quality in DownloadQuality.values) {
@@ -407,8 +444,9 @@ class DownloadService extends ChangeNotifier {
       case 'Episode':
         final series = _sanitizePath(item.seriesName ?? 'Unknown Series');
         final season = item.parentIndexNumber;
-        final seasonFolder =
-            season != null ? 'Season ${season.toString().padLeft(2, '0')}' : 'Specials';
+        final seasonFolder = season != null
+            ? 'Season ${season.toString().padLeft(2, '0')}'
+            : 'Specials';
         return 'TV/$series/$seasonFolder';
 
       default:
@@ -422,14 +460,17 @@ class DownloadService extends ChangeNotifier {
       case 'Audio':
       case 'AudioBook':
         final index = item.indexNumber;
-        final prefix = index != null ? '${index.toString().padLeft(2, '0')} - ' : '';
+        final prefix = index != null
+            ? '${index.toString().padLeft(2, '0')} - '
+            : '';
         return '$prefix${_sanitizePath(item.name)}.$container';
 
       case 'Episode':
         final s = item.parentIndexNumber;
         final e = item.indexNumber;
-        final prefix =
-            (s != null && e != null) ? 'S${s.toString().padLeft(2, '0')}E${e.toString().padLeft(2, '0')} - ' : '';
+        final prefix = (s != null && e != null)
+            ? 'S${s.toString().padLeft(2, '0')}E${e.toString().padLeft(2, '0')} - '
+            : '';
         return '$prefix${_sanitizePath(item.name)}.$container';
 
       default:
@@ -464,7 +505,9 @@ class DownloadService extends ChangeNotifier {
 
     if (response != null) {
       final disposition = response.headers.value('content-disposition');
-      detectedExt = BookReaderService.extractExtensionFromContentDisposition(disposition);
+      detectedExt = BookReaderService.extractExtensionFromContentDisposition(
+        disposition,
+      );
 
       if (detectedExt == null) {
         final contentType = response.headers.value('content-type');
@@ -473,7 +516,9 @@ class DownloadService extends ChangeNotifier {
     }
 
     if (detectedExt == null || detectedExt == currentExt) return null;
-    if (!BookReaderService.supportedExtensions.contains(detectedExt)) return null;
+    if (!BookReaderService.supportedExtensions.contains(detectedExt)) {
+      return null;
+    }
 
     final newPath = currentPath.contains('.')
         ? currentPath.replaceAll(RegExp(r'\.[^.]+$'), '.$detectedExt')
@@ -531,11 +576,7 @@ class DownloadService extends ChangeNotifier {
     }
 
     await runBestEffort(
-      _downloadExternalSubtitles(
-        item,
-        dir,
-        fileNameBase,
-      ),
+      _downloadExternalSubtitles(item, dir, fileNameBase),
       const Duration(seconds: 30),
     );
   }
@@ -550,19 +591,16 @@ class DownloadService extends ChangeNotifier {
   }) async {
     final fromIsolate = ReceivePort();
 
-    await Isolate.spawn<Map<String, Object?>>(
-      _downloadIsolateMain,
-      {
-        'sendPort': fromIsolate.sendPort,
-        'url': url,
-        'savePath': savePath,
-        'headers': Map<String, String>.from(
-          (options.headers ?? <String, dynamic>{}).map(
-            (k, v) => MapEntry(k.toString(), v?.toString() ?? ''),
-          ),
+    await Isolate.spawn<Map<String, Object?>>(_downloadIsolateMain, {
+      'sendPort': fromIsolate.sendPort,
+      'url': url,
+      'savePath': savePath,
+      'headers': Map<String, String>.from(
+        (options.headers ?? <String, dynamic>{}).map(
+          (k, v) => MapEntry(k.toString(), v?.toString() ?? ''),
         ),
-      },
-    );
+      ),
+    });
 
     SendPort? toIsolate;
     var responseStatus = 200;
@@ -594,25 +632,32 @@ class DownloadService extends ChangeNotifier {
           break;
         case 'c':
           fromIsolate.close();
-          done.completeError(cancelToken.cancelError ?? DioException(
-            type: DioExceptionType.cancel,
-            requestOptions: RequestOptions(path: url),
-          ));
+          done.completeError(
+            cancelToken.cancelError ??
+                DioException(
+                  type: DioExceptionType.cancel,
+                  requestOptions: RequestOptions(path: url),
+                ),
+          );
           break;
         case 'e':
           fromIsolate.close();
           final sc = msg['sc'] as int?;
-          done.completeError(DioException(
-            type: sc != null ? DioExceptionType.badResponse : DioExceptionType.unknown,
-            requestOptions: RequestOptions(path: url),
-            message: msg['msg'] as String?,
-            response: sc != null
-                ? Response(
-                    requestOptions: RequestOptions(path: url),
-                    statusCode: sc,
-                  )
-                : null,
-          ));
+          done.completeError(
+            DioException(
+              type: sc != null
+                  ? DioExceptionType.badResponse
+                  : DioExceptionType.unknown,
+              requestOptions: RequestOptions(path: url),
+              message: msg['msg'] as String?,
+              response: sc != null
+                  ? Response(
+                      requestOptions: RequestOptions(path: url),
+                      statusCode: sc,
+                    )
+                  : null,
+            ),
+          );
           break;
       }
     });
@@ -739,10 +784,7 @@ class DownloadService extends ChangeNotifier {
             statusCode: 200,
             headers: headers,
             data: null,
-            extra: {
-              'guardFinalized': true,
-              'bytesReceived': lastReceived,
-            },
+            extra: {'guardFinalized': true, 'bytesReceived': lastReceived},
           ),
         );
       } catch (e, st) {
@@ -802,7 +844,9 @@ class DownloadService extends ChangeNotifier {
 
   bool _usesAudioDownloadEndpoint(AggregatedItem item) {
     final mediaType = item.rawData['MediaType'] as String?;
-    return item.type == 'Audio' || item.type == 'AudioBook' || mediaType == 'Audio';
+    return item.type == 'Audio' ||
+        item.type == 'AudioBook' ||
+        mediaType == 'Audio';
   }
 
   bool _shouldRetryWithFallback(
@@ -823,12 +867,17 @@ class DownloadService extends ChangeNotifier {
   }
 
   String? _primaryMediaSourceId(AggregatedItem item) {
-    return item.mediaSources.isNotEmpty ? item.mediaSources.first['Id'] as String? : null;
+    return item.mediaSources.isNotEmpty
+        ? item.mediaSources.first['Id'] as String?
+        : null;
   }
 
   String _encodeQuery(Map<String, String> params) {
     return params.entries
-        .map((e) => '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
+        .map(
+          (e) =>
+              '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}',
+        )
         .join('&');
   }
 
@@ -840,7 +889,8 @@ class DownloadService extends ChangeNotifier {
     final mediaSourceId = _primaryMediaSourceId(item);
     return <String, String>{
       if (isStatic) 'Static': 'true',
-      if (includeMediaSourceId && mediaSourceId != null) 'MediaSourceId': mediaSourceId,
+      if (includeMediaSourceId && mediaSourceId != null)
+        'MediaSourceId': mediaSourceId,
       if (_client.accessToken != null) 'ApiKey': _client.accessToken!,
     };
   }
@@ -856,15 +906,18 @@ class DownloadService extends ChangeNotifier {
   }
 
   List<String> _buildDownloadFallbackUrls(
-    AggregatedItem item,
-    {
+    AggregatedItem item, {
     required String primaryUrl,
   }) {
     final candidates = <String>[
       if (item.type == 'Book')
-        ...BookReaderService.buildDownloadUris(_client, item).map((u) => u.toString())
+        ...BookReaderService.buildDownloadUris(
+          _client,
+          item,
+        ).map((u) => u.toString())
       else ...[
-        if (_usesAudioDownloadEndpoint(item)) _buildAudioDownloadUrl(item.id, item),
+        if (_usesAudioDownloadEndpoint(item))
+          _buildAudioDownloadUrl(item.id, item),
         _buildDirectItemDownloadUrl(item.id, item),
         _buildDirectItemFileUrl(item.id, item),
         _buildStaticVideoStreamUrl(item.id, item),
@@ -934,7 +987,10 @@ class DownloadService extends ChangeNotifier {
     }
 
     for (var i = 0; i <= bytes.length - 4 && i < 32; i++) {
-      if (bytes[i] == 0x66 && bytes[i + 1] == 0x74 && bytes[i + 2] == 0x79 && bytes[i + 3] == 0x70) {
+      if (bytes[i] == 0x66 &&
+          bytes[i + 1] == 0x74 &&
+          bytes[i + 2] == 0x79 &&
+          bytes[i + 3] == 0x70) {
         return true;
       }
     }
@@ -950,15 +1006,32 @@ class DownloadService extends ChangeNotifier {
         return _hasMp4Signature(bytes);
       case 'mkv':
       case 'webm':
-        return bytes.length >= 4 && bytes[0] == 0x1A && bytes[1] == 0x45 && bytes[2] == 0xDF && bytes[3] == 0xA3;
+        return bytes.length >= 4 &&
+            bytes[0] == 0x1A &&
+            bytes[1] == 0x45 &&
+            bytes[2] == 0xDF &&
+            bytes[3] == 0xA3;
       case 'mp3':
-        return (bytes.length >= 3 && bytes[0] == 0x49 && bytes[1] == 0x44 && bytes[2] == 0x33) ||
-            (bytes.length >= 2 && bytes[0] == 0xFF && (bytes[1] & 0xE0) == 0xE0);
+        return (bytes.length >= 3 &&
+                bytes[0] == 0x49 &&
+                bytes[1] == 0x44 &&
+                bytes[2] == 0x33) ||
+            (bytes.length >= 2 &&
+                bytes[0] == 0xFF &&
+                (bytes[1] & 0xE0) == 0xE0);
       case 'flac':
-        return bytes.length >= 4 && bytes[0] == 0x66 && bytes[1] == 0x4C && bytes[2] == 0x61 && bytes[3] == 0x43;
+        return bytes.length >= 4 &&
+            bytes[0] == 0x66 &&
+            bytes[1] == 0x4C &&
+            bytes[2] == 0x61 &&
+            bytes[3] == 0x43;
       case 'ogg':
       case 'opus':
-        return bytes.length >= 4 && bytes[0] == 0x4F && bytes[1] == 0x67 && bytes[2] == 0x67 && bytes[3] == 0x53;
+        return bytes.length >= 4 &&
+            bytes[0] == 0x4F &&
+            bytes[1] == 0x67 &&
+            bytes[2] == 0x67 &&
+            bytes[3] == 0x53;
       case 'wav':
         return bytes.length >= 12 &&
             bytes[0] == 0x52 &&
@@ -970,11 +1043,20 @@ class DownloadService extends ChangeNotifier {
             bytes[10] == 0x56 &&
             bytes[11] == 0x45;
       case 'pdf':
-        return bytes.length >= 5 && bytes[0] == 0x25 && bytes[1] == 0x50 && bytes[2] == 0x44 && bytes[3] == 0x46 && bytes[4] == 0x2D;
+        return bytes.length >= 5 &&
+            bytes[0] == 0x25 &&
+            bytes[1] == 0x50 &&
+            bytes[2] == 0x44 &&
+            bytes[3] == 0x46 &&
+            bytes[4] == 0x2D;
       case 'epub':
       case 'cbz':
       case 'zip':
-        return bytes.length >= 4 && bytes[0] == 0x50 && bytes[1] == 0x4B && bytes[2] == 0x03 && bytes[3] == 0x04;
+        return bytes.length >= 4 &&
+            bytes[0] == 0x50 &&
+            bytes[1] == 0x4B &&
+            bytes[2] == 0x03 &&
+            bytes[3] == 0x04;
       case 'cbr':
         return bytes.length >= 7 &&
             bytes[0] == 0x52 &&
@@ -1008,29 +1090,45 @@ class DownloadService extends ChangeNotifier {
         (contentType.startsWith('text/') ||
             contentType.contains('application/json') ||
             contentType.contains('text/html'))) {
-      throw StateError('Download returned non-media content-type: $contentType');
+      throw StateError(
+        'Download returned non-media content-type: $contentType',
+      );
     }
 
     final contentLength = response?.headers.value('content-length');
     if (contentLength != null) {
       final parsedLength = int.tryParse(contentLength);
-      if (parsedLength != null && parsedLength > 0 && bytesReceived > 0 && bytesReceived != parsedLength) {
-        throw StateError('Downloaded bytes do not match Content-Length (received=$bytesReceived expected=$parsedLength)');
+      if (parsedLength != null &&
+          parsedLength > 0 &&
+          bytesReceived > 0 &&
+          bytesReceived != parsedLength) {
+        throw StateError(
+          'Downloaded bytes do not match Content-Length (received=$bytesReceived expected=$parsedLength)',
+        );
       }
     }
 
     final prefix = await _readPrefix(file);
     if (_looksLikeTextPayload(prefix)) {
-      throw StateError('Downloaded content appears to be an HTML/text error payload');
+      throw StateError(
+        'Downloaded content appears to be an HTML/text error payload',
+      );
     }
 
-    final ext = file.path.contains('.') ? file.path.split('.').last.toLowerCase() : '';
+    final ext = file.path.contains('.')
+        ? file.path.split('.').last.toLowerCase()
+        : '';
     if (ext.isNotEmpty && !_signatureMatchesExtension(prefix, ext)) {
-      throw StateError('Downloaded file signature does not match extension .$ext');
+      throw StateError(
+        'Downloaded file signature does not match extension .$ext',
+      );
     }
 
-    if (quality.isTranscoded && !_signatureMatchesExtension(prefix, quality.container)) {
-      throw StateError('Transcoded file signature does not match expected container ${quality.container}');
+    if (quality.isTranscoded &&
+        !_signatureMatchesExtension(prefix, quality.container)) {
+      throw StateError(
+        'Transcoded file signature does not match expected container ${quality.container}',
+      );
     }
   }
 
@@ -1040,11 +1138,17 @@ class DownloadService extends ChangeNotifier {
   }
 
   String _buildDirectItemDownloadUrl(String itemId, AggregatedItem item) {
-    final query = _encodeQuery(_baseDownloadParams(item, includeMediaSourceId: false));
+    final query = _encodeQuery(
+      _baseDownloadParams(item, includeMediaSourceId: false),
+    );
     return '${_client.baseUrl}/Items/$itemId/Download${query.isEmpty ? '' : '?$query'}';
   }
 
-  String _buildDownloadUrl(String itemId, AggregatedItem item, DownloadQuality quality) {
+  String _buildDownloadUrl(
+    String itemId,
+    AggregatedItem item,
+    DownloadQuality quality,
+  ) {
     if (!quality.isTranscoded || !_supportsTranscodedDownload(item.type)) {
       return _buildDirectItemDownloadUrl(itemId, item);
     }
@@ -1079,7 +1183,10 @@ class DownloadService extends ChangeNotifier {
     return AggregatedItem(id: item.id, serverId: item.serverId, rawData: data);
   }
 
-  Future<void> downloadItem(AggregatedItem item, {DownloadQuality quality = DownloadQuality.original}) async {
+  Future<void> downloadItem(
+    AggregatedItem item, {
+    DownloadQuality quality = DownloadQuality.original,
+  }) async {
     if (_cancelAllRequested) {
       if (_canClearCancelAllGate()) {
         _cancelAllRequested = false;
@@ -1127,28 +1234,32 @@ class DownloadService extends ChangeNotifier {
       if (!await dir.exists()) await dir.create(recursive: true);
       savePath = '${dir.path}/$fileName';
 
-      await _offlineRepo.upsertItem(DownloadedItemsCompanion(
-        itemId: Value(item.id),
-        serverId: Value(item.serverId),
-        type: Value(item.type ?? 'Unknown'),
-        name: Value(item.name),
-        metadataJson: Value(jsonEncode(fullItem.rawData)),
-        downloadStatus: const Value(1),
-        qualityPreset: Value(quality.name),
-        seriesId: Value(item.seriesId),
-        seasonId: Value(item.seasonId),
-        seriesName: Value(item.seriesName),
-        seasonName: Value(fullItem.rawData['SeasonName'] as String?),
-        indexNumber: Value(item.indexNumber),
-        parentIndexNumber: Value(item.parentIndexNumber),
-      ));
+      await _offlineRepo.upsertItem(
+        DownloadedItemsCompanion(
+          itemId: Value(item.id),
+          serverId: Value(item.serverId),
+          type: Value(item.type ?? 'Unknown'),
+          name: Value(item.name),
+          metadataJson: Value(jsonEncode(fullItem.rawData)),
+          downloadStatus: const Value(1),
+          qualityPreset: Value(quality.name),
+          seriesId: Value(item.seriesId),
+          seasonId: Value(item.seasonId),
+          seriesName: Value(item.seriesName),
+          seasonName: Value(fullItem.rawData['SeasonName'] as String?),
+          indexNumber: Value(item.indexNumber),
+          parentIndexNumber: Value(item.parentIndexNumber),
+        ),
+      );
 
       final cancelToken = CancelToken();
       _cancelTokens[item.id] = cancelToken;
       _downloadStartTimes[item.id] = DateTime.now();
 
       if (!_hasAuthToken()) {
-        throw StateError('Missing authentication token for download request. Please re-login and try again.');
+        throw StateError(
+          'Missing authentication token for download request. Please re-login and try again.',
+        );
       }
 
       final initialProgress = _initialProgressForQuality(quality);
@@ -1191,19 +1302,23 @@ class DownloadService extends ChangeNotifier {
           bytesReceived: received,
         );
         if (_shouldPersistProgress(item.id, progress)) {
-          unawaited(_offlineRepo.updateDownloadStatus(
-            item.id,
-            1,
-            progress: _storedProgress(progress),
-          ));
+          unawaited(
+            _offlineRepo.updateDownloadStatus(
+              item.id,
+              1,
+              progress: _storedProgress(progress),
+            ),
+          );
         }
         if (_shouldUpdateSystemNotification(item.id, progress)) {
-          unawaited(_notificationService.showProgress(
-            itemName: item.name,
-            progress: progress,
-            batchTotal: _totalQueued,
-            batchCompleted: _completedCount,
-          ));
+          unawaited(
+            _notificationService.showProgress(
+              itemName: item.name,
+              progress: progress,
+              batchTotal: _totalQueued,
+              batchCompleted: _completedCount,
+            ),
+          );
         }
         notifyListeners();
       }
@@ -1260,7 +1375,6 @@ class DownloadService extends ChangeNotifier {
         }
         downloadResponse = fallbackResponse;
       } on TimeoutException {
-
         final fallbackResponse = await tryFallbackDownload();
         if (fallbackResponse == null) {
           rethrow;
@@ -1290,7 +1404,8 @@ class DownloadService extends ChangeNotifier {
 
       if (fullItem.type == 'Book') {
         final corrected = await _correctBookExtension(
-          savedFile, downloadResponse,
+          savedFile,
+          downloadResponse,
         );
         if (corrected != null) {
           savePath = corrected;
@@ -1298,7 +1413,11 @@ class DownloadService extends ChangeNotifier {
       }
 
       final finalSize = await File(savePath).length();
-      await _offlineRepo.setLocalFilePath(item.id, savePath, fileSize: finalSize);
+      await _offlineRepo.setLocalFilePath(
+        item.id,
+        savePath,
+        fileSize: finalSize,
+      );
       await _offlineRepo.updateDownloadStatus(item.id, 2);
 
       _activeDownloads[item.id] = DownloadProgress(
@@ -1310,12 +1429,14 @@ class DownloadService extends ChangeNotifier {
       _completedCount++;
       notifyListeners();
 
-      unawaited(_runPostCompletionTasks(
-        item: fullItem,
-        savePath: savePath,
-        dir: dir,
-        fileName: fileName,
-      ));
+      unawaited(
+        _runPostCompletionTasks(
+          item: fullItem,
+          savePath: savePath,
+          dir: dir,
+          fileName: fileName,
+        ),
+      );
     } on DioException catch (e) {
       if (e.type == DioExceptionType.cancel && !_isGuardTimeoutCancel(e)) {
         _activeDownloads.remove(item.id);
@@ -1337,7 +1458,11 @@ class DownloadService extends ChangeNotifier {
           fileName: item.name,
           error: friendlyError,
         );
-        await _offlineRepo.updateDownloadStatus(item.id, 3, error: friendlyError);
+        await _offlineRepo.updateDownloadStatus(
+          item.id,
+          3,
+          error: friendlyError,
+        );
         await _notificationService.showError(
           itemName: item.name,
           error: friendlyError,
@@ -1382,7 +1507,10 @@ class DownloadService extends ChangeNotifier {
     }
   }
 
-  Future<void> downloadItems(List<AggregatedItem> items, {DownloadQuality quality = DownloadQuality.original}) async {
+  Future<void> downloadItems(
+    List<AggregatedItem> items, {
+    DownloadQuality quality = DownloadQuality.original,
+  }) async {
     _cancelAllRequested = false;
     _totalQueued = items.length;
     _completedCount = 0;
@@ -1392,8 +1520,7 @@ class DownloadService extends ChangeNotifier {
       if (_cancelAllRequested) break;
       try {
         await downloadItem(item, quality: quality);
-      } catch (_) {
-      }
+      } catch (_) {}
     }
 
     _totalQueued = 0;
@@ -1408,21 +1535,29 @@ class DownloadService extends ChangeNotifier {
     final allEpisodes = <AggregatedItem>[];
     for (final season in seasons) {
       final seasonId = season['Id'] as String;
-      final episodesData = await _client.itemsApi.getEpisodes(seriesId, seasonId: seasonId);
+      final episodesData = await _client.itemsApi.getEpisodes(
+        seriesId,
+        seasonId: seasonId,
+      );
       final episodes = (episodesData['Items'] as List?) ?? [];
       for (final raw in episodes) {
         final ep = raw as Map<String, dynamic>;
-        allEpisodes.add(AggregatedItem(
-          id: ep['Id'] as String,
-          serverId: _client.baseUrl,
-          rawData: ep,
-        ));
+        allEpisodes.add(
+          AggregatedItem(
+            id: ep['Id'] as String,
+            serverId: _client.baseUrl,
+            rawData: ep,
+          ),
+        );
       }
     }
     return allEpisodes;
   }
 
-  Future<void> downloadSeries(String seriesId, {DownloadQuality quality = DownloadQuality.original}) async {
+  Future<void> downloadSeries(
+    String seriesId, {
+    DownloadQuality quality = DownloadQuality.original,
+  }) async {
     final episodes = await _getAllEpisodesForSeries(seriesId);
     await downloadItems(episodes, quality: quality);
   }
@@ -1498,8 +1633,12 @@ class DownloadService extends ChangeNotifier {
           return true;
 
         default:
-          final defaultDir = Directory('${downloadsDir.path}/Other/${_sanitizePath(item.name)}');
-          if (await defaultDir.exists()) await defaultDir.delete(recursive: true);
+          final defaultDir = Directory(
+            '${downloadsDir.path}/Other/${_sanitizePath(item.name)}',
+          );
+          if (await defaultDir.exists()) {
+            await defaultDir.delete(recursive: true);
+          }
           await _deleteItemImages(item.id, imageDir);
           await _offlineRepo.deleteItem(item.id);
           return true;
@@ -1540,7 +1679,11 @@ class DownloadService extends ChangeNotifier {
       String? posterPath, backdropPath, logoPath;
 
       if (item.primaryImageTag != null) {
-        final url = _client.imageApi.getPrimaryImageUrl(item.id, maxHeight: 500, tag: item.primaryImageTag);
+        final url = _client.imageApi.getPrimaryImageUrl(
+          item.id,
+          maxHeight: 500,
+          tag: item.primaryImageTag,
+        );
         posterPath = '${itemDir.path}/poster.jpg';
         try {
           await _downloadDio.download(url, posterPath, options: authOptions);
@@ -1550,14 +1693,19 @@ class DownloadService extends ChangeNotifier {
       }
 
       if (item.backdropImageTags.isNotEmpty) {
-        final url = _client.imageApi.getBackdropImageUrl(item.id, maxWidth: 1920, tag: item.backdropImageTags.first);
+        final url = _client.imageApi.getBackdropImageUrl(
+          item.id,
+          maxWidth: 1920,
+          tag: item.backdropImageTags.first,
+        );
         backdropPath = '${itemDir.path}/backdrop.jpg';
         try {
           await _downloadDio.download(url, backdropPath, options: authOptions);
         } catch (_) {
           backdropPath = null;
         }
-      } else if (item.parentBackdropItemId != null && item.parentBackdropImageTags.isNotEmpty) {
+      } else if (item.parentBackdropItemId != null &&
+          item.parentBackdropImageTags.isNotEmpty) {
         final url = _client.imageApi.getBackdropImageUrl(
           item.parentBackdropItemId!,
           maxWidth: 1920,
@@ -1572,7 +1720,11 @@ class DownloadService extends ChangeNotifier {
       }
 
       if (item.logoImageTag != null) {
-        final url = _client.imageApi.getLogoImageUrl(item.id, maxWidth: 500, tag: item.logoImageTag);
+        final url = _client.imageApi.getLogoImageUrl(
+          item.id,
+          maxWidth: 500,
+          tag: item.logoImageTag,
+        );
         logoPath = '${itemDir.path}/logo.png';
         try {
           await _downloadDio.download(url, logoPath, options: authOptions);
@@ -1598,16 +1750,22 @@ class DownloadService extends ChangeNotifier {
       if (existing == null) {
         try {
           final seriesData = await _client.itemsApi.getItem(episode.seriesId!);
-          final seriesItem = AggregatedItem(id: episode.seriesId!, serverId: episode.serverId, rawData: seriesData);
-          await _offlineRepo.upsertItem(DownloadedItemsCompanion(
-            itemId: Value(episode.seriesId!),
-            serverId: Value(episode.serverId),
-            type: const Value('Series'),
-            name: Value(seriesItem.name),
-            metadataJson: Value(jsonEncode(seriesData)),
-            downloadStatus: const Value(2),
-            seriesName: Value(seriesItem.name),
-          ));
+          final seriesItem = AggregatedItem(
+            id: episode.seriesId!,
+            serverId: episode.serverId,
+            rawData: seriesData,
+          );
+          await _offlineRepo.upsertItem(
+            DownloadedItemsCompanion(
+              itemId: Value(episode.seriesId!),
+              serverId: Value(episode.serverId),
+              type: const Value('Series'),
+              name: Value(seriesItem.name),
+              metadataJson: Value(jsonEncode(seriesData)),
+              downloadStatus: const Value(2),
+              seriesName: Value(seriesItem.name),
+            ),
+          );
           _downloadImages(seriesItem);
         } catch (_) {}
       }
@@ -1618,25 +1776,35 @@ class DownloadService extends ChangeNotifier {
       if (existing == null) {
         try {
           final seasonData = await _client.itemsApi.getItem(episode.seasonId!);
-          final seasonItem = AggregatedItem(id: episode.seasonId!, serverId: episode.serverId, rawData: seasonData);
-          await _offlineRepo.upsertItem(DownloadedItemsCompanion(
-            itemId: Value(episode.seasonId!),
-            serverId: Value(episode.serverId),
-            type: const Value('Season'),
-            name: Value(seasonItem.name),
-            metadataJson: Value(jsonEncode(seasonData)),
-            downloadStatus: const Value(2),
-            seriesId: Value(episode.seriesId),
-            seriesName: Value(episode.seriesName),
-            seasonName: Value(seasonItem.name),
-          ));
+          final seasonItem = AggregatedItem(
+            id: episode.seasonId!,
+            serverId: episode.serverId,
+            rawData: seasonData,
+          );
+          await _offlineRepo.upsertItem(
+            DownloadedItemsCompanion(
+              itemId: Value(episode.seasonId!),
+              serverId: Value(episode.serverId),
+              type: const Value('Season'),
+              name: Value(seasonItem.name),
+              metadataJson: Value(jsonEncode(seasonData)),
+              downloadStatus: const Value(2),
+              seriesId: Value(episode.seriesId),
+              seriesName: Value(episode.seriesName),
+              seasonName: Value(seasonItem.name),
+            ),
+          );
           _downloadImages(seasonItem);
         } catch (_) {}
       }
     }
   }
 
-  Future<void> _downloadExternalSubtitles(AggregatedItem item, Directory dir, String fileNameBase) async {
+  Future<void> _downloadExternalSubtitles(
+    AggregatedItem item,
+    Directory dir,
+    String fileNameBase,
+  ) async {
     final mediaSources = item.mediaSources;
     if (mediaSources.isEmpty) return;
     final authOptions = Options(headers: _buildAuthHeaders());
@@ -1743,19 +1911,25 @@ class DownloadService extends ChangeNotifier {
             await _offlineRepo.updateDownloadStatus(item.itemId, 0);
           } else {
             await _offlineRepo.updateDownloadStatus(
-              item.itemId, 3,
+              item.itemId,
+              3,
               error: 'Interrupted. Transcoded downloads cannot be resumed.',
             );
           }
         } else {
-          await _offlineRepo.updateDownloadStatus(item.itemId, 3, error: 'Interrupted');
+          await _offlineRepo.updateDownloadStatus(
+            item.itemId,
+            3,
+            error: 'Interrupted',
+          );
         }
       } else if (item.downloadStatus == 2) {
         if (item.localFilePath != null) {
           final file = File(item.localFilePath!);
           if (!await file.exists()) {
             await _offlineRepo.updateDownloadStatus(
-              item.itemId, 3,
+              item.itemId,
+              3,
               error: 'File missing from disk',
             );
           }

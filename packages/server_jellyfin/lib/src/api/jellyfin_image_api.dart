@@ -3,7 +3,8 @@ import 'package:server_core/server_core.dart';
 class JellyfinImageApi implements ImageApi {
   final String _baseUrl;
 
-  JellyfinImageApi(this._baseUrl);
+  JellyfinImageApi(String baseUrl)
+    : _baseUrl = baseUrl.replaceFirst(RegExp(r'/+$'), '');
 
   String _buildQuery(Map<String, String> params) {
     if (params.isEmpty) return '';
@@ -41,11 +42,7 @@ class JellyfinImageApi implements ImageApi {
   }
 
   @override
-  String getLogoImageUrl(
-    String itemId, {
-    int? maxWidth,
-    String? tag,
-  }) {
+  String getLogoImageUrl(String itemId, {int? maxWidth, String? tag}) {
     final query = _buildQuery({
       if (maxWidth != null) 'maxWidth': maxWidth.toString(),
       if (tag != null) 'tag': tag,
@@ -54,11 +51,7 @@ class JellyfinImageApi implements ImageApi {
   }
 
   @override
-  String getBannerImageUrl(
-    String itemId, {
-    int? maxWidth,
-    String? tag,
-  }) {
+  String getBannerImageUrl(String itemId, {int? maxWidth, String? tag}) {
     final query = _buildQuery({
       if (maxWidth != null) 'maxWidth': maxWidth.toString(),
       if (tag != null) 'tag': tag,
@@ -67,11 +60,7 @@ class JellyfinImageApi implements ImageApi {
   }
 
   @override
-  String getThumbImageUrl(
-    String itemId, {
-    int? maxWidth,
-    String? tag,
-  }) {
+  String getThumbImageUrl(String itemId, {int? maxWidth, String? tag}) {
     final query = _buildQuery({
       if (maxWidth != null) 'maxWidth': maxWidth.toString(),
       if (tag != null) 'tag': tag,

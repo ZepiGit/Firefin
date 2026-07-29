@@ -107,7 +107,10 @@ class _GlobalShortcutScopeState extends State<_GlobalShortcutScope> {
         keys.contains(LogicalKeyboardKey.controlLeft) ||
         keys.contains(LogicalKeyboardKey.controlRight);
 
-    if (key == LogicalKeyboardKey.escape) {
+    if (key == LogicalKeyboardKey.escape ||
+        key == LogicalKeyboardKey.backspace ||
+        key == LogicalKeyboardKey.goBack ||
+        key == LogicalKeyboardKey.browserBack) {
       if (_isPlayerRoute()) {
         return false;
       }

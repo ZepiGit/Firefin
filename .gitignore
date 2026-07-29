@@ -43,6 +43,12 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+/android/local.properties
+/android/keystore.properties
+/android/app/*.keystore
+/android/app/*.jks
+*.keystore
+*.jks
 
 # Nested Android package Gradle caches
 **/.gradle/
@@ -72,6 +78,8 @@ app.*.map.json
 /Moonfin_iOS_v*.ipa
 /Moonfin_iOS_v*_unsigned.ipa
 /build-ios.private.env
+/ios/Flutter/Generated.xcconfig
+/ios/Flutter/flutter_export_environment.sh
 
 # Linux package artifacts
 /Moonfin-linux-*

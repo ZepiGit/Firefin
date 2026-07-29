@@ -5,6 +5,7 @@ import 'package:server_core/server_core.dart';
 
 import '../../../data/services/plugin_sync_service.dart';
 import '../../../preference/user_preferences.dart';
+import '../../../util/platform_detection.dart';
 import '../../widgets/settings/preference_tiles.dart';
 
 class MediaBarSettingsScreen extends StatefulWidget {
@@ -17,12 +18,19 @@ class MediaBarSettingsScreen extends StatefulWidget {
 class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
   final _store = GetIt.instance<PreferenceStore>();
 
+  bool get _isFireTv =>
+      PlatformDetection.isAndroid && PlatformDetection.useLeanbackUi;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_isFireTv) {
+      _store.set(UserPreferences.mediaBarEnabled, false);
+    }
+  }
+
   List<String> _splitCsv(Preference<String> pref) {
-    return _store
-        .get(pref)
-        .split(',')
-        .where((s) => s.isNotEmpty)
-        .toList();
+    return _store.get(pref).split(',').where((s) => s.isNotEmpty).toList();
   }
 
   void _saveCsv(Preference<String> pref, List<String> values) {
@@ -48,9 +56,10 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
       final items = (response['Items'] as List? ?? [])
           .cast<Map<String, dynamic>>()
           .where((item) {
-        final type = item['CollectionType'] as String?;
-        return type == 'movies' || type == 'tvshows' || type == null;
-      }).toList();
+            final type = item['CollectionType'] as String?;
+            return type == 'movies' || type == 'tvshows' || type == null;
+          })
+          .toList();
 
       if (!mounted) return;
       final result = await _showMultiSelectDialog(
@@ -210,8 +219,11 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
           SwitchPreferenceTile(
             preference: UserPreferences.mediaBarEnabled,
             title: 'Enable Media Bar',
-            subtitle: 'Show featured content slideshow on home',
+            subtitle: _isFireTv
+                ? 'Disabled on Fire TV to keep navigation responsive'
+                : 'Show featured content slideshow on home',
             icon: Icons.featured_play_list,
+            enabled: !_isFireTv,
           ),
           StringPickerPreferenceTile(
             preference: UserPreferences.mediaBarContentType,
@@ -227,12 +239,7 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
             preference: UserPreferences.mediaBarItemCount,
             title: 'Item Count',
             icon: Icons.format_list_numbered,
-            options: const {
-              '5': '5',
-              '10': '10',
-              '15': '15',
-              '20': '20',
-            },
+            options: const {'5': '5', '10': '10', '15': '15', '20': '20'},
           ),
           const Divider(),
           ListTile(
@@ -246,7 +253,9 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
             title: const Text('Source Libraries'),
             subtitle: Text(
               _sourceSubtitle(
-                  UserPreferences.mediaBarLibraryIds, 'All libraries'),
+                UserPreferences.mediaBarLibraryIds,
+                'All libraries',
+              ),
             ),
             onTap: _showLibrarySelector,
           ),
@@ -255,7 +264,9 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
             title: const Text('Source Collections'),
             subtitle: Text(
               _sourceSubtitle(
-                  UserPreferences.mediaBarCollectionIds, 'None selected'),
+                UserPreferences.mediaBarCollectionIds,
+                'None selected',
+              ),
             ),
             onTap: _showCollectionSelector,
           ),
@@ -264,7 +275,9 @@ class _MediaBarSettingsScreenState extends State<MediaBarSettingsScreen> {
             title: const Text('Excluded Genres'),
             subtitle: Text(
               _sourceSubtitle(
-                  UserPreferences.mediaBarExcludedGenres, 'None excluded'),
+                UserPreferences.mediaBarExcludedGenres,
+                'None excluded',
+              ),
             ),
             onTap: _showGenreSelector,
           ),

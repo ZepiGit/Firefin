@@ -6,6 +6,8 @@ class EmbyImageApi implements ImageApi {
 
   EmbyImageApi(this._getBaseUrl, this._getApiKey);
 
+  String get _baseUrl => _getBaseUrl().replaceFirst(RegExp(r'/+$'), '');
+
   String _buildQuery(Map<String, String> params) {
     final apiKey = _getApiKey();
     if (apiKey != null) params['api_key'] = apiKey;
@@ -25,7 +27,7 @@ class EmbyImageApi implements ImageApi {
       if (maxHeight != null) 'maxHeight': maxHeight.toString(),
       if (tag != null) 'tag': tag,
     });
-    return '${_getBaseUrl()}/Items/$itemId/Images/Primary$query';
+    return '$_baseUrl/Items/$itemId/Images/Primary$query';
   }
 
   @override
@@ -40,46 +42,34 @@ class EmbyImageApi implements ImageApi {
       if (maxWidth != null) 'maxWidth': maxWidth.toString(),
       if (tag != null) 'tag': tag,
     });
-    return '${_getBaseUrl()}/Items/$itemId/Images/Backdrop/$idx$query';
+    return '$_baseUrl/Items/$itemId/Images/Backdrop/$idx$query';
   }
 
   @override
-  String getLogoImageUrl(
-    String itemId, {
-    int? maxWidth,
-    String? tag,
-  }) {
+  String getLogoImageUrl(String itemId, {int? maxWidth, String? tag}) {
     final query = _buildQuery({
       if (maxWidth != null) 'maxWidth': maxWidth.toString(),
       if (tag != null) 'tag': tag,
     });
-    return '${_getBaseUrl()}/Items/$itemId/Images/Logo$query';
+    return '$_baseUrl/Items/$itemId/Images/Logo$query';
   }
 
   @override
-  String getBannerImageUrl(
-    String itemId, {
-    int? maxWidth,
-    String? tag,
-  }) {
+  String getBannerImageUrl(String itemId, {int? maxWidth, String? tag}) {
     final query = _buildQuery({
       if (maxWidth != null) 'maxWidth': maxWidth.toString(),
       if (tag != null) 'tag': tag,
     });
-    return '${_getBaseUrl()}/Items/$itemId/Images/Banner$query';
+    return '$_baseUrl/Items/$itemId/Images/Banner$query';
   }
 
   @override
-  String getThumbImageUrl(
-    String itemId, {
-    int? maxWidth,
-    String? tag,
-  }) {
+  String getThumbImageUrl(String itemId, {int? maxWidth, String? tag}) {
     final query = _buildQuery({
       if (maxWidth != null) 'maxWidth': maxWidth.toString(),
       if (tag != null) 'tag': tag,
     });
-    return '${_getBaseUrl()}/Items/$itemId/Images/Thumb$query';
+    return '$_baseUrl/Items/$itemId/Images/Thumb$query';
   }
 
   @override
@@ -93,12 +83,12 @@ class EmbyImageApi implements ImageApi {
       if (maxWidth != null) 'maxWidth': maxWidth.toString(),
       if (tag != null) 'tag': tag,
     });
-    return '${_getBaseUrl()}/Items/$itemId/Images/Chapter/$index$query';
+    return '$_baseUrl/Items/$itemId/Images/Chapter/$index$query';
   }
 
   @override
   String getUserImageUrl(String userId) {
     final query = _buildQuery({});
-    return '${_getBaseUrl()}/Users/$userId/Images/Primary$query';
+    return '$_baseUrl/Users/$userId/Images/Primary$query';
   }
 }

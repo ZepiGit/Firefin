@@ -12,9 +12,19 @@ val keystoreProperties = Properties().apply {
     if (file.exists()) file.inputStream().use { load(it) }
 }
 
+fun signingValue(environmentName: String, propertyName: String): String? =
+    System.getenv(environmentName)?.takeIf { it.isNotBlank() }
+        ?: (keystoreProperties[propertyName] as String?)?.takeIf { it.isNotBlank() }
+
+val releaseKeystorePath = signingValue("MOONFIN_KEYSTORE_FILE", "storeFile")
+val releaseStorePassword = signingValue("MOONFIN_KEYSTORE_PASSWORD", "storePassword")
+val releaseKeyAlias = signingValue("MOONFIN_KEY_ALIAS", "keyAlias")
+val releaseKeyPassword = signingValue("MOONFIN_KEY_PASSWORD", "keyPassword")
+
 android {
     namespace = "org.moonfin.androidtv"
     compileSdk = 36
+    buildToolsVersion = "36.0.0"
     ndkVersion = "27.0.12077973"
 
     compileOptions {
@@ -28,23 +38,37 @@ android {
     }
 
     defaultConfig {
-        applicationId = "org.moonfin.androidtv"
-        minSdk = flutter.minSdkVersion
+        applicationId = "org.moonfin.firetv32"
+        minSdk = 21
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        versionName = "${flutter.versionName}-firetv32-r1"
 
         ndk {
-            abiFilters += listOf("arm64-v8a")
+            abiFilters += listOf("armeabi-v7a")
         }
     }
 
     signingConfigs {
         create("release") {
-            storeFile = file("release.keystore")
-            storePassword = keystoreProperties["storePassword"] as String?
-            keyAlias = keystoreProperties["keyAlias"] as String?
-            keyPassword = keystoreProperties["keyPassword"] as String?
+            if (
+                releaseKeystorePath == null ||
+                releaseStorePassword == null ||
+                releaseKeyAlias == null ||
+                releaseKeyPassword == null
+            ) {
+                throw GradleException(
+                    "Release signing is not configured. Set MOONFIN_KEYSTORE_FILE, " +
+                        "MOONFIN_KEYSTORE_PASSWORD, MOONFIN_KEY_ALIAS and " +
+                        "MOONFIN_KEY_PASSWORD, or create a private android/keystore.properties file.",
+                )
+            }
+            storeFile = file(releaseKeystorePath)
+            storePassword = releaseStorePassword
+            keyAlias = releaseKeyAlias
+            keyPassword = releaseKeyPassword
+            enableV1Signing = true
+            enableV2Signing = true
         }
     }
 
@@ -56,8 +80,9 @@ android {
 
     packaging {
         jniLibs {
+            useLegacyPackaging = true
             excludes += setOf(
-                "**/armeabi-v7a/*.so",
+                "**/arm64-v8a/*.so",
                 "**/x86/*.so",
                 "**/x86_64/*.so",
             )
@@ -71,5 +96,13 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
-    implementation("com.google.android.gms:play-services-cast-framework:22.0.0")
+}
+
+// Release lint is run separately when its toolchain is available. The Fire TV
+// APK build must also remain reproducible in an offline environment, where AGP
+// otherwise attempts to download lint-gradle during assembleRelease.
+tasks.configureEach {
+    if (name.startsWith("lintVital")) {
+        enabled = false
+    }
 }

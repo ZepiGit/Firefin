@@ -17,6 +17,8 @@ class AppTheme {
       onSurface: AppColorScheme.onSurface,
       scrim: AppColorScheme.scrim,
     ),
+    focusColor: const Color(0x5200A4DC),
+    hoverColor: const Color(0x3300A4DC),
     scaffoldBackgroundColor: AppColorScheme.background,
     cardTheme: CardThemeData(
       color: JellyfinTokens.colors.card,
@@ -56,7 +58,10 @@ class AppTheme {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: JellyfinTokens.shapes.smallRadius,
-        borderSide: const BorderSide(color: AppColorScheme.inputBorderFocused, width: 2),
+        borderSide: const BorderSide(
+          color: AppColorScheme.inputBorderFocused,
+          width: 2,
+        ),
       ),
     ),
     sliderTheme: const SliderThemeData(

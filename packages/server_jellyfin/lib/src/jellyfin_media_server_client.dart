@@ -25,21 +25,24 @@ import 'api/jellyfin_admin_backup_api.dart';
 import 'api/jellyfin_admin_live_tv_api.dart';
 import 'api/jellyfin_admin_items_api.dart';
 
+String _normalizeServerBaseUrl(String value) =>
+    value.replaceFirst(RegExp(r'/+$'), '');
+
 class JellyfinMediaServerClient extends MediaServerClient {
   final Dio _dio;
 
   @override
   final DeviceInfo deviceInfo;
 
-  JellyfinMediaServerClient({
-    required String baseUrl,
-    required this.deviceInfo,
-  }) : _dio = Dio(BaseOptions(
-         baseUrl: baseUrl,
-         connectTimeout: const Duration(seconds: 30),
-         receiveTimeout: const Duration(minutes: 3),
-       )) {
-    _baseUrl = baseUrl;
+  JellyfinMediaServerClient({required String baseUrl, required this.deviceInfo})
+    : _dio = Dio(
+        BaseOptions(
+          baseUrl: _normalizeServerBaseUrl(baseUrl),
+          connectTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(minutes: 3),
+        ),
+      ) {
+    _baseUrl = _normalizeServerBaseUrl(baseUrl);
     configureServerDio(_dio);
     _setupInterceptors();
   }
@@ -49,16 +52,18 @@ class JellyfinMediaServerClient extends MediaServerClient {
   String? _userId;
 
   void _setupInterceptors() {
-    _dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) {
-        options.headers['Authorization'] = buildServerAuthorizationHeader(
-          scheme: 'MediaBrowser',
-          deviceInfo: deviceInfo,
-          accessToken: _accessToken,
-        );
-        handler.next(options);
-      },
-    ));
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          options.headers['Authorization'] = buildServerAuthorizationHeader(
+            scheme: 'MediaBrowser',
+            deviceInfo: deviceInfo,
+            accessToken: _accessToken,
+          );
+          handler.next(options);
+        },
+      ),
+    );
   }
 
   @override
@@ -69,8 +74,9 @@ class JellyfinMediaServerClient extends MediaServerClient {
 
   @override
   set baseUrl(String url) {
-    _baseUrl = url;
-    _dio.options.baseUrl = url;
+    final normalized = _normalizeServerBaseUrl(url);
+    _baseUrl = normalized;
+    _dio.options.baseUrl = normalized;
   }
 
   @override

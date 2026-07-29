@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../di/providers.dart';
+import '../../util/platform_detection.dart';
 import '../navigation/app_router.dart';
 import '../navigation/destinations.dart';
 
@@ -12,6 +13,14 @@ class OfflineBanner extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isOnline = ref.watch(isOnlineProvider);
     final serverReachable = ref.watch(activeServerReachableProvider);
+
+    // The dedicated Fire OS 5 build can load authenticated content even when
+    // Jellyfin's separate ping endpoint fails on the legacy TLS stack. Treat
+    // successful network connectivity as authoritative here so that this
+    // known false negative never reserves an orange banner above the TV UI.
+    if (PlatformDetection.isAndroid && PlatformDetection.isTV && isOnline) {
+      return const SizedBox.shrink();
+    }
 
     if (isOnline && serverReachable) return const SizedBox.shrink();
 

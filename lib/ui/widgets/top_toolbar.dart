@@ -48,6 +48,7 @@ class TopToolbar extends StatefulWidget {
 class _TopToolbarState extends State<TopToolbar> {
   final _userRepo = GetIt.instance<UserRepository>();
   final _prefs = GetIt.instance<UserPreferences>();
+  final _pluginSync = GetIt.instance<PluginSyncService>();
 
   final _avatarFocus = FocusNode();
   List<AggregatedLibrary> _libraries = [];
@@ -60,10 +61,14 @@ class _TopToolbarState extends State<TopToolbar> {
   void initState() {
     super.initState();
     _updateClock();
-    _clockTimer = Timer.periodic(const Duration(seconds: 30), (_) => _updateClock());
+    _clockTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => _updateClock(),
+    );
     _loadUserImage();
     _userSub = _userRepo.currentUserStream.listen((_) => _loadUserImage());
     _prefs.addListener(_onPrefsChanged);
+    _pluginSync.addListener(_onPluginSyncChanged);
     _loadLibraries();
   }
 
@@ -73,6 +78,7 @@ class _TopToolbarState extends State<TopToolbar> {
     _avatarFocus.dispose();
     _userSub?.cancel();
     _prefs.removeListener(_onPrefsChanged);
+    _pluginSync.removeListener(_onPluginSyncChanged);
     super.dispose();
   }
 
@@ -109,6 +115,10 @@ class _TopToolbarState extends State<TopToolbar> {
     setState(() {});
   }
 
+  void _onPluginSyncChanged() {
+    if (mounted) setState(() {});
+  }
+
   void _updateClock() {
     final now = DateTime.now();
     final use24 = _prefs.get(UserPreferences.use24HourClock);
@@ -117,7 +127,9 @@ class _TopToolbarState extends State<TopToolbar> {
       final hour = now.hour.toString().padLeft(2, '0');
       if (mounted) setState(() => _currentTime = '$hour:$minute');
     } else {
-      final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
+      final hour = now.hour > 12
+          ? now.hour - 12
+          : (now.hour == 0 ? 12 : now.hour);
       final period = now.hour >= 12 ? 'PM' : 'AM';
       if (mounted) setState(() => _currentTime = '$hour:$minute $period');
     }
@@ -140,7 +152,8 @@ class _TopToolbarState extends State<TopToolbar> {
   Future<void> _loadLibraries() async {
     try {
       final libs = _prefs.get(UserPreferences.enableMultiServerLibraries)
-          ? await GetIt.instance<MultiServerRepository>().getAggregatedLibraries()
+          ? await GetIt.instance<MultiServerRepository>()
+                .getAggregatedLibraries()
           : await GetIt.instance<UserViewsRepository>().getUserViews();
       if (mounted) setState(() => _libraries = libs);
     } catch (_) {}
@@ -154,13 +167,21 @@ class _TopToolbarState extends State<TopToolbar> {
     final isMobile = PlatformDetection.useMobileUi;
     final size = MediaQuery.sizeOf(context);
     final isLandscape = size.width > size.height;
-    final hPad = isTV ? _kOverscanH : isMobile ? 12.0 : 32.0;
-    final vPad = isTV ? _kOverscanV : isMobile ? 8.0 : 10.0;
+    final hPad = isTV
+        ? _kOverscanH
+        : isMobile
+        ? 12.0
+        : 32.0;
+    final vPad = isTV
+        ? _kOverscanV
+        : isMobile
+        ? 8.0
+        : 10.0;
     final toolbarHeight = isTV
         ? _kToolbarHeightTV
         : isMobile
-            ? _kToolbarHeightMobile
-            : _kToolbarHeightDesktop;
+        ? _kToolbarHeightMobile
+        : _kToolbarHeightDesktop;
 
     return SafeArea(
       bottom: false,
@@ -291,7 +312,9 @@ class _TopToolbarState extends State<TopToolbar> {
 
   Widget _avatarFallback() {
     final user = _userRepo.currentUser;
-    final initial = (user?.name.isNotEmpty == true) ? user!.name[0].toUpperCase() : '?';
+    final initial = (user?.name.isNotEmpty == true)
+        ? user!.name[0].toUpperCase()
+        : '?';
     final isMobile = PlatformDetection.useMobileUi;
     return Container(
       decoration: const BoxDecoration(
@@ -427,26 +450,36 @@ class _TopToolbarState extends State<TopToolbar> {
                   ),
                 ),
               ],
-              if (GetIt.instance<PluginSyncService>().pluginAvailable &&
-                  _prefs.get(UserPreferences.seerrEnabled)) ...[
+              if (_pluginSync.pluginAvailable) ...[
                 _gap(),
                 _orderButton(
                   order: (order++).toDouble(),
-                  child: Builder(builder: (context) {
-                    final seerrPrefs = GetIt.instance<SeerrPreferences>();
-                    final isSeerr = seerrPrefs.isSeerrVariant;
-                    final label = seerrPrefs.moonfinDisplayName.isNotEmpty
-                        ? seerrPrefs.moonfinDisplayName
-                        : (isSeerr ? 'Seerr' : 'Jellyseerr');
-                    return ExpandableIconButton(
-                      iconBuilder: (size, color) => isSeerr
-                          ? SeerrIcon(size: size, color: color)
-                          : JellyseerrIcon(size: size, color: color),
-                      label: label,
-                      isActive: _isActive(Destinations.seerrDiscover),
-                      onPressed: () => context.push(Destinations.seerrDiscover),
-                    );
-                  }),
+                  child: Builder(
+                    builder: (context) {
+                      final seerrPrefs = GetIt.instance<SeerrPreferences>();
+                      final isSeerr = seerrPrefs.isSeerrVariant;
+                      final label = seerrPrefs.moonfinDisplayName.isNotEmpty
+                          ? seerrPrefs.moonfinDisplayName
+                          : (isSeerr ? 'Seerr' : 'Jellyseerr');
+                      return ExpandableIconButton(
+                        iconBuilder: (size, color) => isSeerr
+                            ? SeerrIcon(size: size, color: color)
+                            : JellyseerrIcon(size: size, color: color),
+                        label: label,
+                        isActive: _isActive(Destinations.seerrDiscover),
+                        onPressed: () {
+                          final enabled =
+                              _pluginSync.seerrEnabled ||
+                              _prefs.get(UserPreferences.seerrEnabled);
+                          context.push(
+                            enabled
+                                ? Destinations.seerrDiscover
+                                : Destinations.settingsSeerr,
+                          );
+                        },
+                      );
+                    },
+                  ),
                 ),
               ],
               if (showLibraries && _libraries.isNotEmpty) ...[
@@ -496,7 +529,8 @@ class _TopToolbarState extends State<TopToolbar> {
 
   Widget _buildEnd() {
     final clockBehavior = _prefs.get(UserPreferences.clockBehavior);
-    final showClock = clockBehavior == ClockBehavior.always ||
+    final showClock =
+        clockBehavior == ClockBehavior.always ||
         clockBehavior == ClockBehavior.inMenus;
 
     if (!showClock) return const SizedBox.shrink();
@@ -512,14 +546,13 @@ class _TopToolbarState extends State<TopToolbar> {
   }
 
   Widget _gap() => SizedBox(
-    width: PlatformDetection.useMobileUi ? _kButtonSpacingMobile : _kButtonSpacing,
+    width: PlatformDetection.useMobileUi
+        ? _kButtonSpacingMobile
+        : _kButtonSpacing,
   );
 
   Widget _orderButton({required double order, required Widget child}) {
-    return FocusTraversalOrder(
-      order: NumericFocusOrder(order),
-      child: child,
-    );
+    return FocusTraversalOrder(order: NumericFocusOrder(order), child: child);
   }
 }
 
@@ -567,7 +600,8 @@ class _LibrariesDropdownState extends State<_LibrariesDropdown> {
     final screenWidth = MediaQuery.of(context).size.width;
     _menuWidth = (screenWidth - 16).clamp(180.0, 280.0);
 
-    final targetBox = _targetKey.currentContext?.findRenderObject() as RenderBox?;
+    final targetBox =
+        _targetKey.currentContext?.findRenderObject() as RenderBox?;
     if (targetBox != null) {
       final targetLeft = targetBox.localToGlobal(Offset.zero).dx;
       final wouldOverflowRight = targetLeft + _menuWidth > screenWidth - 8;
@@ -647,13 +681,15 @@ class _LibrariesDropdownState extends State<_LibrariesDropdown> {
                       shrinkWrap: true,
                       padding: EdgeInsets.zero,
                       children: widget.libraries
-                          .map((lib) => _LibraryDropdownItem(
-                                name: lib.name,
-                                onTap: () {
-                                  _hideDropdown();
-                                  widget.onLibraryTap(lib);
-                                },
-                              ))
+                          .map(
+                            (lib) => _LibraryDropdownItem(
+                              name: lib.name,
+                              onTap: () {
+                                _hideDropdown();
+                                widget.onLibraryTap(lib);
+                              },
+                            ),
+                          )
                           .toList(),
                     ),
                   ),
@@ -707,10 +743,7 @@ class _LibraryDropdownItem extends StatefulWidget {
   final String name;
   final VoidCallback onTap;
 
-  const _LibraryDropdownItem({
-    required this.name,
-    required this.onTap,
-  });
+  const _LibraryDropdownItem({required this.name, required this.onTap});
 
   @override
   State<_LibraryDropdownItem> createState() => _LibraryDropdownItemState();

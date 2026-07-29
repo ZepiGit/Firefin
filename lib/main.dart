@@ -15,10 +15,17 @@ import 'data/services/media_server_client_factory.dart';
 import 'di/injection.dart';
 import 'playback/audio_handler.dart';
 import 'playback/playback_lifecycle_handler.dart';
+import 'util/legacy_firetv_certificate_support.dart';
 import 'util/platform_detection.dart';
 
 void _configureImageCache() {
   final imageCache = PaintingBinding.instance.imageCache;
+  if (PlatformDetection.isTV) {
+    // Keep memory pressure low on 1 GB Fire TV hardware.
+    imageCache.maximumSize = 60;
+    imageCache.maximumSizeBytes = 48 << 20;
+    return;
+  }
   if (PlatformDetection.isMobile) {
     imageCache.maximumSize = 100;
     imageCache.maximumSizeBytes = 120 << 20;
@@ -29,8 +36,18 @@ void _configureImageCache() {
   imageCache.maximumSizeBytes = 256 << 20;
 }
 
+void _enableDedicatedTvMode() {
+  if (!PlatformDetection.isAndroid) return;
+  // This APK is a dedicated Fire TV distribution. Some older Fire OS
+  // versions do not expose Android's Leanback feature flags consistently.
+  PlatformDetection.setTvMode(true);
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  _enableDedicatedTvMode();
+  installLegacyFireTvCertificateSupport();
 
   if (PlatformDetection.isDesktop) {
     await windowManager.ensureInitialized();
@@ -48,12 +65,20 @@ void main() async {
     WidgetsBinding.instance.scheduleWarmUpFrame();
   }
 
-  if (PlatformDetection.isMobile) {
+  if (PlatformDetection.isTV) {
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    await SystemChrome.setPreferredOrientations(const [
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+  } else if (PlatformDetection.isMobile) {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      systemNavigationBarColor: Colors.transparent,
-    ));
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        systemNavigationBarColor: Colors.transparent,
+      ),
+    );
   }
 
   await configureDependencies();
@@ -78,14 +103,16 @@ void main() async {
         AVAudioSessionCategoryOptions.allowAirPlay |
         AVAudioSessionCategoryOptions.allowBluetooth |
         AVAudioSessionCategoryOptions.allowBluetoothA2dp;
-    await session.configure(AudioSessionConfiguration(
-      avAudioSessionCategory: AVAudioSessionCategory.playback,
-      avAudioSessionCategoryOptions: iosCategoryOptions,
-      androidAudioAttributes: AndroidAudioAttributes(
-        contentType: AndroidAudioContentType.music,
-        usage: AndroidAudioUsage.media,
+    await session.configure(
+      AudioSessionConfiguration(
+        avAudioSessionCategory: AVAudioSessionCategory.playback,
+        avAudioSessionCategoryOptions: iosCategoryOptions,
+        androidAudioAttributes: AndroidAudioAttributes(
+          contentType: AndroidAudioContentType.music,
+          usage: AndroidAudioUsage.media,
+        ),
       ),
-    ));
+    );
     await session.setActive(true);
   } catch (_) {}
 

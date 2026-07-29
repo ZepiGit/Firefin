@@ -1,3 +1,9 @@
+> **Fire TV 32-bit community build:** This source tree contains the
+> `Moonfin FireTV32 – Unofficial Community Build` for Fire OS 5 / ARMv7.
+> Installation, compatibility, build and release details are documented in
+> [FIRETV32-README.md](FIRETV32-README.md). This project is not an official
+> release of the upstream Moonfin project.
+
 <h1 align="center">Moonfin</h1>
 <h3 align="center">Enhanced Jellyfin & Emby client for mobile, tablet, and desktop</h3>
 

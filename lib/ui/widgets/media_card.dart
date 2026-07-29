@@ -1,7 +1,8 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../preference/preference_constants.dart';
+import '../../util/legacy_firetv_network_image.dart';
 import '../mixins/focus_state_mixin.dart';
 
 class MediaCard extends StatefulWidget {
@@ -132,6 +133,16 @@ class _MediaCardState extends State<MediaCard> with FocusStateMixin {
             setFocused(hasFocus);
             if (hasFocus) widget.onFocus?.call();
           },
+          onKeyEvent: (_, event) {
+            if (event is KeyDownEvent &&
+                (event.logicalKey == LogicalKeyboardKey.select ||
+                    event.logicalKey == LogicalKeyboardKey.enter ||
+                    event.logicalKey == LogicalKeyboardKey.gameButtonA)) {
+              widget.onTap?.call();
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
+          },
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: widget.onTap,
@@ -251,11 +262,10 @@ class _CardImage extends StatelessWidget {
                 Container(
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   child: imageUrl != null
-                      ? CachedNetworkImage(
-                          imageUrl: imageUrl!,
+                      ? Image(
+                          image: LegacyFireTvNetworkImage(imageUrl!),
                           fit: BoxFit.cover,
-                          fadeInDuration: const Duration(milliseconds: 200),
-                          errorWidget: (_, __, ___) =>
+                          errorBuilder: (_, __, ___) =>
                               _PlaceholderIcon(itemType: itemType),
                         )
                       : _PlaceholderIcon(itemType: itemType),
@@ -338,7 +348,10 @@ class _CardImage extends StatelessWidget {
   }
 
   bool get _showSeerrStatusIndicator =>
-      seerrStatus == 2 || seerrStatus == 3 || seerrStatus == 4 || seerrStatus == 5;
+      seerrStatus == 2 ||
+      seerrStatus == 3 ||
+      seerrStatus == 4 ||
+      seerrStatus == 5;
 
   Widget _buildSeerrMediaTypeBadge() {
     final type = seerrMediaType?.toLowerCase();

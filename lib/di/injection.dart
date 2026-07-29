@@ -62,7 +62,12 @@ String _resolveAndroidDeviceName(AndroidDeviceInfo info) {
   }
 
   // Fallback path for devices that do not expose a useful model string.
-  final combined = _joinNonEmpty([manufacturer, brand, info.device, info.product], ' ');
+  final combined = _joinNonEmpty([
+    manufacturer,
+    brand,
+    info.device,
+    info.product,
+  ], ' ');
   return _fallbackIfEmpty(combined, 'Android Device');
 }
 
@@ -87,17 +92,26 @@ Future<String> _resolveDeviceName() async {
 
     if (PlatformDetection.isMacOS) {
       final info = await deviceInfo.macOsInfo;
-      return _fallbackIfEmpty(_joinNonEmpty([info.computerName, info.model], ' '), 'Mac');
+      return _fallbackIfEmpty(
+        _joinNonEmpty([info.computerName, info.model], ' '),
+        'Mac',
+      );
     }
 
     if (PlatformDetection.isWindows) {
       final info = await deviceInfo.windowsInfo;
-      return _fallbackIfEmpty(_joinNonEmpty([info.computerName, info.productName], ' '), 'Windows PC');
+      return _fallbackIfEmpty(
+        _joinNonEmpty([info.computerName, info.productName], ' '),
+        'Windows PC',
+      );
     }
 
     if (PlatformDetection.isLinux) {
       final info = await deviceInfo.linuxInfo;
-      return _fallbackIfEmpty(_joinNonEmpty([info.name, info.prettyName], ' '), 'Linux Device');
+      return _fallbackIfEmpty(
+        _joinNonEmpty([info.name, info.prettyName], ' '),
+        'Linux Device',
+      );
     }
   } catch (_) {
     // Fall through to app-based fallback below.
@@ -132,10 +146,54 @@ Future<void> _migrateLegacyBitrateCap(PreferenceStore store) async {
   await store.setBool(migrationKey, true);
 }
 
+Future<void> _applyFireTv32PerformanceDefaults(PreferenceStore store) async {
+  if (!PlatformDetection.isAndroid || !PlatformDetection.isTV) {
+    return;
+  }
+
+  const migrationKey = 'firetv32_performance_defaults_r3';
+  if (store.getBool(migrationKey) == true) {
+    return;
+  }
+
+  // Preserve explicit user choices. These defaults only fill settings that
+  // have not been saved before.
+  if (store.getString(UserPreferences.maxBitrate.key) == null) {
+    await store.setString(UserPreferences.maxBitrate.key, '15');
+  }
+  // Keep posters, covers and static backdrops visible. Only moving previews
+  // and the expensive featured Media Bar are disabled below.
+  await store.setBool(UserPreferences.backdropEnabled.key, true);
+  if (store.getBool(UserPreferences.cardFocusExpansion.key) == null) {
+    await store.setBool(UserPreferences.cardFocusExpansion.key, false);
+  }
+  if (store.getBool(UserPreferences.cinemaModeEnabled.key) == null) {
+    await store.setBool(UserPreferences.cinemaModeEnabled.key, false);
+  }
+  if (store.getBool(UserPreferences.pgsDirectPlay.key) == null) {
+    await store.setBool(UserPreferences.pgsDirectPlay.key, false);
+  }
+  if (store.getBool(UserPreferences.assDirectPlay.key) == null) {
+    await store.setBool(UserPreferences.assDirectPlay.key, false);
+  }
+
+  // The featured Media Bar is too expensive for the Fire TV Stick 2nd Gen:
+  // its large artwork, animation and preview player make D-pad navigation lag.
+  // Keep the setting visibly disabled and turn off every related preview.
+  await store.setBool(UserPreferences.mediaBarEnabled.key, false);
+  await store.setBool(UserPreferences.mediaBarAutoAdvance.key, false);
+  await store.setBool(UserPreferences.mediaBarTrailerPreview.key, false);
+  await store.setBool(UserPreferences.episodePreviewEnabled.key, false);
+  await store.setBool(UserPreferences.previewAudioEnabled.key, false);
+
+  await store.setBool(migrationKey, true);
+}
+
 Future<void> configureDependencies() async {
   final preferenceStore = PreferenceStore();
   await preferenceStore.init();
   await _migrateLegacyBitrateCap(preferenceStore);
+  await _applyFireTv32PerformanceDefaults(preferenceStore);
 
   var deviceId = preferenceStore.getString('device_id');
   if (deviceId == null) {
@@ -146,12 +204,14 @@ Future<void> configureDependencies() async {
   final clientName = _clientName();
   final deviceName = await _resolveDeviceName();
   final appVersion = await _resolveAppVersion();
-  getIt.registerSingleton<DeviceInfo>(DeviceInfo(
-    id: deviceId,
-    name: deviceName,
-    appName: clientName,
-    appVersion: appVersion,
-  ));
+  getIt.registerSingleton<DeviceInfo>(
+    DeviceInfo(
+      id: deviceId,
+      name: deviceName,
+      appName: clientName,
+      appVersion: appVersion,
+    ),
+  );
 
   registerPreferenceModule(preferenceStore);
 

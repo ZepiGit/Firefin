@@ -193,6 +193,7 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
 
   String? _imageUrl(AggregatedItem item) {
     final api = _vm.imageApi;
+    const maxImageWidth = 480;
 
     final itemThumbTag = _tagForType(item, 'Thumb');
     final itemBannerTag = _tagForType(item, 'Banner');
@@ -203,56 +204,91 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
     if (_vm.isNavigableFolder(item)) {
       if (_vm.imageType == ImageType.poster) {
         if (item.primaryImageTag != null) {
-          return api.getPrimaryImageUrl(item.id, tag: item.primaryImageTag);
+          return api.getPrimaryImageUrl(
+            item.id,
+            maxWidth: maxImageWidth,
+            tag: item.primaryImageTag,
+          );
         }
         if (itemThumbTag != null) {
-          return api.getThumbImageUrl(item.id, tag: itemThumbTag);
+          return api.getThumbImageUrl(
+            item.id,
+            maxWidth: maxImageWidth,
+            tag: itemThumbTag,
+          );
         }
         if (item.backdropImageTags.isNotEmpty) {
           return api.getBackdropImageUrl(
             item.id,
+            maxWidth: maxImageWidth,
             tag: item.backdropImageTags.first,
           );
         }
         return null;
       }
       if (itemThumbTag != null) {
-        return api.getThumbImageUrl(item.id, tag: itemThumbTag);
+        return api.getThumbImageUrl(
+          item.id,
+          maxWidth: maxImageWidth,
+          tag: itemThumbTag,
+        );
       }
       if (itemBannerTag != null) {
-        return api.getBannerImageUrl(item.id, tag: itemBannerTag);
+        return api.getBannerImageUrl(
+          item.id,
+          maxWidth: maxImageWidth,
+          tag: itemBannerTag,
+        );
       }
       if (item.backdropImageTags.isNotEmpty) {
         return api.getBackdropImageUrl(
           item.id,
+          maxWidth: maxImageWidth,
           tag: item.backdropImageTags.first,
         );
       }
       if (item.primaryImageTag != null) {
-        return api.getPrimaryImageUrl(item.id, tag: item.primaryImageTag);
+        return api.getPrimaryImageUrl(
+          item.id,
+          maxWidth: maxImageWidth,
+          tag: item.primaryImageTag,
+        );
       }
       if (parentThumbItemId != null && parentThumbTag != null) {
-        return api.getThumbImageUrl(parentThumbItemId, tag: parentThumbTag);
+        return api.getThumbImageUrl(
+          parentThumbItemId,
+          maxWidth: maxImageWidth,
+          tag: parentThumbTag,
+        );
       }
       return null;
     }
 
     if (_vm.isPlaylistBrowse) {
       return item.primaryImageTag != null
-          ? api.getPrimaryImageUrl(item.id)
+          ? api.getPrimaryImageUrl(item.id, maxWidth: maxImageWidth)
           : null;
     }
 
     if (_vm.imageType == ImageType.banner) {
       if (itemBannerTag != null) {
-        return api.getBannerImageUrl(item.id, tag: itemBannerTag);
+        return api.getBannerImageUrl(
+          item.id,
+          maxWidth: maxImageWidth,
+          tag: itemBannerTag,
+        );
       }
       if (item.primaryImageTag != null) {
-        return api.getPrimaryImageUrl(item.id, tag: item.primaryImageTag);
+        return api.getPrimaryImageUrl(
+          item.id,
+          maxWidth: maxImageWidth,
+          tag: item.primaryImageTag,
+        );
       }
       if (item.backdropImageTags.isNotEmpty) {
         return api.getBackdropImageUrl(
           item.id,
+          maxWidth: maxImageWidth,
           tag: item.backdropImageTags.first,
         );
       }
@@ -261,63 +297,96 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
 
     if (_vm.imageType == ImageType.thumb) {
       if (itemThumbTag != null) {
-        return api.getThumbImageUrl(item.id, tag: itemThumbTag);
+        return api.getThumbImageUrl(
+          item.id,
+          maxWidth: maxImageWidth,
+          tag: itemThumbTag,
+        );
       }
       if (item.backdropImageTags.isNotEmpty) {
         return api.getBackdropImageUrl(
           item.id,
+          maxWidth: maxImageWidth,
           tag: item.backdropImageTags.first,
         );
       }
       if (parentThumbItemId != null && parentThumbTag != null) {
-        return api.getThumbImageUrl(parentThumbItemId, tag: parentThumbTag);
+        return api.getThumbImageUrl(
+          parentThumbItemId,
+          maxWidth: maxImageWidth,
+          tag: parentThumbTag,
+        );
       }
       if (item.parentBackdropItemId != null &&
           item.parentBackdropImageTags.isNotEmpty) {
         return api.getBackdropImageUrl(
           item.parentBackdropItemId!,
+          maxWidth: maxImageWidth,
           tag: item.parentBackdropImageTags.first,
         );
       }
       if (item.primaryImageTag != null) {
-        return api.getPrimaryImageUrl(item.id, tag: item.primaryImageTag);
+        return api.getPrimaryImageUrl(
+          item.id,
+          maxWidth: maxImageWidth,
+          tag: item.primaryImageTag,
+        );
       }
       return null;
     }
 
     if (prefersThumbArtwork && !_vm.isGenreBrowse) {
       if (itemThumbTag != null) {
-        return api.getThumbImageUrl(item.id, tag: itemThumbTag);
+        return api.getThumbImageUrl(
+          item.id,
+          maxWidth: maxImageWidth,
+          tag: itemThumbTag,
+        );
       }
       if (item.backdropImageTags.isNotEmpty) {
         return api.getBackdropImageUrl(
           item.id,
+          maxWidth: maxImageWidth,
           tag: item.backdropImageTags.first,
         );
       }
       if (parentThumbItemId != null && parentThumbTag != null) {
-        return api.getThumbImageUrl(parentThumbItemId, tag: parentThumbTag);
+        return api.getThumbImageUrl(
+          parentThumbItemId,
+          maxWidth: maxImageWidth,
+          tag: parentThumbTag,
+        );
       }
     }
 
     if (item.primaryImageTag != null) {
-      return api.getPrimaryImageUrl(item.id, tag: item.primaryImageTag);
+      return api.getPrimaryImageUrl(
+        item.id,
+        maxWidth: maxImageWidth,
+        tag: item.primaryImageTag,
+      );
     }
 
     if (item.seriesId != null && item.seriesPrimaryImageTag != null) {
       return api.getPrimaryImageUrl(
         item.seriesId!,
+        maxWidth: maxImageWidth,
         tag: item.seriesPrimaryImageTag,
       );
     }
 
     if (itemThumbTag != null) {
-      return api.getThumbImageUrl(item.id, tag: itemThumbTag);
+      return api.getThumbImageUrl(
+        item.id,
+        maxWidth: maxImageWidth,
+        tag: itemThumbTag,
+      );
     }
 
     if (item.backdropImageTags.isNotEmpty) {
       return api.getBackdropImageUrl(
         item.id,
+        maxWidth: maxImageWidth,
         tag: item.backdropImageTags.first,
       );
     }
@@ -336,13 +405,22 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
           if (hasBackdrop)
             Positioned.fill(
               child: AnimatedSwitcher(
-                duration: BackgroundService.transitionDuration,
+                duration: PlatformDetection.isAndroid && PlatformDetection.isTV
+                    ? Duration.zero
+                    : BackgroundService.transitionDuration,
                 child: CachedNetworkImage(
                   key: ValueKey(_backdropUrl),
                   imageUrl: _backdropUrl!,
                   fit: BoxFit.cover,
                   alignment: Alignment.topCenter,
-                  fadeInDuration: const Duration(milliseconds: 300),
+                  memCacheWidth:
+                      PlatformDetection.isAndroid && PlatformDetection.isTV
+                      ? 1280
+                      : null,
+                  fadeInDuration:
+                      PlatformDetection.isAndroid && PlatformDetection.isTV
+                      ? Duration.zero
+                      : const Duration(milliseconds: 300),
                   errorWidget: (_, __, ___) => const SizedBox.shrink(),
                 ),
               ),

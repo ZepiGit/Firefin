@@ -13,7 +13,14 @@ class DeviceProfileBuilder {
     bool pgsDirectPlay = false,
     bool assDirectPlay = true,
   }) {
-    final bitrate = maxBitrateMbps == null ? null : maxBitrateMbps * 1000000;
+    final isLegacyFireTv =
+        PlatformDetection.isAndroid && PlatformDetection.isTV;
+    final effectiveMaxBitrateMbps = isLegacyFireTv
+        ? (maxBitrateMbps == null || maxBitrateMbps > 20 ? 20 : maxBitrateMbps)
+        : maxBitrateMbps;
+    final bitrate = effectiveMaxBitrateMbps == null
+        ? null
+        : effectiveMaxBitrateMbps * 1000000;
     final streamingBitrate = bitrate == null
         ? null
         : useProgressiveTranscode
@@ -27,6 +34,7 @@ class DeviceProfileBuilder {
       'DirectPlayProfiles': _directPlayProfiles(
         ac3Enabled: ac3Enabled,
         trueHdEnabled: trueHdEnabled,
+        isLegacyFireTv: isLegacyFireTv,
       ),
       'TranscodingProfiles': _transcodingProfiles(
         ac3Enabled: ac3Enabled,
@@ -34,7 +42,10 @@ class DeviceProfileBuilder {
         subtitlesInManifest: subtitlesInManifest,
       ),
       'ContainerProfiles': <Map<String, dynamic>>[],
-      'CodecProfiles': _codecProfiles(stereoDownmix: stereoDownmix),
+      'CodecProfiles': _codecProfiles(
+        stereoDownmix: stereoDownmix || isLegacyFireTv,
+        isLegacyFireTv: isLegacyFireTv,
+      ),
       'SubtitleProfiles': _subtitleProfiles(
         pgsDirectPlay: pgsDirectPlay,
         assDirectPlay: assDirectPlay,
@@ -43,6 +54,9 @@ class DeviceProfileBuilder {
   }
 
   static String _profileName() {
+    if (PlatformDetection.isAndroid && PlatformDetection.isTV) {
+      return 'Moonfin for Fire TV (32-bit)';
+    }
     if (PlatformDetection.isAndroid) return 'Moonfin for Android';
     if (PlatformDetection.isIOS) return 'Moonfin iOS';
     if (PlatformDetection.isMacOS) return 'Moonfin macOS';
@@ -82,11 +96,25 @@ class DeviceProfileBuilder {
   static List<Map<String, dynamic>> _directPlayProfiles({
     required bool ac3Enabled,
     bool trueHdEnabled = false,
+    bool isLegacyFireTv = false,
   }) {
     final audio = _audioCodecs(
       ac3Enabled: ac3Enabled,
       trueHdEnabled: trueHdEnabled,
     );
+    if (isLegacyFireTv) {
+      final fireTvAudio = ac3Enabled ? 'aac,ac3,eac3,mp3' : 'aac,mp3';
+      return [
+        {
+          'Container': 'mp4,m4v,mkv,mov,ts,m2ts,mpegts',
+          'Type': 'Video',
+          'VideoCodec': 'h264',
+          'AudioCodec': fireTvAudio,
+        },
+        {'Container': 'mp3', 'Type': 'Audio'},
+        {'Container': 'aac', 'Type': 'Audio'},
+      ];
+    }
     return [
       {
         'Container': 'mp4,m4v,mkv,avi,mov',
@@ -112,27 +140,11 @@ class DeviceProfileBuilder {
         'VideoCodec': 'vc1,mpeg4',
         'AudioCodec': ac3Enabled ? 'aac,ac3,mp3' : 'aac,mp3',
       },
-      {
-        'Container': 'mp3',
-        'Type': 'Audio',
-      },
-      {
-        'Container': 'aac',
-        'Type': 'Audio',
-      },
-      {
-        'Container': 'flac',
-        'Type': 'Audio',
-      },
-      {
-        'Container': 'ogg',
-        'Type': 'Audio',
-        'AudioCodec': 'vorbis,opus',
-      },
-      {
-        'Container': 'wav',
-        'Type': 'Audio',
-      },
+      {'Container': 'mp3', 'Type': 'Audio'},
+      {'Container': 'aac', 'Type': 'Audio'},
+      {'Container': 'flac', 'Type': 'Audio'},
+      {'Container': 'ogg', 'Type': 'Audio', 'AudioCodec': 'vorbis,opus'},
+      {'Container': 'wav', 'Type': 'Audio'},
     ];
   }
 
@@ -179,6 +191,7 @@ class DeviceProfileBuilder {
 
   static List<Map<String, dynamic>> _codecProfiles({
     required bool stereoDownmix,
+    bool isLegacyFireTv = false,
   }) {
     return [
       {
@@ -188,35 +201,59 @@ class DeviceProfileBuilder {
           {
             'Condition': 'LessThanEqual',
             'Property': 'VideoLevel',
-            'Value': '52',
+            'Value': isLegacyFireTv ? '41' : '52',
             'IsRequired': false,
           },
+          if (isLegacyFireTv) ...[
+            {
+              'Condition': 'LessThanEqual',
+              // Jellyfin 10.11+ validates this enum strictly. The server-side
+              // ProfileConditionValue names are Width and Height.
+              'Property': 'Width',
+              'Value': '1920',
+              'IsRequired': false,
+            },
+            {
+              'Condition': 'LessThanEqual',
+              'Property': 'Height',
+              'Value': '1080',
+              'IsRequired': false,
+            },
+            {
+              'Condition': 'LessThanEqual',
+              'Property': 'VideoBitrate',
+              'Value': '20000000',
+              'IsRequired': false,
+            },
+          ],
         ],
       },
-      {
-        'Type': 'Video',
-        'Codec': 'hevc',
-        'Conditions': [
-          {
-            'Condition': 'LessThanEqual',
-            'Property': 'VideoLevel',
-            'Value': '183',
-            'IsRequired': false,
-          },
-        ],
-      },
-      {
-        'Type': 'Video',
-        'Codec': 'vp9',
-        'Conditions': [
-          {
-            'Condition': 'LessThanEqual',
-            'Property': 'VideoLevel',
-            'Value': '62',
-            'IsRequired': false,
-          },
-        ],
-      },
+      if (!isLegacyFireTv)
+        {
+          'Type': 'Video',
+          'Codec': 'hevc',
+          'Conditions': [
+            {
+              'Condition': 'LessThanEqual',
+              'Property': 'VideoLevel',
+              'Value': '183',
+              'IsRequired': false,
+            },
+          ],
+        },
+      if (!isLegacyFireTv)
+        {
+          'Type': 'Video',
+          'Codec': 'vp9',
+          'Conditions': [
+            {
+              'Condition': 'LessThanEqual',
+              'Property': 'VideoLevel',
+              'Value': '62',
+              'IsRequired': false,
+            },
+          ],
+        },
       if (stereoDownmix)
         {
           'Type': 'VideoAudio',

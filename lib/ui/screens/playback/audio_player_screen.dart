@@ -4,7 +4,7 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/material.dart' hide RepeatMode;
+import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:jellyfin_design/jellyfin_design.dart';
 import 'package:playback_core/playback_core.dart';
@@ -123,7 +123,8 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
       try {
         final file = File(lyricsPath);
         if (await file.exists()) {
-          final data = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+          final data =
+              jsonDecode(await file.readAsString()) as Map<String, dynamic>;
           if (mounted && _lyricsItemId == resolved.id) {
             setState(() => _lyrics = LyricsData.fromJson(data));
           }
@@ -152,12 +153,18 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
     final albumTag = item.albumPrimaryImageTag;
     final albumId = item.albumId;
     if (item.type == 'Audio' && albumTag != null && albumId != null) {
-      return client.imageApi
-          .getPrimaryImageUrl(albumId, maxHeight: 600, tag: albumTag);
+      return client.imageApi.getPrimaryImageUrl(
+        albumId,
+        maxHeight: 600,
+        tag: albumTag,
+      );
     }
     if (item.primaryImageTag != null) {
-      return client.imageApi
-          .getPrimaryImageUrl(item.id, maxHeight: 600, tag: item.primaryImageTag);
+      return client.imageApi.getPrimaryImageUrl(
+        item.id,
+        maxHeight: 600,
+        tag: item.primaryImageTag,
+      );
     }
     return null;
   }
@@ -186,7 +193,9 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
   Widget build(BuildContext context) {
     final item = _resolveCurrentItem();
     final localPoster = _offlinePosterPath();
-    final artUrl = item != null && !_manager.isOfflinePlayback ? _getArtUrl(item) : null;
+    final artUrl = item != null && !_manager.isOfflinePlayback
+        ? _getArtUrl(item)
+        : null;
     final useSplitLyricsLayout = _shouldUseSplitLyricsLayout(context);
 
     return Scaffold(
@@ -226,18 +235,22 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
                   child: _showQueue
                       ? _buildQueueList()
                       : useSplitLyricsLayout
-                          ? _buildNowPlayingWithLyrics(
-                              item,
-                              artUrl,
-                              localPoster: localPoster,
-                            )
+                      ? _buildNowPlayingWithLyrics(
+                          item,
+                          artUrl,
+                          localPoster: localPoster,
+                        )
                       : _showLyrics && _lyrics != null && _lyrics!.isNotEmpty
-                          ? LyricsView(
-                              lyrics: _lyrics!,
-                              positionStream: _state.positionStream,
-                              position: _state.position,
-                            )
-                          : _buildNowPlaying(item, artUrl, localPoster: localPoster),
+                      ? LyricsView(
+                          lyrics: _lyrics!,
+                          positionStream: _state.positionStream,
+                          position: _state.position,
+                        )
+                      : _buildNowPlaying(
+                          item,
+                          artUrl,
+                          localPoster: localPoster,
+                        ),
                 ),
                 if (item != null && !_showQueue && !_showLyrics)
                   _buildFavoriteRow(item),
@@ -346,14 +359,22 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
     );
   }
 
-  Widget _buildNowPlaying(AggregatedItem? item, String? artUrl, {String? localPoster}) {
+  Widget _buildNowPlaying(
+    AggregatedItem? item,
+    String? artUrl, {
+    String? localPoster,
+  }) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final maxArtByWidth = (constraints.maxWidth - (AppSpacing.space2xl * 2))
             .clamp(160.0, 560.0);
-        final maxArtByHeight = (constraints.maxHeight * 0.62)
-            .clamp(160.0, 560.0);
-        final artSize = maxArtByWidth < maxArtByHeight ? maxArtByWidth : maxArtByHeight;
+        final maxArtByHeight = (constraints.maxHeight * 0.62).clamp(
+          160.0,
+          560.0,
+        );
+        final artSize = maxArtByWidth < maxArtByHeight
+            ? maxArtByWidth
+            : maxArtByHeight;
 
         return SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.space2xl),
@@ -384,13 +405,13 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
                             errorBuilder: (_, __, ___) => _artPlaceholder(),
                           )
                         : artUrl != null
-                            ? CachedNetworkImage(
-                                imageUrl: artUrl,
-                                fit: BoxFit.cover,
-                                placeholder: (_, __) => _artPlaceholder(),
-                                errorWidget: (_, __, ___) => _artPlaceholder(),
-                              )
-                            : _artPlaceholder(),
+                        ? CachedNetworkImage(
+                            imageUrl: artUrl,
+                            fit: BoxFit.cover,
+                            placeholder: (_, __) => _artPlaceholder(),
+                            errorWidget: (_, __, ___) => _artPlaceholder(),
+                          )
+                        : _artPlaceholder(),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.spaceXl),
@@ -464,7 +485,9 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
     if (_manager.isOfflinePlayback) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Casting is unavailable during offline playback.')),
+        const SnackBar(
+          content: Text('Casting is unavailable during offline playback.'),
+        ),
       );
       return;
     }
@@ -519,7 +542,9 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
     final kind = _castService.activeKind;
     if (kind == null || !mounted) return;
     try {
-      _castService.remoteVolumeNotifier.value = await _castService.getVolume(kind);
+      _castService.remoteVolumeNotifier.value = await _castService.getVolume(
+        kind,
+      );
     } catch (_) {
       _castService.remoteVolumeNotifier.value = null;
     }
@@ -583,14 +608,24 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
                 );
               },
             ),
-            if (kind == CastTargetKind.googleCast || kind == CastTargetKind.dlna)
+            if (kind == CastTargetKind.googleCast ||
+                kind == CastTargetKind.dlna)
               ListTile(
-                leading: const Icon(Icons.volume_up_rounded, color: Colors.white),
-                title: const Text('Device Volume', style: TextStyle(color: Colors.white)),
+                leading: const Icon(
+                  Icons.volume_up_rounded,
+                  color: Colors.white,
+                ),
+                title: const Text(
+                  'Device Volume',
+                  style: TextStyle(color: Colors.white),
+                ),
                 subtitle: ValueListenableBuilder<double?>(
                   valueListenable: _castService.remoteVolumeNotifier,
                   builder: (context, vol, _) => vol == null
-                      ? const Text('Unavailable', style: TextStyle(color: Colors.white54))
+                      ? const Text(
+                          'Unavailable',
+                          style: TextStyle(color: Colors.white54),
+                        )
                       : SliderTheme(
                           data: SliderTheme.of(context).copyWith(
                             activeTrackColor: AppColorScheme.accent,
@@ -617,7 +652,10 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
                 ),
               ),
             ListTile(
-              leading: const Icon(Icons.play_arrow_rounded, color: Colors.white),
+              leading: const Icon(
+                Icons.play_arrow_rounded,
+                color: Colors.white,
+              ),
               title: const Text('Play', style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.of(ctx).pop();
@@ -634,16 +672,24 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.sync_rounded, color: Colors.white),
-              title: const Text('Sync Position', style: TextStyle(color: Colors.white)),
+              title: const Text(
+                'Sync Position',
+                style: TextStyle(color: Colors.white),
+              ),
               onTap: () {
                 Navigator.of(ctx).pop();
                 final positionTicks = _state.position.inMicroseconds * 10;
-                _runCastAction((k) => _castService.seek(k, positionTicks: positionTicks));
+                _runCastAction(
+                  (k) => _castService.seek(k, positionTicks: positionTicks),
+                );
               },
             ),
             ListTile(
               leading: const Icon(Icons.stop_rounded, color: Colors.white),
-              title: Text('Stop $label', style: const TextStyle(color: Colors.white)),
+              title: Text(
+                'Stop $label',
+                style: const TextStyle(color: Colors.white),
+              ),
               onTap: () {
                 Navigator.of(ctx).pop();
                 _runCastAction((k) => _castService.stop(k));
@@ -661,7 +707,9 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
       icon: Icon(
         isFav ? Icons.favorite : Icons.favorite_border,
         size: 28,
-        color: isFav ? AppColorScheme.accent : Colors.white.withValues(alpha: 0.7),
+        color: isFav
+            ? AppColorScheme.accent
+            : Colors.white.withValues(alpha: 0.7),
       ),
       onPressed: () => _toggleFavorite(item),
     );
@@ -745,7 +793,11 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
             onPressed: () => _manager.toggleShuffle(),
           ),
           IconButton(
-            icon: const Icon(Icons.skip_previous, size: 36, color: Colors.white),
+            icon: const Icon(
+              Icons.skip_previous,
+              size: 36,
+              color: Colors.white,
+            ),
             onPressed: () => _manager.previous(),
           ),
           Container(
@@ -843,7 +895,11 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
             overflow: TextOverflow.ellipsis,
           ),
           trailing: isCurrent
-              ? const Icon(Icons.equalizer, color: AppColorScheme.accent, size: 20)
+              ? const Icon(
+                  Icons.equalizer,
+                  color: AppColorScheme.accent,
+                  size: 20,
+                )
               : null,
           onTap: () => _manager.playFromQueue(index),
         );

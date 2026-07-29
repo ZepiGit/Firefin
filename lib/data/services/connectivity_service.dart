@@ -1,27 +1,26 @@
 import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:server_core/server_core.dart';
 
 import 'sync_service.dart';
+import '../../util/platform_detection.dart';
 
 class ConnectivityService extends ChangeNotifier {
   final Connectivity _connectivity = Connectivity();
-  final Dio _pingDio = Dio(BaseOptions(
-    connectTimeout: const Duration(seconds: 5),
-    receiveTimeout: const Duration(seconds: 5),
-  ));
   StreamSubscription<List<ConnectivityResult>>? _subscription;
   Timer? _recheckDebounce;
+  Timer? _startupRecheck;
+  Timer? _serverRetryTimer;
 
   bool _isOnline = true;
   bool get isOnline => _isOnline;
 
   bool _serverReachable = true;
   bool get serverReachable => _serverReachable;
+  int _consecutiveServerFailures = 0;
 
   bool get canReachServer => _isOnline && _serverReachable;
 
@@ -30,14 +29,17 @@ class ConnectivityService extends ChangeNotifier {
   /// a false "offline" flash at boot.
   bool _initialCheckDone = false;
 
-  ConnectivityService() {
-    configureServerDio(_pingDio);
-  }
-
   void initialize() {
-    _subscription =
-        _connectivity.onConnectivityChanged.listen(_onConnectivityChanged);
+    _subscription = _connectivity.onConnectivityChanged.listen(
+      _onConnectivityChanged,
+    );
     _checkInitialState();
+    _startupRecheck = Timer(const Duration(seconds: 8), recheckNow);
+    _serverRetryTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (_isOnline && !_serverReachable) {
+        recheckNow();
+      }
+    });
   }
 
   Future<void> _checkInitialState() async {
@@ -93,13 +95,35 @@ class ConnectivityService extends ChangeNotifier {
   }
 
   Future<void> _checkServerReachability() async {
+    // The dedicated Fire OS 5 build already proves server reachability through
+    // the authenticated content requests that populate each screen. The old
+    // TLS stack can nevertheless fail Jellyfin's separate /System/Ping call
+    // and cause a false orange warning while artwork is visibly loading.
+    if (PlatformDetection.isAndroid && PlatformDetection.isTV) {
+      _consecutiveServerFailures = 0;
+      _serverReachable = true;
+      notifyListeners();
+      return;
+    }
     if (!GetIt.instance.isRegistered<MediaServerClient>()) return;
     final client = GetIt.instance<MediaServerClient>();
     try {
-      await _pingDio.get('${client.baseUrl}/System/Ping');
+      final reachable = await client.systemApi.ping().timeout(
+        const Duration(seconds: 6),
+      );
+      if (!reachable) {
+        throw StateError('Server ping failed');
+      }
+      _consecutiveServerFailures = 0;
       _serverReachable = true;
     } catch (_) {
-      _serverReachable = false;
+      // Fire OS 5 occasionally drops a single TLS request while artwork is
+      // loading. Require two consecutive failed pings before showing the
+      // disruptive server-unavailable banner.
+      _consecutiveServerFailures++;
+      if (_consecutiveServerFailures >= 2) {
+        _serverReachable = false;
+      }
     }
     notifyListeners();
   }
@@ -110,6 +134,7 @@ class ConnectivityService extends ChangeNotifier {
     if (_isOnline) {
       await _checkServerReachability();
     } else {
+      _consecutiveServerFailures = 0;
       _serverReachable = false;
       notifyListeners();
     }
@@ -119,6 +144,8 @@ class ConnectivityService extends ChangeNotifier {
   void dispose() {
     _subscription?.cancel();
     _recheckDebounce?.cancel();
+    _startupRecheck?.cancel();
+    _serverRetryTimer?.cancel();
     super.dispose();
   }
 }

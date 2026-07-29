@@ -89,7 +89,9 @@ class _HomeShellState extends State<_HomeShell> with WidgetsBindingObserver {
     _viewModel.addListener(_onViewModelChanged);
     _viewModel.mediaBarViewModel.addListener(_onViewModelChanged);
     _lastSectionsJson = _userPrefs.get(UserPreferences.homeSectionsJson);
-    _lastMultiServer = _userPrefs.get(UserPreferences.enableMultiServerLibraries);
+    _lastMultiServer = _userPrefs.get(
+      UserPreferences.enableMultiServerLibraries,
+    );
     _userPrefs.addListener(_onPrefsChanged);
     _viewModel.load();
   }
@@ -127,8 +129,11 @@ class _HomeShellState extends State<_HomeShell> with WidgetsBindingObserver {
   void _onPrefsChanged() {
     if (!mounted) return;
     final currentJson = _userPrefs.get(UserPreferences.homeSectionsJson);
-    final currentMultiServer = _userPrefs.get(UserPreferences.enableMultiServerLibraries);
-    if (currentJson != _lastSectionsJson || currentMultiServer != _lastMultiServer) {
+    final currentMultiServer = _userPrefs.get(
+      UserPreferences.enableMultiServerLibraries,
+    );
+    if (currentJson != _lastSectionsJson ||
+        currentMultiServer != _lastMultiServer) {
       _lastSectionsJson = currentJson;
       _lastMultiServer = currentMultiServer;
       _viewModel.refresh();
@@ -160,9 +165,12 @@ class _HomeShellState extends State<_HomeShell> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final backdropEnabled = _userPrefs.get(UserPreferences.backdropEnabled);
-    final blurAmount = _userPrefs.get(UserPreferences.browsingBackgroundBlurAmount).toDouble();
+    final blurAmount = _userPrefs
+        .get(UserPreferences.browsingBackgroundBlurAmount)
+        .toDouble();
     final seasonalEffect = _userPrefs.get(UserPreferences.seasonalSurprise);
-    final confirmExit = PlatformDetection.isDesktop &&
+    final confirmExit =
+        PlatformDetection.isDesktop &&
         _userPrefs.get(UserPreferences.confirmExit);
 
     return PopScope(
@@ -178,7 +186,8 @@ class _HomeShellState extends State<_HomeShell> with WidgetsBindingObserver {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              if (backdropEnabled) _Backdrop(url: _backdropUrl, blurAmount: blurAmount),
+              if (backdropEnabled)
+                _Backdrop(url: _backdropUrl, blurAmount: blurAmount),
               const _GradientScrim(),
               Positioned.fill(
                 child: _ContentRows(
@@ -196,9 +205,7 @@ class _HomeShellState extends State<_HomeShell> with WidgetsBindingObserver {
                 ),
               ),
               if (seasonalEffect != 'none')
-                Positioned.fill(
-                  child: SeasonalEffects(effect: seasonalEffect),
-                ),
+                Positioned.fill(child: SeasonalEffects(effect: seasonalEffect)),
             ],
           ),
         ),
@@ -278,11 +285,7 @@ class _GradientScrim extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [
-            Color(0xAA000000),
-            Color(0x44000000),
-            Color(0xBB000000),
-          ],
+          colors: [Color(0xAA000000), Color(0x44000000), Color(0xBB000000)],
           stops: [0.0, 0.3, 1.0],
         ),
       ),
@@ -389,7 +392,10 @@ class _ContentRowsState extends State<_ContentRows>
   }
 
   void _schedulePreview(AggregatedItem item, {required Duration delay}) {
-    if (!widget.prefs.get(UserPreferences.episodePreviewEnabled) ||
+    // Legacy Fire TV hardware cannot decode an inline preview while keeping
+    // home-screen navigation responsive. Keep cards static on Android TV.
+    if ((PlatformDetection.isAndroid && PlatformDetection.isTV) ||
+        !widget.prefs.get(UserPreferences.episodePreviewEnabled) ||
         !_supportsEpisodePreview(item)) {
       return;
     }
@@ -450,7 +456,10 @@ class _ContentRowsState extends State<_ContentRows>
     _finishSharedPreview(releaseResources: true, updateUi: false);
   }
 
-  Future<void> _startSharedPreview(AggregatedItem item, String previewKey) async {
+  Future<void> _startSharedPreview(
+    AggregatedItem item,
+    String previewKey,
+  ) async {
     final requestId = ++_previewRequestId;
 
     _previewStopTimer?.cancel();
@@ -459,25 +468,36 @@ class _ContentRowsState extends State<_ContentRows>
     try {
       final client = _clientForItem(item);
       final target = await _resolvePreviewTargetItem(client, item);
-      if (!mounted || target == null || requestId != _previewRequestId || _activePreviewKey != previewKey) {
+      if (!mounted ||
+          target == null ||
+          requestId != _previewRequestId ||
+          _activePreviewKey != previewKey) {
         return;
       }
 
       final player = _ensureSharedPreviewPlayer();
       final seekPosition = _previewSeekPosition(target);
 
-      await player.setVolume(widget.prefs.get(UserPreferences.previewAudioEnabled) ? 100 : 0);
-      if (!mounted || requestId != _previewRequestId || _activePreviewKey != previewKey) {
+      await player.setVolume(
+        widget.prefs.get(UserPreferences.previewAudioEnabled) ? 100 : 0,
+      );
+      if (!mounted ||
+          requestId != _previewRequestId ||
+          _activePreviewKey != previewKey) {
         return;
       }
 
       await player.open(Media(_buildPreviewUrl(client, target, seekPosition)));
-      if (!mounted || requestId != _previewRequestId || _activePreviewKey != previewKey) {
+      if (!mounted ||
+          requestId != _previewRequestId ||
+          _activePreviewKey != previewKey) {
         return;
       }
 
       await player.setPlaylistMode(PlaylistMode.loop);
-      if (!mounted || requestId != _previewRequestId || _activePreviewKey != previewKey) {
+      if (!mounted ||
+          requestId != _previewRequestId ||
+          _activePreviewKey != previewKey) {
         return;
       }
 
@@ -487,11 +507,15 @@ class _ContentRowsState extends State<_ContentRows>
         }
       });
 
-      if (mounted && requestId == _previewRequestId && _activePreviewKey == previewKey) {
+      if (mounted &&
+          requestId == _previewRequestId &&
+          _activePreviewKey == previewKey) {
         setState(() => _previewReady = true);
       }
     } catch (_) {
-      if (mounted && requestId == _previewRequestId && _activePreviewKey == previewKey) {
+      if (mounted &&
+          requestId == _previewRequestId &&
+          _activePreviewKey == previewKey) {
         _finishSharedPreview();
       }
     }
@@ -504,9 +528,7 @@ class _ContentRowsState extends State<_ContentRows>
     }
 
     final player = Player(
-      configuration: const PlayerConfiguration(
-        libass: false,
-      ),
+      configuration: const PlayerConfiguration(libass: false),
     );
     final platform = player.platform;
     if (platform is NativePlayer) {
@@ -534,7 +556,8 @@ class _ContentRowsState extends State<_ContentRows>
 
       if (item.type == 'Series') {
         final seasonsData = await client.itemsApi.getSeasons(item.id);
-        final seasons = (seasonsData['Items'] as List?)
+        final seasons =
+            (seasonsData['Items'] as List?)
                 ?.cast<Map<String, dynamic>>()
                 .toList() ??
             const <Map<String, dynamic>>[];
@@ -542,9 +565,11 @@ class _ContentRowsState extends State<_ContentRows>
           return null;
         }
 
-        seasons.sort((a, b) =>
-            ((a['IndexNumber'] as int?) ?? 1 << 20)
-                .compareTo((b['IndexNumber'] as int?) ?? 1 << 20));
+        seasons.sort(
+          (a, b) => ((a['IndexNumber'] as int?) ?? 1 << 20).compareTo(
+            (b['IndexNumber'] as int?) ?? 1 << 20,
+          ),
+        );
 
         final firstSeasonId = seasons.first['Id'] as String?;
         if (firstSeasonId == null || firstSeasonId.isEmpty) {
@@ -555,7 +580,8 @@ class _ContentRowsState extends State<_ContentRows>
           item.id,
           seasonId: firstSeasonId,
         );
-        final episodes = (episodesData['Items'] as List?)
+        final episodes =
+            (episodesData['Items'] as List?)
                 ?.cast<Map<String, dynamic>>()
                 .toList() ??
             const <Map<String, dynamic>>[];
@@ -563,9 +589,11 @@ class _ContentRowsState extends State<_ContentRows>
           return null;
         }
 
-        episodes.sort((a, b) =>
-            ((a['IndexNumber'] as int?) ?? 1 << 20)
-                .compareTo((b['IndexNumber'] as int?) ?? 1 << 20));
+        episodes.sort(
+          (a, b) => ((a['IndexNumber'] as int?) ?? 1 << 20).compareTo(
+            (b['IndexNumber'] as int?) ?? 1 << 20,
+          ),
+        );
 
         final first = episodes.first;
         final firstId = first['Id'] as String?;
@@ -640,9 +668,9 @@ class _ContentRowsState extends State<_ContentRows>
       if (client.accessToken != null) 'ApiKey': client.accessToken!,
     };
 
-    return Uri.parse('${client.baseUrl}/Videos/${item.id}/stream')
-        .replace(queryParameters: params)
-        .toString();
+    return Uri.parse(
+      '${client.baseUrl}/Videos/${item.id}/stream',
+    ).replace(queryParameters: params).toString();
   }
 
   bool _isMediaBarIncluded() {
@@ -660,7 +688,7 @@ class _ContentRowsState extends State<_ContentRows>
     final size = MediaQuery.sizeOf(context);
     final screenHeight = size.height;
     final screenWidth = size.width;
-    
+
     if (!PlatformDetection.useMobileUi) {
       return screenHeight;
     }
@@ -670,8 +698,10 @@ class _ContentRowsState extends State<_ContentRows>
   }
 
   double _pinnedInfoCollapseOffset() {
-    return (_mediaBarHeight() - (_pinTransitionDistance / 2))
-        .clamp(0.0, double.infinity);
+    return (_mediaBarHeight() - (_pinTransitionDistance / 2)).clamp(
+      0.0,
+      double.infinity,
+    );
   }
 
   Future<void> _revealAndScrollToPinnedInfo() async {
@@ -740,21 +770,24 @@ class _ContentRowsState extends State<_ContentRows>
     final includeMediaBar = _isMediaBarIncluded();
     final mediaBarHeight = _mediaBarHeight();
     final carouselPaused = widget.isHoverPaused || !_isScrolledToTop;
-    final navbarIsTop = widget.prefs.get(UserPreferences.navbarPosition) == NavbarPosition.top;
+    final navbarIsTop =
+        widget.prefs.get(UserPreferences.navbarPosition) == NavbarPosition.top;
     final navbarHeight = navbarIsTop
         ? (PlatformDetection.isTV
-            ? 95.0
-            : PlatformDetection.useMobileUi
-                ? 60.0
-                : 80.0)
+              ? 95.0
+              : PlatformDetection.useMobileUi
+              ? 60.0
+              : 80.0)
         : 48.0;
     final navbarLeftInset = navbarIsTop ? 16.0 : 56.0;
 
     final pinThreshold = includeMediaBar ? mediaBarHeight : 0.0;
-    final pinStart = (pinThreshold - (_pinTransitionDistance / 2)).clamp(0.0, double.infinity);
-    final pinProgress = ((
-      _scrollOffset - pinStart
-    ) / _pinTransitionDistance).clamp(0.0, 1.0);
+    final pinStart = (pinThreshold - (_pinTransitionDistance / 2)).clamp(
+      0.0,
+      double.infinity,
+    );
+    final pinProgress = ((_scrollOffset - pinStart) / _pinTransitionDistance)
+        .clamp(0.0, 1.0);
     final transitionT = Curves.easeInOut.transform(pinProgress);
     final listOpacity = 1.0 - transitionT;
     final pinnedInfoOpacity = transitionT;
@@ -781,7 +814,8 @@ class _ContentRowsState extends State<_ContentRows>
             ),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: () => widget.viewModel.refresh(preserveExisting: false),
+              onPressed: () =>
+                  widget.viewModel.refresh(preserveExisting: false),
               child: const Text('Retry Home Rows'),
             ),
           ],
@@ -795,7 +829,9 @@ class _ContentRowsState extends State<_ContentRows>
           child: ListView.builder(
             controller: _scrollController,
             padding: EdgeInsets.only(
-              top: includeMediaBar ? 0 : MediaQuery.of(context).padding.top + 56,
+              top: includeMediaBar
+                  ? 0
+                  : MediaQuery.of(context).padding.top + 56,
               bottom: 32,
             ),
             itemCount: rows.length + headerCount,
@@ -810,7 +846,8 @@ class _ContentRowsState extends State<_ContentRows>
               }
               final infoIndex = includeMediaBar ? 1 : 0;
               if (index == infoIndex) {
-                if (!_infoRevealed || !prefs.get(UserPreferences.homeRowInfoOverlay)) {
+                if (!_infoRevealed ||
+                    !prefs.get(UserPreferences.homeRowInfoOverlay)) {
                   return const SizedBox.shrink();
                 }
                 final safeTop = MediaQuery.of(context).padding.top;
@@ -820,7 +857,12 @@ class _ContentRowsState extends State<_ContentRows>
                   child: Opacity(
                     opacity: listOpacity,
                     child: Padding(
-                      padding: EdgeInsets.fromLTRB(navbarLeftInset, topPad, 16, bottomPad),
+                      padding: EdgeInsets.fromLTRB(
+                        navbarLeftInset,
+                        topPad,
+                        16,
+                        bottomPad,
+                      ),
                       child: InfoArea(item: widget.selectedItem),
                     ),
                   ),
@@ -897,7 +939,13 @@ class _ContentRowsState extends State<_ContentRows>
                     if (row.rowType == HomeRowType.libraryTiles) {
                       _navigateToLibrary(context, item);
                     } else {
-                      context.push(Destinations.itemOrPhoto(item.id, serverId: item.serverId, type: item.type));
+                      context.push(
+                        Destinations.itemOrPhoto(
+                          item.id,
+                          serverId: item.serverId,
+                          type: item.type,
+                        ),
+                      );
                     }
                   },
                 );
@@ -922,7 +970,9 @@ class _ContentRowsState extends State<_ContentRows>
             },
           ),
         ),
-        if (_infoRevealed && pinnedPanelOpacity > 0 && prefs.get(UserPreferences.homeRowInfoOverlay))
+        if (_infoRevealed &&
+            pinnedPanelOpacity > 0 &&
+            prefs.get(UserPreferences.homeRowInfoOverlay))
           Positioned(
             top: 0,
             left: 0,
@@ -1012,7 +1062,8 @@ class _ContentRowsState extends State<_ContentRows>
       title: row.title,
       rowHeight: 140,
       children: row.items.map((item) {
-        final collectionType = (item.rawData['CollectionType'] as String? ?? '').toLowerCase();
+        final collectionType = (item.rawData['CollectionType'] as String? ?? '')
+            .toLowerCase();
         final icon = _iconForCollectionType(collectionType);
         return GridButtonCard(
           icon: icon,
@@ -1041,7 +1092,8 @@ class _ContentRowsState extends State<_ContentRows>
   }
 
   static void _navigateToLibrary(BuildContext context, AggregatedItem item) {
-    final collectionType = (item.rawData['CollectionType'] as String? ?? '').toLowerCase();
+    final collectionType = (item.rawData['CollectionType'] as String? ?? '')
+        .toLowerCase();
     switch (collectionType) {
       case 'music':
         context.push(Destinations.musicLibrary(item.id));
@@ -1067,8 +1119,7 @@ class _ContentRowsState extends State<_ContentRows>
     final maxH = (height * 2).toInt();
     if (useSeriesThumbs &&
         item.type == 'Episode' &&
-        item.seriesId != null &&
-        item.seriesPrimaryImageTag != null) {
+        item.seriesId != null) {
       return imageApi.getPrimaryImageUrl(
         item.seriesId!,
         maxHeight: maxH,
@@ -1082,7 +1133,13 @@ class _ContentRowsState extends State<_ContentRows>
         tag: item.primaryImageTag,
       );
     }
-    return null;
+    if (item.type == 'Episode' && item.seriesId != null) {
+      return imageApi.getPrimaryImageUrl(
+        item.seriesId!,
+        maxHeight: maxH,
+      );
+    }
+    return imageApi.getPrimaryImageUrl(item.id, maxHeight: maxH);
   }
 
   static String? _resolveLandscapeImageUrl(
@@ -1114,7 +1171,10 @@ class _ContentRowsState extends State<_ContentRows>
         tag: item.primaryImageTag,
       );
     }
-    return null;
+    if (item.type == 'Episode' && item.seriesId != null) {
+      return imageApi.getPrimaryImageUrl(item.seriesId!, maxWidth: maxW);
+    }
+    return imageApi.getPrimaryImageUrl(item.id, maxWidth: maxW);
   }
 
   static ImageType _homeRowImageTypeForRow(HomeRow row, UserPreferences prefs) {
@@ -1147,9 +1207,15 @@ class _ContentRowsState extends State<_ContentRows>
   }
 
   static bool _isLatestMusicRow(HomeRow row) {
-    if (row.rowType != HomeRowType.latestMedia || row.items.isEmpty) return false;
-    return row.items.every((item) =>
-        item.type == 'Audio' || item.type == 'MusicAlbum' || item.type == 'MusicArtist');
+    if (row.rowType != HomeRowType.latestMedia || row.items.isEmpty) {
+      return false;
+    }
+    return row.items.every(
+      (item) =>
+          item.type == 'Audio' ||
+          item.type == 'MusicAlbum' ||
+          item.type == 'MusicArtist',
+    );
   }
 
   static double _aspectRatioForRowItem(
@@ -1197,13 +1263,25 @@ class _ContentRowsState extends State<_ContentRows>
     if (imageType == ImageType.banner) {
       final maxW = (height * 16 / 9 * 2).toInt();
       if (itemBannerTag != null) {
-        return imageApi.getBannerImageUrl(item.id, maxWidth: maxW, tag: itemBannerTag);
+        return imageApi.getBannerImageUrl(
+          item.id,
+          maxWidth: maxW,
+          tag: itemBannerTag,
+        );
       }
       if (itemThumbTag != null) {
-        return imageApi.getThumbImageUrl(item.id, maxWidth: maxW, tag: itemThumbTag);
+        return imageApi.getThumbImageUrl(
+          item.id,
+          maxWidth: maxW,
+          tag: itemThumbTag,
+        );
       }
       if (item.backdropImageTags.isNotEmpty) {
-        return imageApi.getBackdropImageUrl(item.id, maxWidth: maxW, tag: item.backdropImageTags.first);
+        return imageApi.getBackdropImageUrl(
+          item.id,
+          maxWidth: maxW,
+          tag: item.backdropImageTags.first,
+        );
       }
       return _resolveImageUrl(item, imageApi, height, useSeriesThumbs);
     }
@@ -1211,15 +1289,28 @@ class _ContentRowsState extends State<_ContentRows>
     if (imageType == ImageType.thumb) {
       final maxW = (height * 16 / 9 * 2).toInt();
       if (itemThumbTag != null) {
-        return imageApi.getThumbImageUrl(item.id, maxWidth: maxW, tag: itemThumbTag);
+        return imageApi.getThumbImageUrl(
+          item.id,
+          maxWidth: maxW,
+          tag: itemThumbTag,
+        );
       }
       if (item.backdropImageTags.isNotEmpty) {
-        return imageApi.getBackdropImageUrl(item.id, maxWidth: maxW, tag: item.backdropImageTags.first);
+        return imageApi.getBackdropImageUrl(
+          item.id,
+          maxWidth: maxW,
+          tag: item.backdropImageTags.first,
+        );
       }
       if (parentThumbItemId != null && parentThumbTag != null) {
-        return imageApi.getThumbImageUrl(parentThumbItemId, maxWidth: maxW, tag: parentThumbTag);
+        return imageApi.getThumbImageUrl(
+          parentThumbItemId,
+          maxWidth: maxW,
+          tag: parentThumbTag,
+        );
       }
-      if (item.parentBackdropItemId != null && item.parentBackdropImageTags.isNotEmpty) {
+      if (item.parentBackdropItemId != null &&
+          item.parentBackdropImageTags.isNotEmpty) {
         return imageApi.getBackdropImageUrl(
           item.parentBackdropItemId!,
           maxWidth: maxW,
@@ -1248,14 +1339,14 @@ class _ContentRowsState extends State<_ContentRows>
     final parentBackdropTags = item.parentBackdropImageTags;
 
     if (imageType == ImageType.poster) {
-      if (seriesId != null && seriesPrimaryTag != null) {
+      if (seriesId != null) {
         return imageApi.getPrimaryImageUrl(
           seriesId,
           maxHeight: maxH,
           tag: seriesPrimaryTag,
         );
       }
-      return null;
+      return imageApi.getPrimaryImageUrl(item.id, maxHeight: maxH);
     }
 
     if (imageType == ImageType.thumb) {
@@ -1273,18 +1364,19 @@ class _ContentRowsState extends State<_ContentRows>
           tag: parentBackdropTags.first,
         );
       }
-      if (seriesId != null && seriesPrimaryTag != null) {
+      if (seriesId != null) {
         return imageApi.getPrimaryImageUrl(
           seriesId,
           maxWidth: maxW,
           tag: seriesPrimaryTag,
         );
       }
-      return null;
+      return imageApi.getPrimaryImageUrl(item.id, maxWidth: maxW);
     }
 
     if (imageType == ImageType.banner) {
-      final seriesBannerTag = (item.rawData['SeriesImageTags'] as Map?)?['Banner'] as String?;
+      final seriesBannerTag =
+          (item.rawData['SeriesImageTags'] as Map?)?['Banner'] as String?;
       if (seriesId != null && seriesBannerTag != null) {
         return imageApi.getBannerImageUrl(
           seriesId,
@@ -1306,14 +1398,14 @@ class _ContentRowsState extends State<_ContentRows>
           tag: parentBackdropTags.first,
         );
       }
-      if (seriesId != null && seriesPrimaryTag != null) {
+      if (seriesId != null) {
         return imageApi.getPrimaryImageUrl(
           seriesId,
           maxWidth: maxW,
           tag: seriesPrimaryTag,
         );
       }
-      return null;
+      return imageApi.getPrimaryImageUrl(item.id, maxWidth: maxW);
     }
 
     return null;
@@ -1353,27 +1445,27 @@ class _PreviewCardShell extends StatelessWidget {
         children: [
           card,
           Positioned(
-              left: 0,
-              right: 0,
-              top: 0,
-              child: SizedBox(
-                height: width / aspectRatio,
-                child: IgnorePointer(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: ColoredBox(
-                      color: Colors.black,
-                      child: Video(
-                        controller: controller!,
-                        controls: NoVideoControls,
-                        fit: BoxFit.cover,
-                        pauseUponEnteringBackgroundMode: false,
-                        fill: Colors.black,
-                      ),
+            left: 0,
+            right: 0,
+            top: 0,
+            child: SizedBox(
+              height: width / aspectRatio,
+              child: IgnorePointer(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: ColoredBox(
+                    color: Colors.black,
+                    child: Video(
+                      controller: controller!,
+                      controls: NoVideoControls,
+                      fit: BoxFit.cover,
+                      pauseUponEnteringBackgroundMode: false,
+                      fill: Colors.black,
                     ),
                   ),
                 ),
               ),
+            ),
           ),
         ],
       ),

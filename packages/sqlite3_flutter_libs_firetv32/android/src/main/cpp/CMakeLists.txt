@@ -1,0 +1,28 @@
+cmake_minimum_required(VERSION 3.22.1)
+project(moonfin_sqlite3 LANGUAGES C)
+
+add_library(sqlite3 SHARED sqlite3.c)
+
+target_compile_options(sqlite3 PRIVATE -O3 -fPIC)
+target_compile_definitions(
+  sqlite3
+  PRIVATE
+    SQLITE_ENABLE_DBSTAT_VTAB
+    SQLITE_ENABLE_FTS5
+    SQLITE_ENABLE_RTREE
+    SQLITE_ENABLE_MATH_FUNCTIONS
+    SQLITE_ENABLE_SESSION
+    SQLITE_ENABLE_PREUPDATE_HOOK
+    SQLITE_DQS=0
+    SQLITE_DEFAULT_MEMSTATUS=0
+    SQLITE_TEMP_STORE=2
+    SQLITE_MAX_EXPR_DEPTH=0
+    SQLITE_STRICT_SUBTYPE=1
+    SQLITE_USE_ALLOCA
+    SQLITE_HAVE_ISNAN
+    SQLITE_HAVE_LOCALTIME_R
+    SQLITE_HAVE_MALLOC_USABLE_SIZE
+    SQLITE_HAVE_STRCHRNUL
+)
+
+target_link_libraries(sqlite3 PRIVATE android atomic dl log m)

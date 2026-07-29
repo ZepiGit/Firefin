@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
@@ -20,12 +21,28 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  late final PluginSyncService _pluginSync;
+
+  @override
+  void initState() {
+    super.initState();
+    _pluginSync = GetIt.instance<PluginSyncService>();
+    _pluginSync.addListener(_onPluginSyncChanged);
+  }
+
+  void _onPluginSyncChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _pluginSync.removeListener(_onPluginSyncChanged);
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final prefs = GetIt.instance<UserPreferences>();
-    final pluginSync = GetIt.instance<PluginSyncService>();
-    final showSeerrIntegration =
-        pluginSync.pluginAvailable && prefs.get(UserPreferences.seerrEnabled);
+    final showSeerrIntegration = _pluginSync.pluginAvailable;
     final isAdmin = ref.watch(isAdminProvider);
     final adminBadgeCount = isAdmin
         ? ref.watch(adminNotificationSummaryProvider).valueOrNull?.count ?? 0
@@ -52,14 +69,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
     ];
 
-    final customizationEntries = buildCustomizationEntries(
-      isMobile: PlatformDetection.isMobile,
-    ).map((entry) => _SettingsEntry(
-          icon: entry.icon,
-          title: entry.title,
-          subtitle: entry.subtitle,
-          onTap: () => context.push(entry.destination),
-        )).toList();
+    final customizationEntries =
+        buildCustomizationEntries(isMobile: PlatformDetection.isMobile)
+            .map(
+              (entry) => _SettingsEntry(
+                icon: entry.icon,
+                title: entry.title,
+                subtitle: entry.subtitle,
+                onTap: () => context.push(entry.destination),
+              ),
+            )
+            .toList();
 
     final playbackEntries = <_SettingsEntry>[
       _SettingsEntry(
@@ -219,18 +239,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             builder: (context, constraints) {
               final width = constraints.maxWidth;
               final columns = width >= 1500
-                ? 5
-                : width >= 1180
+                  ? 5
+                  : width >= 1180
                   ? 4
                   : width >= 860
-                    ? 3
-                    : width >= 360
-                      ? 2
-                      : 1;
+                  ? 3
+                  : width >= 360
+                  ? 2
+                  : 1;
               final cardWidth = (width - (columns - 1) * 10) / columns;
               final cardScale = columns >= 4
-                ? 0.64
-                : columns == 3
+                  ? 0.64
+                  : columns == 3
                   ? 0.72
                   : 0.82;
               final cardHeight = (cardWidth * cardScale).clamp(136.0, 196.0);
@@ -257,7 +277,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       } else {
                         Navigator.of(context).push(
                           MaterialPageRoute<void>(
-                            builder: (_) => _SectionDetailScreen(section: section),
+                            builder: (_) =>
+                                _SectionDetailScreen(section: section),
                           ),
                         );
                       }
@@ -305,7 +326,7 @@ class _SettingsSectionData {
   });
 }
 
-class _SettingsSectionCard extends StatelessWidget {
+class _SettingsSectionCard extends StatefulWidget {
   final _SettingsSectionData section;
   final bool compact;
   final VoidCallback onTap;
@@ -317,107 +338,170 @@ class _SettingsSectionCard extends StatelessWidget {
   });
 
   @override
+  State<_SettingsSectionCard> createState() => _SettingsSectionCardState();
+}
+
+class _SettingsSectionCardState extends State<_SettingsSectionCard> {
+  bool _focused = false;
+  bool _hovered = false;
+
+  bool get _highlighted => _focused || _hovered;
+
+  KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
+    if (event is KeyDownEvent &&
+        (event.logicalKey == LogicalKeyboardKey.select ||
+            event.logicalKey == LogicalKeyboardKey.enter ||
+            event.logicalKey == LogicalKeyboardKey.gameButtonA)) {
+      widget.onTap();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final cardPadding = compact
+    final focusColor = PlatformDetection.useLeanbackUi
+        ? const Color(0xFF00C8FF)
+        : Color(
+            GetIt.instance<UserPreferences>()
+                .get(UserPreferences.focusColor)
+                .colorValue,
+          );
+    final cardPadding = widget.compact
         ? const EdgeInsets.fromLTRB(10, 9, 10, 8)
         : const EdgeInsets.fromLTRB(11, 11, 11, 9);
-    final iconBoxSize = compact ? 42.0 : 48.0;
-    final iconSize = compact ? 20.0 : 22.0;
-    final iconRadius = compact ? 12.0 : 14.0;
-    final titleStyle = compact
+    final iconBoxSize = widget.compact ? 42.0 : 48.0;
+    final iconSize = widget.compact ? 20.0 : 22.0;
+    final iconRadius = widget.compact ? 12.0 : 14.0;
+    final titleStyle = widget.compact
         ? theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)
         : theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700);
-    final subtitleStyle = compact ? theme.textTheme.bodySmall : theme.textTheme.bodyMedium;
-    final optionsStyle = compact
+    final subtitleStyle = widget.compact
+        ? theme.textTheme.bodySmall
+        : theme.textTheme.bodyMedium;
+    final optionsStyle = widget.compact
         ? theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700)
         : theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700);
-    final arrowSize = compact ? 24.0 : 26.0;
+    final arrowSize = widget.compact ? 24.0 : 26.0;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: cardPadding,
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.65),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: iconBoxSize,
-                height: iconBoxSize,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(iconRadius),
+    return Semantics(
+      button: true,
+      label: widget.section.title,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        child: Focus(
+          onFocusChange: (value) => setState(() => _focused = value),
+          onKeyEvent: _handleKey,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: widget.onTap,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 100),
+              curve: Curves.easeOut,
+              padding: cardPadding,
+              decoration: BoxDecoration(
+                color: _highlighted
+                    ? focusColor.withValues(alpha: 0.38)
+                    : theme.colorScheme.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: _highlighted
+                      ? focusColor
+                      : theme.colorScheme.outlineVariant.withValues(
+                          alpha: 0.65,
+                        ),
+                  width: _highlighted ? 4 : 1,
                 ),
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Center(
-                      child: section.iconBuilder != null
-                          ? section.iconBuilder!(iconSize, Colors.white)
-                          : Icon(section.icon, size: iconSize),
+                boxShadow: _highlighted
+                    ? [
+                        BoxShadow(
+                          color: focusColor.withValues(alpha: 0.4),
+                          blurRadius: 18,
+                          spreadRadius: 2,
+                        ),
+                      ]
+                    : const [],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: iconBoxSize,
+                    height: iconBoxSize,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(iconRadius),
                     ),
-                    if (section.badgeCount > 0)
-                      Positioned(
-                        top: -4,
-                        right: -4,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.error,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            section.badgeCount > 9 ? '9+' : '${section.badgeCount}',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.onError,
-                              fontWeight: FontWeight.w700,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Center(
+                          child: widget.section.iconBuilder != null
+                              ? widget.section.iconBuilder!(
+                                  iconSize,
+                                  Colors.white,
+                                )
+                              : Icon(widget.section.icon, size: iconSize),
+                        ),
+                        if (widget.section.badgeCount > 0)
+                          Positioned(
+                            top: -4,
+                            right: -4,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 5,
+                                vertical: 1,
+                              ),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.error,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                widget.section.badgeCount > 9
+                                    ? '9+'
+                                    : '${widget.section.badgeCount}',
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: theme.colorScheme.onError,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                section.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: titleStyle,
-              ),
-              const SizedBox(height: 3),
-              Text(
-                section.subtitle,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: subtitleStyle,
-              ),
-              const Spacer(),
-              Row(
-                children: [
-                  if (section.entries.isNotEmpty)
-                    Text(
-                      '${section.entries.length} options',
-                      style: optionsStyle,
+                      ],
                     ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    widget.section.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: titleStyle,
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    widget.section.subtitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: subtitleStyle,
+                  ),
                   const Spacer(),
-                  Icon(
-                    Icons.arrow_forward,
-                    size: arrowSize,
+                  Row(
+                    children: [
+                      if (widget.section.entries.isNotEmpty)
+                        Text(
+                          '${widget.section.entries.length} options',
+                          style: optionsStyle,
+                        ),
+                      const Spacer(),
+                      Icon(Icons.arrow_forward, size: arrowSize),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -434,9 +518,7 @@ class _SectionDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(
-        title: Text(section.title),
-      ),
+      appBar: AppBar(title: Text(section.title)),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
         children: [
@@ -457,7 +539,9 @@ class _SectionDetailScreen extends StatelessWidget {
                       height: 1,
                       indent: 70,
                       endIndent: 12,
-                      color: theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
+                      color: theme.colorScheme.outlineVariant.withValues(
+                        alpha: 0.35,
+                      ),
                     ),
                 ],
                 const SizedBox(height: 6),
@@ -521,40 +605,104 @@ class _SettingsEntry {
   });
 }
 
-class _SettingsEntryTile extends StatelessWidget {
+class _SettingsEntryTile extends StatefulWidget {
   final _SettingsEntry entry;
 
   const _SettingsEntryTile({required this.entry});
 
   @override
+  State<_SettingsEntryTile> createState() => _SettingsEntryTileState();
+}
+
+class _SettingsEntryTileState extends State<_SettingsEntryTile> {
+  bool _focused = false;
+  bool _hovered = false;
+
+  KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
+    if (event is KeyDownEvent &&
+        (event.logicalKey == LogicalKeyboardKey.select ||
+            event.logicalKey == LogicalKeyboardKey.enter ||
+            event.logicalKey == LogicalKeyboardKey.gameButtonA)) {
+      widget.entry.onTap();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return ListTile(
-      minLeadingWidth: 40,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-      leading: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          color: theme.colorScheme.primaryContainer.withValues(alpha: 0.45),
+    final highlighted = _focused || _hovered;
+    final focusColor = PlatformDetection.useLeanbackUi
+        ? const Color(0xFF00C8FF)
+        : Color(
+            GetIt.instance<UserPreferences>()
+                .get(UserPreferences.focusColor)
+                .colorValue,
+          );
+    return Semantics(
+      button: true,
+      label: widget.entry.title,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        child: Focus(
+          onFocusChange: (value) => setState(() => _focused = value),
+          onKeyEvent: _handleKey,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: widget.entry.onTap,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 100),
+              margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              decoration: BoxDecoration(
+                color: highlighted
+                    ? focusColor.withValues(alpha: 0.36)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: highlighted ? focusColor : Colors.transparent,
+                  width: highlighted ? 4 : 1,
+                ),
+              ),
+              child: ListTile(
+                minLeadingWidth: 40,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 2,
+                ),
+                leading: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    color: theme.colorScheme.primaryContainer.withValues(
+                      alpha: 0.45,
+                    ),
+                  ),
+                  child: widget.entry.iconBuilder != null
+                      ? widget.entry.iconBuilder!(20, Colors.white)
+                      : Icon(widget.entry.icon, size: 20),
+                ),
+                title: Text(
+                  widget.entry.title,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: highlighted ? FontWeight.w700 : null,
+                  ),
+                ),
+                subtitle: widget.entry.subtitle != null
+                    ? Text(
+                        widget.entry.subtitle!,
+                        style: theme.textTheme.bodySmall,
+                      )
+                    : null,
+                trailing: const Icon(Icons.chevron_right),
+              ),
+            ),
+          ),
         ),
-        child: entry.iconBuilder != null
-            ? entry.iconBuilder!(20, Colors.white)
-            : Icon(entry.icon, size: 20),
       ),
-      title: Text(
-        entry.title,
-        style: theme.textTheme.titleSmall,
-      ),
-      subtitle: entry.subtitle != null
-          ? Text(
-              entry.subtitle!,
-              style: theme.textTheme.bodySmall,
-            )
-          : null,
-      trailing: const Icon(Icons.chevron_right),
-      onTap: entry.onTap,
     );
   }
 }

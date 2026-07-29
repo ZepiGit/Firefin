@@ -10,6 +10,7 @@ import '../../../auth/models/server_addition_state.dart';
 import '../../../auth/repositories/server_repository.dart';
 import '../../../auth/services/server_discovery_service.dart';
 import '../../navigation/destinations.dart';
+import '../../widgets/app_version_text.dart';
 import '../../widgets/login_scaffold.dart';
 import '../../widgets/server_type_icon.dart';
 
@@ -143,10 +144,7 @@ class _ServerSelectScreenState extends State<ServerSelectScreen> {
         overflow: TextOverflow.fade,
       ),
       style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 8,
-          vertical: 12,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
         side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
         foregroundColor: Colors.white.withValues(alpha: 0.8),
       ),
@@ -164,8 +162,8 @@ class _ServerSelectScreenState extends State<ServerSelectScreen> {
       ),
       footer: Padding(
         padding: const EdgeInsets.only(top: 16),
-        child: Text(
-          'Moonfin version 1.0.0',
+        child: AppVersionText(
+          prefix: 'Moonfin version ',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: Colors.white.withValues(alpha: 0.4),
           ),

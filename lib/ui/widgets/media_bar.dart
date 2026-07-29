@@ -63,6 +63,9 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
   bool _trailerRevealArmed = false;
   bool _isTrailerPlaying = false;
 
+  bool get _isLegacyTvPerformanceMode =>
+      PlatformDetection.isAndroid && PlatformDetection.isTV;
+
   @override
   void initState() {
     super.initState();
@@ -129,7 +132,9 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
     if (!mounted) return;
     setState(() {});
     final state = widget.viewModel.state;
-    if (_isHomeRouteActive && state is MediaBarReady && state.items.isNotEmpty) {
+    if (_isHomeRouteActive &&
+        state is MediaBarReady &&
+        state.items.isNotEmpty) {
       _startAutoAdvance();
       if (_activeTrailerItemId == null && _currentIndex < state.items.length) {
         _scheduleTrailerPreview(state.items[_currentIndex]);
@@ -143,15 +148,17 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
     if (!widget.prefs.get(UserPreferences.mediaBarTrailerPreview)) {
       _cancelTrailerPreview();
     } else if (_trailerPlayer != null) {
-      final audioEnabled = widget.prefs.get(UserPreferences.previewAudioEnabled);
+      final audioEnabled = widget.prefs.get(
+        UserPreferences.previewAudioEnabled,
+      );
       _trailerPlayer?.setVolume(audioEnabled ? 100 : 0);
     }
   }
 
   void _onRouteChanged() {
     final path = _routeInformationProvider?.value.uri.path ?? '';
-    final isHome = path == Destinations.home ||
-        path.startsWith('${Destinations.home}/');
+    final isHome =
+        path == Destinations.home || path.startsWith('${Destinations.home}/');
     if (_isHomeRouteActive == isHome) return;
 
     _isHomeRouteActive = isHome;
@@ -174,30 +181,32 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
 
   void _startAutoAdvance() {
     _autoAdvanceTimer?.cancel();
+    if (_isLegacyTvPerformanceMode) return;
     if (!widget.prefs.get(UserPreferences.mediaBarAutoAdvance)) return;
     if (widget.externallyPaused) return;
     if (_isTrailerPlaying) return;
     if (!_isHomeRouteActive) return;
     final intervalMs = widget.prefs.get(UserPreferences.mediaBarIntervalMs);
-    _autoAdvanceTimer = Timer.periodic(
-      Duration(milliseconds: intervalMs),
-      (_) {
-        if (_isPaused ||
-            _isTrailerPlaying ||
-            !mounted ||
-            widget.externallyPaused ||
-            !_isHomeRouteActive) {
-          return;
-        }
-        final items = widget.viewModel.items;
-        if (items.isEmpty) return;
-        final nextIndex = (_currentIndex + 1) % items.length;
-        _goToPage(nextIndex);
-      },
-    );
+    _autoAdvanceTimer = Timer.periodic(Duration(milliseconds: intervalMs), (_) {
+      if (_isPaused ||
+          _isTrailerPlaying ||
+          !mounted ||
+          widget.externallyPaused ||
+          !_isHomeRouteActive) {
+        return;
+      }
+      final items = widget.viewModel.items;
+      if (items.isEmpty) return;
+      final nextIndex = (_currentIndex + 1) % items.length;
+      _goToPage(nextIndex);
+    });
   }
 
   void _goToPage(int index) {
+    if (_isLegacyTvPerformanceMode) {
+      _onPageChanged(index);
+      return;
+    }
     if (!_pageController.hasClients) return;
     _pageController.animateToPage(
       index,
@@ -227,6 +236,7 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
   }
 
   void _scheduleTrailerPreview(MediaBarSlideItem item) {
+    if (_isLegacyTvPerformanceMode) return;
     if (!widget.prefs.get(UserPreferences.mediaBarTrailerPreview)) return;
     if (!_isHomeRouteActive) return;
     if (_activeTrailerItemId == item.itemId && _trailerVideoOpacity > 0) return;
@@ -260,7 +270,9 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
   }
 
   Future<void> _prepareTrailerPreview(
-      MediaBarSlideItem item, int resolveId) async {
+    MediaBarSlideItem item,
+    int resolveId,
+  ) async {
     final client = _clientForServer(item.serverId);
     String? streamUrl;
     bool useYouTubeHeaders = false;
@@ -287,7 +299,8 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
       try {
         final fullItem = await client.itemsApi.getItem(item.itemId);
         if (!mounted || resolveId != _trailerResolveId) return;
-        remoteTrailers = (fullItem['RemoteTrailers'] as List?)
+        remoteTrailers =
+            (fullItem['RemoteTrailers'] as List?)
                 ?.cast<Map<String, dynamic>>() ??
             const [];
       } catch (_) {}
@@ -299,8 +312,7 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
         if (url == null) continue;
         streamUrl = await YouTubeStreamResolver.resolveFromUrl(url);
         if (streamUrl != null) {
-          useYouTubeHeaders =
-              YouTubeStreamResolver.extractVideoId(url) != null;
+          useYouTubeHeaders = YouTubeStreamResolver.extractVideoId(url) != null;
         }
         if (!mounted || resolveId != _trailerResolveId) return;
         if (streamUrl != null) break;
@@ -331,7 +343,9 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
   }
 
   Future<void> _tryRevealPreparedTrailer(
-      MediaBarSlideItem item, int resolveId) async {
+    MediaBarSlideItem item,
+    int resolveId,
+  ) async {
     if (!mounted || resolveId != _trailerResolveId) return;
     if (!_trailerRevealArmed) return;
     if (_activeTrailerItemId != item.itemId) return;
@@ -416,9 +430,9 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
       'subtitleMethod': 'Drop',
       if (client.accessToken != null) 'ApiKey': client.accessToken!,
     };
-    return Uri.parse('${client.baseUrl}/Videos/$trailerId/stream')
-        .replace(queryParameters: params)
-        .toString();
+    return Uri.parse(
+      '${client.baseUrl}/Videos/$trailerId/stream',
+    ).replace(queryParameters: params).toString();
   }
 
   @override
@@ -427,19 +441,20 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
 
     return switch (state) {
       MediaBarLoading() => _buildStatusPanel(
-          context,
-          title: 'Loading media bar...',
-        ),
+        context,
+        title: 'Loading media bar...',
+      ),
       MediaBarDisabled() => const SizedBox.shrink(),
       MediaBarError(message: final message) => _buildStatusPanel(
-          context,
-          title: 'Media bar failed to load',
-          detail: message,
-          showRetry: true,
-        ),
-      MediaBarReady(items: final items) => items.isEmpty
-          ? const SizedBox.shrink()
-          : _buildSlideshow(context, items),
+        context,
+        title: 'Media bar failed to load',
+        detail: message,
+        showRetry: true,
+      ),
+      MediaBarReady(items: final items) =>
+        items.isEmpty
+            ? const SizedBox.shrink()
+            : _buildSlideshow(context, items),
     };
   }
 
@@ -473,18 +488,17 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
                     children: [
                       Text(
                         title,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: Colors.white,
-                        ),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.titleSmall?.copyWith(color: Colors.white),
                       ),
                       if (detail != null && detail.isNotEmpty)
                         Text(
                           detail,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.white70,
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: Colors.white70),
                         ),
                     ],
                   ),
@@ -506,12 +520,19 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
     const overlayColor = Colors.black;
     const overlayOpacity = 0.7;
     final currentItem = items.elementAtOrNull(_currentIndex);
-    
+
     final isMobile = PlatformDetection.useMobileUi;
-    final isTablet = isMobile && MediaQuery.of(context).size.shortestSide >= 600;
-    final navbarAtTop = isMobile && 
-        (GetIt.instance<UserPreferences>().get(UserPreferences.navbarPosition) == NavbarPosition.top);
-    final toolbarInset = navbarAtTop ? MediaQuery.of(context).padding.top + 60.0 : 0.0;
+    final isTablet =
+        isMobile && MediaQuery.of(context).size.shortestSide >= 600;
+    final navbarAtTop =
+        isMobile &&
+        (GetIt.instance<UserPreferences>().get(
+              UserPreferences.navbarPosition,
+            ) ==
+            NavbarPosition.top);
+    final toolbarInset = navbarAtTop
+        ? MediaQuery.of(context).padding.top + 60.0
+        : 0.0;
 
     return MouseRegion(
       onEnter: (_) => _setPaused(true),
@@ -531,144 +552,176 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                AnimatedOpacity(
-                  opacity: PlatformDetection.isLinux && _trailerVideoOpacity > 0
-                      ? 0
-                      : 1,
-                  duration: const Duration(milliseconds: 250),
-                  child: _BackdropLayer(
-                    items: items,
-                    pageController: _pageController,
-                    onPageChanged: _onPageChanged,
+                  AnimatedOpacity(
+                    opacity:
+                        PlatformDetection.isLinux && _trailerVideoOpacity > 0
+                        ? 0
+                        : 1,
+                    duration: _isLegacyTvPerformanceMode
+                        ? Duration.zero
+                        : const Duration(milliseconds: 250),
+                    child: _BackdropLayer(
+                      items: items,
+                      currentIndex: _currentIndex,
+                      pageController: _pageController,
+                      onPageChanged: _onPageChanged,
+                      legacyPerformanceMode: _isLegacyTvPerformanceMode,
+                    ),
                   ),
-                ),
-                if (_trailerController != null)
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: AnimatedOpacity(
-                        opacity: _trailerVideoOpacity,
-                        duration: const Duration(milliseconds: 800),
-                        child: Video(
-                          controller: _trailerController!,
-                          controls: NoVideoControls,
-                          fit: BoxFit.cover,
-                          pauseUponEnteringBackgroundMode: false,
-                          fill: Colors.transparent,
+                  if (_trailerController != null)
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: AnimatedOpacity(
+                          opacity: _trailerVideoOpacity,
+                          duration: const Duration(milliseconds: 800),
+                          child: Video(
+                            controller: _trailerController!,
+                            controls: NoVideoControls,
+                            fit: BoxFit.cover,
+                            pauseUponEnteringBackgroundMode: false,
+                            fill: Colors.transparent,
+                          ),
                         ),
                       ),
                     ),
+                  _GradientOverlay(
+                    color: overlayColor,
+                    opacity: overlayOpacity,
                   ),
-                _GradientOverlay(
-                  color: overlayColor,
-                  opacity: overlayOpacity,
-                ),
-                if (items.length > 1)
-                  Positioned(
-                    bottom: 8,
-                    left: 0,
-                    right: 0,
-                    child: _IndicatorDots(
-                      count: items.length,
-                      current: _currentIndex,
-                      overlayColor: overlayColor,
-                      overlayOpacity: overlayOpacity,
-                    ),
-                  ),
-                if (currentItem != null && currentItem.logoUrl != null && (!isMobile || isTablet))
-                  Positioned(
-                    top: MediaQuery.of(context).padding.top + 56,
-                    left: 16,
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 300),
-                      child: SizedBox(
-                        key: ValueKey('logo_${currentItem.itemId}'),
-                        width: 280,
-                        height: 120,
-                        child: _buildLogoWithShadow(currentItem.logoUrl!),
+                  if (items.length > 1)
+                    Positioned(
+                      bottom: 8,
+                      left: 0,
+                      right: 0,
+                      child: _IndicatorDots(
+                        count: items.length,
+                        current: _currentIndex,
+                        overlayColor: overlayColor,
+                        overlayOpacity: overlayOpacity,
                       ),
                     ),
-                  ),
-                if (currentItem != null)
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    child: GestureDetector(
-                      behavior: PlatformDetection.useMobileUi
-                          ? HitTestBehavior.translucent
-                          : HitTestBehavior.deferToChild,
-                      onHorizontalDragEnd: PlatformDetection.useMobileUi
-                          ? (details) {
-                              final velocity = details.primaryVelocity ?? 0;
-                              if (velocity < -300 && _currentIndex < items.length - 1) {
-                                _goToPage(_currentIndex + 1);
-                              } else if (velocity > 300 && _currentIndex > 0) {
-                                _goToPage(_currentIndex - 1);
-                              }
-                            }
-                          : null,
+                  if (currentItem != null &&
+                      currentItem.logoUrl != null &&
+                      (!isMobile || isTablet))
+                    Positioned(
+                      top: MediaQuery.of(context).padding.top + 56,
+                      left: 16,
                       child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 300),
-                        child: Column(
-                          key: ValueKey(currentItem.itemId),
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (isMobile && !isTablet && currentItem.logoUrl != null)
-                              Padding(
-                                padding: const EdgeInsets.only(left: 16, bottom: 8),
-                                child: SizedBox(
-                                  width: 180,
-                                  height: 70,
-                                  child: _buildLogoWithShadow(currentItem.logoUrl!),
-                                ),
-                              ),
-                            _SlideInfo(
-                              item: currentItem,
-                              ratings: widget.viewModel.ratingsFor(currentItem.itemId),
-                              enableAdditionalRatings: widget.prefs.get(
-                                UserPreferences.enableAdditionalRatings,
-                              ),
-                              enabledRatings: widget.prefs.get(UserPreferences.enabledRatings),
-                              blockedRatings: widget.prefs.get(UserPreferences.blockedRatings),
-                              showLabels: widget.prefs.get(UserPreferences.showRatingLabels),
-                              showBadges: widget.prefs.get(UserPreferences.showRatingBadges),
-                            ),
-                          ],
+                        duration: _isLegacyTvPerformanceMode
+                            ? Duration.zero
+                            : const Duration(milliseconds: 300),
+                        child: SizedBox(
+                          key: ValueKey('logo_${currentItem.itemId}'),
+                          width: 280,
+                          height: 120,
+                          child: _buildLogoWithShadow(currentItem.logoUrl!),
                         ),
                       ),
                     ),
-                  ),
-                if (items.length > 1 && !PlatformDetection.useMobileUi) ...[
-                  Positioned(
-                    left: 0,
-                    top: 0,
-                    bottom: 0,
-                    child: Center(
-                      child: _NavArrow(
-                        icon: Icons.chevron_left,
-                        onTap: _currentIndex > 0
-                            ? () => _goToPage(_currentIndex - 1)
+                  if (currentItem != null)
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: GestureDetector(
+                        behavior: PlatformDetection.useMobileUi
+                            ? HitTestBehavior.translucent
+                            : HitTestBehavior.deferToChild,
+                        onHorizontalDragEnd: PlatformDetection.useMobileUi
+                            ? (details) {
+                                final velocity = details.primaryVelocity ?? 0;
+                                if (velocity < -300 &&
+                                    _currentIndex < items.length - 1) {
+                                  _goToPage(_currentIndex + 1);
+                                } else if (velocity > 300 &&
+                                    _currentIndex > 0) {
+                                  _goToPage(_currentIndex - 1);
+                                }
+                              }
                             : null,
+                        child: AnimatedSwitcher(
+                          duration: _isLegacyTvPerformanceMode
+                              ? Duration.zero
+                              : const Duration(milliseconds: 300),
+                          child: Column(
+                            key: ValueKey(currentItem.itemId),
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (isMobile &&
+                                  !isTablet &&
+                                  currentItem.logoUrl != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    left: 16,
+                                    bottom: 8,
+                                  ),
+                                  child: SizedBox(
+                                    width: 180,
+                                    height: 70,
+                                    child: _buildLogoWithShadow(
+                                      currentItem.logoUrl!,
+                                    ),
+                                  ),
+                                ),
+                              _SlideInfo(
+                                item: currentItem,
+                                ratings: widget.viewModel.ratingsFor(
+                                  currentItem.itemId,
+                                ),
+                                enableAdditionalRatings: widget.prefs.get(
+                                  UserPreferences.enableAdditionalRatings,
+                                ),
+                                enabledRatings: widget.prefs.get(
+                                  UserPreferences.enabledRatings,
+                                ),
+                                blockedRatings: widget.prefs.get(
+                                  UserPreferences.blockedRatings,
+                                ),
+                                showLabels: widget.prefs.get(
+                                  UserPreferences.showRatingLabels,
+                                ),
+                                showBadges: widget.prefs.get(
+                                  UserPreferences.showRatingBadges,
+                                ),
+                                legacyPerformanceMode:
+                                    _isLegacyTvPerformanceMode,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    bottom: 0,
-                    child: Center(
-                      child: _NavArrow(
-                        icon: Icons.chevron_right,
-                        onTap: _currentIndex < items.length - 1
-                            ? () => _goToPage(_currentIndex + 1)
-                            : null,
+                  if (items.length > 1 && !PlatformDetection.useMobileUi) ...[
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      child: Center(
+                        child: _NavArrow(
+                          icon: Icons.chevron_left,
+                          onTap: _currentIndex > 0
+                              ? () => _goToPage(_currentIndex - 1)
+                              : null,
+                        ),
                       ),
                     ),
-                  ),
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      bottom: 0,
+                      child: Center(
+                        child: _NavArrow(
+                          icon: Icons.chevron_right,
+                          onTap: _currentIndex < items.length - 1
+                              ? () => _goToPage(_currentIndex + 1)
+                              : null,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
-              ],
-            ),
+              ),
             ),
           ),
         ),
@@ -742,17 +795,38 @@ class _MediaBarState extends State<MediaBar> with WidgetsBindingObserver {
 
 class _BackdropLayer extends StatelessWidget {
   final List<MediaBarSlideItem> items;
+  final int currentIndex;
   final PageController pageController;
   final ValueChanged<int> onPageChanged;
+  final bool legacyPerformanceMode;
 
   const _BackdropLayer({
     required this.items,
+    required this.currentIndex,
     required this.pageController,
     required this.onPageChanged,
+    required this.legacyPerformanceMode,
   });
 
   @override
   Widget build(BuildContext context) {
+    if (legacyPerformanceMode) {
+      final item = items[currentIndex];
+      if (item.backdropUrl == null) {
+        return const ColoredBox(color: Colors.black);
+      }
+      return CachedNetworkImage(
+        key: ValueKey(item.itemId),
+        imageUrl: item.backdropUrl!,
+        fit: BoxFit.cover,
+        memCacheWidth: 1280,
+        fadeInDuration: Duration.zero,
+        fadeOutDuration: Duration.zero,
+        useOldImageOnUrlChange: true,
+        errorWidget: (_, __, ___) => const ColoredBox(color: Colors.black),
+      );
+    }
+
     return PageView.builder(
       controller: pageController,
       onPageChanged: onPageChanged,
@@ -766,8 +840,7 @@ class _BackdropLayer extends StatelessWidget {
           imageUrl: item.backdropUrl!,
           fit: BoxFit.cover,
           fadeInDuration: const Duration(milliseconds: 300),
-          errorWidget: (_, __, ___) =>
-              const ColoredBox(color: Colors.black),
+          errorWidget: (_, __, ___) => const ColoredBox(color: Colors.black),
         );
       },
     );
@@ -827,9 +900,7 @@ class _NavArrow extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.black.withValues(alpha: 0.4),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.15),
-                ),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
               ),
               child: Icon(
                 icon,
@@ -852,6 +923,7 @@ class _SlideInfo extends StatelessWidget {
   final String blockedRatings;
   final bool showLabels;
   final bool showBadges;
+  final bool legacyPerformanceMode;
 
   const _SlideInfo({
     required this.item,
@@ -861,6 +933,7 @@ class _SlideInfo extends StatelessWidget {
     required this.blockedRatings,
     this.showLabels = true,
     this.showBadges = true,
+    this.legacyPerformanceMode = false,
   });
 
   @override
@@ -868,68 +941,69 @@ class _SlideInfo extends StatelessWidget {
     final theme = Theme.of(context);
     final isMobile = PlatformDetection.useMobileUi;
 
+    final panel = Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _MetadataRow(item: item),
+          if (ratings.isNotEmpty || item.communityRating != null) ...[
+            const SizedBox(height: 6),
+            RatingsRow(
+              ratings: ratings,
+              communityRating: item.communityRating,
+              criticRating: item.criticRating,
+              enableAdditionalRatings: enableAdditionalRatings,
+              enabledRatings: enabledRatings,
+              blockedRatings: blockedRatings,
+              showLabels: showLabels,
+              showBadges: showBadges,
+            ),
+          ],
+          const SizedBox(height: 8),
+          SizedBox(
+            height:
+                ((isMobile
+                        ? theme.textTheme.bodySmall?.fontSize
+                        : theme.textTheme.bodyMedium?.fontSize) ??
+                    14) *
+                1.4 *
+                (isMobile ? 2 : 3),
+            child: Text(
+              item.overview ?? '',
+              style:
+                  (isMobile
+                          ? theme.textTheme.bodySmall
+                          : theme.textTheme.bodyMedium)
+                      ?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        shadows: _textShadows,
+                      ),
+              maxLines: isMobile ? 2 : 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+
     return Padding(
       padding: EdgeInsets.only(left: 8, right: 8, bottom: isMobile ? 24 : 36),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 12,
-            ),
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.35),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.1),
+        child: legacyPerformanceMode
+            ? panel
+            : BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                child: panel,
               ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _MetadataRow(item: item),
-                if (ratings.isNotEmpty || item.communityRating != null) ...[
-                  const SizedBox(height: 6),
-                  RatingsRow(
-                    ratings: ratings,
-                    communityRating: item.communityRating,
-                    criticRating: item.criticRating,
-                    enableAdditionalRatings: enableAdditionalRatings,
-                    enabledRatings: enabledRatings,
-                    blockedRatings: blockedRatings,
-                    showLabels: showLabels,
-                    showBadges: showBadges,
-                  ),
-                ],
-                const SizedBox(height: 8),
-                SizedBox(
-                  height: ((isMobile
-                          ? theme.textTheme.bodySmall?.fontSize
-                          : theme.textTheme.bodyMedium?.fontSize) ??
-                      14) *
-                      1.4 *
-                      (isMobile ? 2 : 3),
-                  child: Text(
-                    item.overview ?? '',
-                    style: (isMobile
-                            ? theme.textTheme.bodySmall
-                            : theme.textTheme.bodyMedium)
-                        ?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.9),
-                      shadows: _textShadows,
-                    ),
-                    maxLines: isMobile ? 2 : 3,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -969,13 +1043,15 @@ class _MetadataRow extends StatelessWidget {
     for (var i = 0; i < parts.length; i++) {
       separated.add(parts[i]);
       if (i < parts.length - 1) {
-        separated.add(Text(
-          ' \u2022 ',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: Colors.white.withValues(alpha: 0.5),
-            shadows: _textShadows,
+        separated.add(
+          Text(
+            ' \u2022 ',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: Colors.white.withValues(alpha: 0.5),
+              shadows: _textShadows,
+            ),
           ),
-        ));
+        );
       }
     }
 

@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:audio_service/audio_service.dart';
-import 'package:flutter/material.dart' hide RepeatMode;
+import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:playback_core/playback_core.dart';
 import 'package:server_core/server_core.dart';
@@ -46,25 +46,27 @@ class MoonfinAudioHandler extends BaseAudioHandler
       MediaControl.skipToNext,
     ];
 
-    playbackState.add(PlaybackState(
-      controls: controls,
-      systemActions: const {
-        MediaAction.seek,
-        MediaAction.skipToNext,
-        MediaAction.skipToPrevious,
-      },
-      androidCompactActionIndices: const [0, 1, 2],
-      processingState: s.isBuffering
-          ? AudioProcessingState.buffering
-          : q.currentItem != null
-              ? AudioProcessingState.ready
-              : AudioProcessingState.idle,
-      playing: s.isPlaying,
-      updatePosition: s.position,
-      bufferedPosition: s.position,
-      speed: s.playbackSpeed,
-      queueIndex: q.currentIndex,
-    ));
+    playbackState.add(
+      PlaybackState(
+        controls: controls,
+        systemActions: const {
+          MediaAction.seek,
+          MediaAction.skipToNext,
+          MediaAction.skipToPrevious,
+        },
+        androidCompactActionIndices: const [0, 1, 2],
+        processingState: s.isBuffering
+            ? AudioProcessingState.buffering
+            : q.currentItem != null
+            ? AudioProcessingState.ready
+            : AudioProcessingState.idle,
+        playing: s.isPlaying,
+        updatePosition: s.position,
+        bufferedPosition: s.position,
+        speed: s.playbackSpeed,
+        queueIndex: q.currentIndex,
+      ),
+    );
   }
 
   void _pushMediaItemForCurrentTrack() {
@@ -78,10 +80,7 @@ class MoonfinAudioHandler extends BaseAudioHandler
 
   void _pushQueue() {
     final items = _manager.queueService.items;
-    queue.add(items
-        .whereType<AggregatedItem>()
-        .map(_mediaItemFor)
-        .toList());
+    queue.add(items.whereType<AggregatedItem>().map(_mediaItemFor).toList());
   }
 
   MediaItem _mediaItemFor(AggregatedItem item) {
@@ -91,18 +90,26 @@ class MoonfinAudioHandler extends BaseAudioHandler
       final albumTag = item.albumPrimaryImageTag;
       final albumId = item.albumId;
       if (item.type == 'Audio' && albumTag != null && albumId != null) {
-        artUri = client.imageApi
-            .getPrimaryImageUrl(albumId, maxHeight: 300, tag: albumTag);
+        artUri = client.imageApi.getPrimaryImageUrl(
+          albumId,
+          maxHeight: 300,
+          tag: albumTag,
+        );
       } else if (item.primaryImageTag != null) {
-        artUri = client.imageApi
-            .getPrimaryImageUrl(item.id, maxHeight: 300, tag: item.primaryImageTag);
+        artUri = client.imageApi.getPrimaryImageUrl(
+          item.id,
+          maxHeight: 300,
+          tag: item.primaryImageTag,
+        );
       }
     } catch (_) {}
 
     return MediaItem(
       id: item.id,
       title: item.name,
-      artist: item.artists.isNotEmpty ? item.artists.join(', ') : item.albumArtist,
+      artist: item.artists.isNotEmpty
+          ? item.artists.join(', ')
+          : item.albumArtist,
       album: item.album,
       duration: item.runtime,
       artUri: artUri != null ? Uri.parse(artUri) : null,
@@ -150,8 +157,7 @@ class MoonfinAudioHandler extends BaseAudioHandler
       AudioServiceRepeatMode.none => RepeatMode.none,
       AudioServiceRepeatMode.one => RepeatMode.repeatOne,
       AudioServiceRepeatMode.all ||
-      AudioServiceRepeatMode.group =>
-        RepeatMode.repeatAll,
+      AudioServiceRepeatMode.group => RepeatMode.repeatAll,
     };
     while (_manager.queueService.repeatMode != target) {
       _manager.toggleRepeat();
