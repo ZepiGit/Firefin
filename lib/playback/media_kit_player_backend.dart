@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -119,7 +120,27 @@ class MediaKitPlayerBackend implements PlayerBackend {
     // media_kit 1.2.6 can keep open() pending on Android 5.1 after the first
     // decoded frame. Let PlaybackManager's bounded readiness polling observe
     // the player streams instead of blocking the complete startup sequence.
-    _player.open(Media(url));
+    final openFuture = _player.open(Media(url));
+    if (PlatformDetection.isAndroid && PlatformDetection.isTV) {
+      unawaited(() async {
+        try {
+          await openFuture;
+          // Fire OS 5 may report playing=true while libmpv's pause property
+          // remains set after the video surface becomes available. Reassert
+          // playback once the open/surface race has settled. A user pause is
+          // respected because it changes state.playing to false.
+          await Future<void>.delayed(const Duration(milliseconds: 750));
+          if (_player.state.playing) {
+            await _player.play();
+          }
+        } catch (_) {
+          // PlaybackManager exposes backend failures through its regular
+          // readiness/error path.
+        }
+      }());
+    } else {
+      unawaited(openFuture);
+    }
     if (!_useLibass) {
       _enableNativeSubtitleRendering();
     }
