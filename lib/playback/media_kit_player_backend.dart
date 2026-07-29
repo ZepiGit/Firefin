@@ -55,6 +55,11 @@ class MediaKitPlayerBackend implements PlayerBackend {
   }) {
     final player = Player(
       configuration: PlayerConfiguration(
+        // media_kit's asynchronous libmpv commands can wait forever for
+        // reply events on Fire OS 5 / API 22 while holding the player lock.
+        // The dedicated Fire TV build uses short synchronous FFI commands so
+        // open, seek and transport controls cannot deadlock behind that lock.
+        async: !(PlatformDetection.isAndroid && PlatformDetection.isTV),
         libass: _useLibass,
         libassAndroidFont: Platform.isAndroid
             ? 'assets/fonts/NotoSans-Regular.ttf'
@@ -174,11 +179,27 @@ class MediaKitPlayerBackend implements PlayerBackend {
       stalledMilliseconds += 100;
       if (stalledMilliseconds < 6000) continue;
 
-      _legacyStartRecoveryGeneration = null;
+      final native = _player.platform;
+      if (native is NativePlayer) {
+        // Bypass Player's synchronization lock for the legacy recovery. The
+        // public string property API calls libmpv directly and therefore also
+        // works if an old asynchronous open() is still waiting for a reply.
+        await native.setProperty('pause', 'yes', waitForInitialization: false);
+        await Future<void>.delayed(const Duration(milliseconds: 150));
+        if (playGeneration != _playGeneration ||
+            _legacyStartRecoveryGeneration != playGeneration) {
+          return;
+        }
+        await native.setProperty('pause', 'no', waitForInitialization: false);
+        _legacyStartRecoveryGeneration = null;
+        return;
+      }
+
       await _player.pause();
       if (playGeneration != _playGeneration) return;
       await Future<void>.delayed(const Duration(milliseconds: 200));
       await _player.play();
+      _legacyStartRecoveryGeneration = null;
       return;
     }
 
@@ -774,6 +795,8 @@ class MediaKitPlayerBackend implements PlayerBackend {
 
   @override
   void dispose() {
+    _legacyStartRecoveryGeneration = null;
+    _playGeneration++;
     _player.dispose();
   }
 }
