@@ -732,11 +732,15 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
       },
       child: Scaffold(
         backgroundColor: Colors.black,
-        body: Focus(
-          focusNode: _overlayFocus,
-          autofocus: true,
-          onKeyEvent: _handleKeyEvent,
-          child: GestureDetector(
+        body: Shortcuts(
+          shortcuts: const <ShortcutActivator, Intent>{
+            SingleActivator(LogicalKeyboardKey.gameButtonA): ActivateIntent(),
+          },
+          child: Focus(
+            focusNode: _overlayFocus,
+            autofocus: true,
+            onKeyEvent: _handleKeyEvent,
+            child: GestureDetector(
             onTap: _toggleControls,
             onPanDown: (_) {
               if (PlatformDetection.isDesktop) {
@@ -799,6 +803,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
                     ),
                 ],
               ),
+            ),
             ),
           ),
         ),
