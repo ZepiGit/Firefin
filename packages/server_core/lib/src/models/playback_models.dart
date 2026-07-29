@@ -46,7 +46,6 @@ class PlaybackInfoRequest {
       effectiveDeviceProfile!['MaxStaticBitrate'] = 4000000;
       effectiveDeviceProfile['MaxStreamingBitrate'] = effectiveMaxBitrate;
     }
-
     return {
       if (mediaSourceId != null) 'MediaSourceId': mediaSourceId,
       if (startTimeTicks != null) 'StartTimeTicks': startTimeTicks,
