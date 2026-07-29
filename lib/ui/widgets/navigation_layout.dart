@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 
@@ -11,24 +12,28 @@ class NavigationLayout extends StatefulWidget {
   final String? activeRoute;
   final Widget child;
   final bool showBackButton;
+  final ValueListenable<bool>? navigationFocusAllowed;
 
   /// Notifier that any screen can update to trigger a live position change.
   static final positionNotifier = ValueNotifier<NavbarPosition?>(
     GetIt.instance<UserPreferences>().get(UserPreferences.navbarPosition),
   );
+  static final focusNavbarNotifier = ValueNotifier<VoidCallback?>(null);
 
   const NavigationLayout({
     super.key,
     this.activeRoute,
     required this.child,
     this.showBackButton = false,
+    this.navigationFocusAllowed,
   });
 
   @override
   State<NavigationLayout> createState() => _NavigationLayoutState();
 }
 
-class _NavigationLayoutState extends State<NavigationLayout> with WidgetsBindingObserver {
+class _NavigationLayoutState extends State<NavigationLayout>
+    with WidgetsBindingObserver {
   final _prefs = GetIt.instance<UserPreferences>();
   final _contentFocusNode = FocusNode(debugLabel: 'NavigationContent');
   late NavbarPosition _position;
@@ -85,9 +90,11 @@ class _NavigationLayoutState extends State<NavigationLayout> with WidgetsBinding
                 left: 0,
                 right: 0,
                 top: 0,
-                child: TopToolbar(
-                  activeRoute: widget.activeRoute,
-                  showBackButton: widget.showBackButton,
+                child: _buildNavigationFocusGate(
+                  TopToolbar(
+                    activeRoute: widget.activeRoute,
+                    showBackButton: widget.showBackButton,
+                  ),
                 ),
               ),
             ],
@@ -106,10 +113,12 @@ class _NavigationLayoutState extends State<NavigationLayout> with WidgetsBinding
             children: [
               Positioned.fill(child: widget.child),
               Positioned.fill(
-                child: LeftSidebar(
-                  activeRoute: widget.activeRoute,
-                  contentFocusNode: _contentFocusNode,
-                  showBackButton: widget.showBackButton,
+                child: _buildNavigationFocusGate(
+                  LeftSidebar(
+                    activeRoute: widget.activeRoute,
+                    contentFocusNode: _contentFocusNode,
+                    showBackButton: widget.showBackButton,
+                  ),
                 ),
               ),
             ],
@@ -117,6 +126,17 @@ class _NavigationLayoutState extends State<NavigationLayout> with WidgetsBinding
         ),
         const DownloadProgressBar(),
       ],
+    );
+  }
+
+  Widget _buildNavigationFocusGate(Widget child) {
+    final allowed = widget.navigationFocusAllowed;
+    if (allowed == null) return child;
+    return ValueListenableBuilder<bool>(
+      valueListenable: allowed,
+      builder: (context, canFocus, _) {
+        return ExcludeFocus(excluding: !canFocus, child: child);
+      },
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:server_core/server_core.dart';
 
 import '../../preference/user_preferences.dart';
+import '../../util/platform_detection.dart';
 import '../models/media_bar_slide_item.dart';
 import '../models/media_bar_state.dart';
 import '../repositories/mdblist_repository.dart';
@@ -28,8 +29,7 @@ class MediaBarViewModel extends ChangeNotifier {
   List<MediaBarSlideItem> get items =>
       _state is MediaBarReady ? (_state as MediaBarReady).items : const [];
 
-  Map<String, double> ratingsFor(String itemId) =>
-      _ratings[itemId] ?? const {};
+  Map<String, double> ratingsFor(String itemId) => _ratings[itemId] ?? const {};
 
   MediaBarViewModel(
     this._repository,
@@ -65,6 +65,13 @@ class MediaBarViewModel extends ChangeNotifier {
   }
 
   Future<void> load({BuildContext? context}) async {
+    if (PlatformDetection.isAndroid && PlatformDetection.useLeanbackUi) {
+      _ratings.clear();
+      _tmdbIdByItemId.clear();
+      _state = const MediaBarDisabled();
+      notifyListeners();
+      return;
+    }
     _ratings.clear();
     _tmdbIdByItemId.clear();
     _state = const MediaBarLoading();

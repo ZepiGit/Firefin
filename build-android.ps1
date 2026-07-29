@@ -39,7 +39,7 @@ function Get-AppVersion {
 $flutterExe = Get-FlutterCommand
 $appVersion = Get-AppVersion
 $apkSource = Join-Path $repoRoot "build\app\outputs\flutter-apk\app-release.apk"
-$apkOutput = Join-Path $repoRoot "Moonfin_Android_v$appVersion.apk"
+$apkOutput = Join-Path $repoRoot "Moonfin_FireTV32_Unofficial_$appVersion-r2.apk"
 $checkerScript = Join-Path $repoRoot "scripts\check-android-16kb-pages.sh"
 
 Push-Location $repoRoot
@@ -58,8 +58,8 @@ try {
     throw "flutter pub get failed with exit code $LASTEXITCODE"
   }
 
-  Write-Host "Building Android release APK (arm64-v8a only)..."
-  & $flutterExe build apk --release --target-platform android-arm64
+  Write-Host "Building Fire TV 32-bit release APK (armeabi-v7a only)..."
+  & $flutterExe build apk --release --target-platform android-arm
   if ($LASTEXITCODE -ne 0) {
     throw "flutter build apk failed with exit code $LASTEXITCODE"
   }

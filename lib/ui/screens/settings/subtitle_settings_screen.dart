@@ -6,31 +6,8 @@ import '../../../preference/user_preferences.dart';
 import '../../widgets/settings/preference_binding.dart';
 import '../../widgets/settings/preference_tiles.dart';
 
-class SubtitleSettingsScreen extends StatefulWidget {
+class SubtitleSettingsScreen extends StatelessWidget {
   const SubtitleSettingsScreen({super.key});
-
-  @override
-  State<SubtitleSettingsScreen> createState() => _SubtitleSettingsScreenState();
-}
-
-class _SubtitleSettingsScreenState extends State<SubtitleSettingsScreen> {
-  late final PreferenceBinding<double> _sizeBind;
-  late final PreferenceBinding<double> _offsetBind;
-
-  @override
-  void initState() {
-    super.initState();
-    final store = GetIt.instance<PreferenceStore>();
-    _sizeBind = PreferenceBinding(store, UserPreferences.subtitlesTextSize);
-    _offsetBind = PreferenceBinding(store, UserPreferences.subtitlesOffsetPosition);
-  }
-
-  @override
-  void dispose() {
-    _sizeBind.dispose();
-    _offsetBind.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,20 +47,14 @@ class _SubtitleSettingsScreenState extends State<SubtitleSettingsScreen> {
             subtitle: 'Turn off subtitles by default',
             icon: Icons.subtitles_off,
           ),
-          ValueListenableBuilder<double>(
-            valueListenable: _sizeBind,
-            builder: (context, value, _) => ListTile(
-              leading: const Icon(Icons.format_size),
-              title: const Text('Subtitle Size'),
-              subtitle: Slider(
-                value: value.clamp(12.0, 48.0),
-                min: 12,
-                max: 48,
-                divisions: 18,
-                label: '${value.round()}px',
-                onChanged: (v) => _sizeBind.value = v,
-              ),
-            ),
+          DoubleSliderPreferenceTile(
+            preference: UserPreferences.subtitlesTextSize,
+            title: 'Subtitle Size',
+            icon: Icons.format_size,
+            min: 12,
+            max: 48,
+            divisions: 18,
+            labelOf: (value) => '${value.round()}px',
           ),
           _ColorPickerTile(
             title: 'Text Color',
@@ -100,20 +71,14 @@ class _SubtitleSettingsScreenState extends State<SubtitleSettingsScreen> {
             icon: Icons.border_color,
             preference: UserPreferences.subtitleTextStrokeColor,
           ),
-          ValueListenableBuilder<double>(
-            valueListenable: _offsetBind,
-            builder: (context, value, _) => ListTile(
-              leading: const Icon(Icons.vertical_align_bottom),
-              title: const Text('Vertical Offset'),
-              subtitle: Slider(
-                value: value.clamp(0.0, 0.5),
-                min: 0.0,
-                max: 0.5,
-                divisions: 50,
-                label: '${(value * 100).round()}%',
-                onChanged: (v) => _offsetBind.value = v,
-              ),
-            ),
+          DoubleSliderPreferenceTile(
+            preference: UserPreferences.subtitlesOffsetPosition,
+            title: 'Vertical Offset',
+            icon: Icons.vertical_align_bottom,
+            min: 0,
+            max: 0.5,
+            divisions: 50,
+            labelOf: (value) => '${(value * 100).round()}%',
           ),
           SwitchPreferenceTile(
             preference: UserPreferences.pgsDirectPlay,
@@ -165,7 +130,10 @@ class _ColorPickerTileState extends State<_ColorPickerTile> {
   @override
   void initState() {
     super.initState();
-    _binding = PreferenceBinding(GetIt.instance<PreferenceStore>(), widget.preference);
+    _binding = PreferenceBinding(
+      GetIt.instance<PreferenceStore>(),
+      widget.preference,
+    );
   }
 
   @override
