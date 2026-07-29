@@ -1,9 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:playback_core/playback_core.dart';
+import 'package:server_core/server_core.dart';
 
 void main() {
   const legacyProfile = <String, dynamic>{
     'Name': 'Moonfin for Fire TV (32-bit)',
+    'MoonfinLegacyFireTv': true,
     'MaxStreamingBitrate': 4000000,
   };
 
@@ -42,5 +44,22 @@ void main() {
       }),
       url,
     );
+  });
+
+  test('serializes the Fire TV bitrate ceiling at the API boundary', () {
+    final request = PlaybackInfoRequest(
+      itemId: 'item',
+      maxStreamingBitrate: 40000000,
+      deviceProfile: {
+        ...legacyProfile,
+        'MaxStaticBitrate': 40000000,
+        'MaxStreamingBitrate': 40000000,
+      },
+    ).toJson();
+    final serializedProfile = request['DeviceProfile'] as Map<String, dynamic>;
+
+    expect(request['MaxStreamingBitrate'], 4000000);
+    expect(serializedProfile['MaxStaticBitrate'], 4000000);
+    expect(serializedProfile['MaxStreamingBitrate'], 4000000);
   });
 }

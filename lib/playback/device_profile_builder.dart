@@ -28,6 +28,7 @@ class DeviceProfileBuilder {
         : bitrate;
     return {
       'Name': _profileName(),
+      if (isLegacyFireTv) 'MoonfinLegacyFireTv': true,
       if (bitrate != null) 'MaxStaticBitrate': bitrate,
       if (streamingBitrate != null) 'MaxStreamingBitrate': streamingBitrate,
       'MusicStreamingTranscodingBitrate': 384000,

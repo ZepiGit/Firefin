@@ -31,22 +31,40 @@ class PlaybackInfoRequest {
     this.autoOpenLiveStream = true,
   });
 
-  Map<String, dynamic> toJson() => {
-        if (mediaSourceId != null) 'MediaSourceId': mediaSourceId,
-        if (startTimeTicks != null) 'StartTimeTicks': startTimeTicks,
-        if (audioStreamIndex != null) 'AudioStreamIndex': audioStreamIndex,
-        if (subtitleStreamIndex != null)
-          'SubtitleStreamIndex': subtitleStreamIndex,
-        if (maxStreamingBitrate != null)
-          'MaxStreamingBitrate': maxStreamingBitrate,
-        if (deviceProfile != null) 'DeviceProfile': deviceProfile,
-        'EnableDirectPlay': enableDirectPlay,
-        'EnableDirectStream': enableDirectStream,
-        'EnableTranscoding': enableTranscoding,
-        'AllowVideoStreamCopy': allowVideoStreamCopy,
-        'AllowAudioStreamCopy': allowAudioStreamCopy,
-        'AutoOpenLiveStream': autoOpenLiveStream,
-      };
+  Map<String, dynamic> toJson() {
+    final isLegacyFireTv = deviceProfile?['MoonfinLegacyFireTv'] == true;
+    final requestedBitrate = maxStreamingBitrate;
+    final effectiveMaxBitrate = isLegacyFireTv
+        ? (requestedBitrate == null || requestedBitrate > 4000000
+              ? 4000000
+              : requestedBitrate)
+        : requestedBitrate;
+    final effectiveDeviceProfile = deviceProfile == null
+        ? null
+        : Map<String, dynamic>.from(deviceProfile!);
+    if (isLegacyFireTv) {
+      effectiveDeviceProfile!['MaxStaticBitrate'] = 4000000;
+      effectiveDeviceProfile['MaxStreamingBitrate'] = effectiveMaxBitrate;
+    }
+
+    return {
+      if (mediaSourceId != null) 'MediaSourceId': mediaSourceId,
+      if (startTimeTicks != null) 'StartTimeTicks': startTimeTicks,
+      if (audioStreamIndex != null) 'AudioStreamIndex': audioStreamIndex,
+      if (subtitleStreamIndex != null)
+        'SubtitleStreamIndex': subtitleStreamIndex,
+      if (effectiveMaxBitrate != null)
+        'MaxStreamingBitrate': effectiveMaxBitrate,
+      if (effectiveDeviceProfile != null)
+        'DeviceProfile': effectiveDeviceProfile,
+      'EnableDirectPlay': enableDirectPlay,
+      'EnableDirectStream': enableDirectStream,
+      'EnableTranscoding': enableTranscoding,
+      'AllowVideoStreamCopy': allowVideoStreamCopy,
+      'AllowAudioStreamCopy': allowAudioStreamCopy,
+      'AutoOpenLiveStream': autoOpenLiveStream,
+    };
+  }
 }
 
 class PlaybackInfoResult {
@@ -62,9 +80,12 @@ class PlaybackInfoResult {
 
   factory PlaybackInfoResult.fromJson(Map<String, dynamic> json) =>
       PlaybackInfoResult(
-        mediaSources: (json['MediaSources'] as List<dynamic>?)
-                ?.map((e) =>
-                    PlaybackMediaSource.fromJson(e as Map<String, dynamic>))
+        mediaSources:
+            (json['MediaSources'] as List<dynamic>?)
+                ?.map(
+                  (e) =>
+                      PlaybackMediaSource.fromJson(e as Map<String, dynamic>),
+                )
                 .toList() ??
             const [],
         playSessionId: json['PlaySessionId'] as String?,
@@ -81,11 +102,11 @@ enum PlaybackErrorCode {
   unknown;
 
   static PlaybackErrorCode fromServerString(String? value) => switch (value) {
-        'NoCompatibleStream' => noCompatibleStream,
-        'NotAllowed' => notAllowed,
-        'RateLimitExceeded' => rateLimitExceeded,
-        _ => unknown,
-      };
+    'NoCompatibleStream' => noCompatibleStream,
+    'NotAllowed' => notAllowed,
+    'RateLimitExceeded' => rateLimitExceeded,
+    _ => unknown,
+  };
 }
 
 class PlaybackMediaSource {
@@ -131,8 +152,8 @@ class PlaybackMediaSource {
         transcodingUrl: json['TranscodingUrl'] as String?,
         directStreamUrl: json['DirectStreamUrl'] as String?,
         liveStreamId: json['LiveStreamId'] as String?,
-        mediaStreams: (json['MediaStreams'] as List?)
-                ?.cast<Map<String, dynamic>>() ??
+        mediaStreams:
+            (json['MediaStreams'] as List?)?.cast<Map<String, dynamic>>() ??
             const [],
         transcodingReasons: _parseTranscodingReasons(json),
       );
@@ -166,15 +187,14 @@ class PlaybackStartReport {
   });
 
   Map<String, dynamic> toJson() => {
-        'ItemId': itemId,
-        if (mediaSourceId != null) 'MediaSourceId': mediaSourceId,
-        if (playSessionId != null) 'PlaySessionId': playSessionId,
-        if (audioStreamIndex != null) 'AudioStreamIndex': audioStreamIndex,
-        if (subtitleStreamIndex != null)
-          'SubtitleStreamIndex': subtitleStreamIndex,
-        if (playMethod != null) 'PlayMethod': playMethod!.toServerString(),
-        if (positionTicks != null) 'PositionTicks': positionTicks,
-      };
+    'ItemId': itemId,
+    if (mediaSourceId != null) 'MediaSourceId': mediaSourceId,
+    if (playSessionId != null) 'PlaySessionId': playSessionId,
+    if (audioStreamIndex != null) 'AudioStreamIndex': audioStreamIndex,
+    if (subtitleStreamIndex != null) 'SubtitleStreamIndex': subtitleStreamIndex,
+    if (playMethod != null) 'PlayMethod': playMethod!.toServerString(),
+    if (positionTicks != null) 'PositionTicks': positionTicks,
+  };
 }
 
 class PlaybackProgressReport {
@@ -199,15 +219,15 @@ class PlaybackProgressReport {
   });
 
   Map<String, dynamic> toJson() => {
-        'ItemId': itemId,
-        if (mediaSourceId != null) 'MediaSourceId': mediaSourceId,
-        if (playSessionId != null) 'PlaySessionId': playSessionId,
-        if (audioStreamIndex != null) 'AudioStreamIndex': audioStreamIndex,
-        if (subtitleStreamIndex != null) 'SubtitleStreamIndex': subtitleStreamIndex,
-        if (positionTicks != null) 'PositionTicks': positionTicks,
-        'IsPaused': isPaused,
-        'IsMuted': isMuted,
-      };
+    'ItemId': itemId,
+    if (mediaSourceId != null) 'MediaSourceId': mediaSourceId,
+    if (playSessionId != null) 'PlaySessionId': playSessionId,
+    if (audioStreamIndex != null) 'AudioStreamIndex': audioStreamIndex,
+    if (subtitleStreamIndex != null) 'SubtitleStreamIndex': subtitleStreamIndex,
+    if (positionTicks != null) 'PositionTicks': positionTicks,
+    'IsPaused': isPaused,
+    'IsMuted': isMuted,
+  };
 }
 
 class PlaybackStopReport {
@@ -224,9 +244,9 @@ class PlaybackStopReport {
   });
 
   Map<String, dynamic> toJson() => {
-        'ItemId': itemId,
-        if (mediaSourceId != null) 'MediaSourceId': mediaSourceId,
-        if (playSessionId != null) 'PlaySessionId': playSessionId,
-        if (positionTicks != null) 'PositionTicks': positionTicks,
-      };
+    'ItemId': itemId,
+    if (mediaSourceId != null) 'MediaSourceId': mediaSourceId,
+    if (playSessionId != null) 'PlaySessionId': playSessionId,
+    if (positionTicks != null) 'PositionTicks': positionTicks,
+  };
 }
