@@ -89,6 +89,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   StreamSubscription<Map<String, dynamic>>? _airPlayEventsSub;
 
   final _overlayFocus = FocusNode();
+  final _playPauseFocus = FocusNode(debugLabel: 'PlayerPlayPause');
   bool _isDesktopFullscreen = false;
 
   PlayerState get _state => _manager.state;
@@ -175,6 +176,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     if (PlatformDetection.isDesktop) {
       unawaited(_syncDesktopFullscreenState());
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _focusPrimaryControl();
+    });
   }
 
   @override
@@ -192,6 +196,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     _airPlayEventsSub?.cancel();
     _screenLockSub?.cancel();
     _overlayFocus.dispose();
+    _playPauseFocus.dispose();
     _pipService.enableAutoPiP(false);
     if (!_isStopping) _manager.stop();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -543,21 +548,38 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
     _hideTimer = Timer(const Duration(seconds: 5), () {
       if (mounted && _state.isPlaying) {
         setState(() => _controlsVisible = false);
+        _overlayFocus.requestFocus();
       }
     });
   }
 
-  void _showControls() {
+  void _focusPrimaryControl() {
+    if (!mounted ||
+        !_controlsVisible ||
+        !PlatformDetection.useLeanbackUi ||
+        _playPauseFocus.context == null) {
+      return;
+    }
+    _playPauseFocus.requestFocus();
+  }
+
+  void _showControls({bool focusPrimary = false}) {
     setState(() => _controlsVisible = true);
     _scheduleHide();
+    if (focusPrimary) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _focusPrimaryControl();
+      });
+    }
   }
 
   void _toggleControls() {
     if (_controlsVisible) {
       _hideTimer?.cancel();
       setState(() => _controlsVisible = false);
+      _overlayFocus.requestFocus();
     } else {
-      _showControls();
+      _showControls(focusPrimary: true);
     }
   }
 
@@ -630,6 +652,26 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
       return KeyEventResult.ignored;
     }
 
+    if (_controlsVisible) {
+      switch (event.logicalKey) {
+        case LogicalKeyboardKey.space:
+          _state.isPlaying ? _manager.pause() : _manager.resume();
+          _showControls();
+          return KeyEventResult.handled;
+        case LogicalKeyboardKey.escape:
+          if (PlatformDetection.isDesktop && _isDesktopFullscreen) {
+            unawaited(_setDesktopFullscreen(false));
+            return KeyEventResult.handled;
+          }
+          _exitPlayback();
+          return KeyEventResult.handled;
+        default:
+          // Let the focused transport/track button and Flutter's directional
+          // traversal handle D-pad arrows, Enter, Select and gameButtonA.
+          return KeyEventResult.ignored;
+      }
+    }
+
     switch (event.logicalKey) {
       case LogicalKeyboardKey.space:
         _state.isPlaying ? _manager.pause() : _manager.resume();
@@ -662,11 +704,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
         return KeyEventResult.handled;
       case LogicalKeyboardKey.select:
       case LogicalKeyboardKey.enter:
-        if (_controlsVisible) {
-          _state.isPlaying ? _manager.pause() : _manager.resume();
-        } else {
-          _showControls();
-        }
+      case LogicalKeyboardKey.gameButtonA:
+        _showControls(focusPrimary: true);
         return KeyEventResult.handled;
       default:
         return KeyEventResult.ignored;
@@ -1426,6 +1465,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
             ),
             _controlButton(
               isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+              focusNode: _playPauseFocus,
               onPressed: () =>
                   isPlaying ? _manager.pause() : _manager.resume(),
               size: 64,
@@ -1454,6 +1494,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
   Widget _controlButton(
     IconData icon, {
     required VoidCallback onPressed,
+    FocusNode? focusNode,
     double size = 24,
     double extent = 48,
   }) {
@@ -1461,11 +1502,25 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindi
       width: extent,
       height: extent,
       child: IconButton(
+        focusNode: focusNode,
         onPressed: () {
           onPressed();
           _showControls();
         },
-        icon: Icon(icon, color: Colors.white, size: size),
+        style: ButtonStyle(
+          foregroundColor: WidgetStateProperty.resolveWith(
+            (states) => states.contains(WidgetState.focused)
+                ? Colors.black
+                : Colors.white,
+          ),
+          backgroundColor: WidgetStateProperty.resolveWith(
+            (states) => states.contains(WidgetState.focused)
+                ? Colors.white
+                : Colors.transparent,
+          ),
+          shape: const WidgetStatePropertyAll(CircleBorder()),
+        ),
+        icon: Icon(icon, size: size),
         padding: EdgeInsets.zero,
         constraints: const BoxConstraints(),
       ),
