@@ -16,7 +16,7 @@ class DeviceProfileBuilder {
     final isLegacyFireTv =
         PlatformDetection.isAndroid && PlatformDetection.isTV;
     final effectiveMaxBitrateMbps = isLegacyFireTv
-        ? (maxBitrateMbps == null || maxBitrateMbps > 20 ? 20 : maxBitrateMbps)
+        ? (maxBitrateMbps == null || maxBitrateMbps > 4 ? 4 : maxBitrateMbps)
         : maxBitrateMbps;
     final bitrate = effectiveMaxBitrateMbps == null
         ? null
@@ -40,6 +40,7 @@ class DeviceProfileBuilder {
         ac3Enabled: ac3Enabled,
         useProgressiveTranscode: useProgressiveTranscode,
         subtitlesInManifest: subtitlesInManifest,
+        isLegacyFireTv: isLegacyFireTv,
       ),
       'ContainerProfiles': <Map<String, dynamic>>[],
       'CodecProfiles': _codecProfiles(
@@ -152,10 +153,45 @@ class DeviceProfileBuilder {
     required bool ac3Enabled,
     bool useProgressiveTranscode = false,
     bool subtitlesInManifest = true,
+    bool isLegacyFireTv = false,
   }) {
     final hlsAudio = _hlsAudioCodecs(ac3Enabled: ac3Enabled);
     final protocol = useProgressiveTranscode ? 'http' : 'hls';
     final enableSubs = useProgressiveTranscode ? false : subtitlesInManifest;
+    final legacyVideoConditions = isLegacyFireTv
+        ? <Map<String, dynamic>>[
+            {
+              'Condition': 'LessThanEqual',
+              'Property': 'Width',
+              'Value': '1280',
+              'IsRequired': false,
+            },
+            {
+              'Condition': 'LessThanEqual',
+              'Property': 'Height',
+              'Value': '720',
+              'IsRequired': false,
+            },
+            {
+              'Condition': 'LessThanEqual',
+              'Property': 'VideoBitrate',
+              'Value': '4000000',
+              'IsRequired': false,
+            },
+            {
+              'Condition': 'LessThanEqual',
+              'Property': 'VideoLevel',
+              'Value': '31',
+              'IsRequired': false,
+            },
+            {
+              'Condition': 'LessThanEqual',
+              'Property': 'VideoBitDepth',
+              'Value': '8',
+              'IsRequired': false,
+            },
+          ]
+        : const <Map<String, dynamic>>[];
     return [
       {
         'Container': useProgressiveTranscode ? 'mp4' : 'ts',
@@ -167,6 +203,7 @@ class DeviceProfileBuilder {
         'CopyTimestamps': false,
         'EnableSubtitlesInManifest': enableSubs,
         'BreakOnNonKeyFrames': false,
+        'Conditions': legacyVideoConditions,
       },
       {
         'Container': 'mp4',
@@ -178,6 +215,7 @@ class DeviceProfileBuilder {
         'CopyTimestamps': false,
         'EnableSubtitlesInManifest': enableSubs,
         'BreakOnNonKeyFrames': false,
+        'Conditions': legacyVideoConditions,
       },
       {
         'Container': 'mp3',
