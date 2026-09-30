@@ -194,9 +194,16 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
 
   String? _imageUrl(AggregatedItem item) {
     final api = _vm.imageApi;
-    final maxImageWidth = TvImageSizePolicy.isLeanTv
+    // Poster class 320; thumb/banner/landscape class 640 (parity with Search/Favorites).
+    final int posterW = TvImageSizePolicy.isLeanTv
         ? TvImageSizePolicy.posterServerMaxWidth
         : 480;
+    final int landscapeW = TvImageSizePolicy.isLeanTv
+        ? TvImageSizePolicy.landscapeServerMaxWidth
+        : 480;
+    final bool landscapeRole =
+        _vm.imageType == ImageType.thumb || _vm.imageType == ImageType.banner;
+    final maxImageWidth = landscapeRole ? landscapeW : posterW;
 
     final itemThumbTag = _tagForType(item, 'Thumb');
     final itemBannerTag = _tagForType(item, 'Banner');
@@ -339,24 +346,25 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
     }
 
     if (prefersThumbArtwork && !_vm.isGenreBrowse) {
+      // Landscape artwork even when library imageType is poster.
       if (itemThumbTag != null) {
         return api.getThumbImageUrl(
           item.id,
-          maxWidth: maxImageWidth,
+          maxWidth: landscapeW,
           tag: itemThumbTag,
         );
       }
       if (item.backdropImageTags.isNotEmpty) {
         return api.getBackdropImageUrl(
           item.id,
-          maxWidth: maxImageWidth,
+          maxWidth: landscapeW,
           tag: item.backdropImageTags.first,
         );
       }
       if (parentThumbItemId != null && parentThumbTag != null) {
         return api.getThumbImageUrl(
           parentThumbItemId,
-          maxWidth: maxImageWidth,
+          maxWidth: landscapeW,
           tag: parentThumbTag,
         );
       }

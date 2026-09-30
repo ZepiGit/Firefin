@@ -1004,59 +1004,55 @@ class _ContentRowsState extends State<_ContentRows>
             right: 0,
             child: ValueListenableBuilder<double>(
               valueListenable: _scrollOffset,
-              builder: (context, scrollOffset, _) {
+              // InfoArea depends only on selectedItem — keep it out of scroll ticks.
+              builder: (context, scrollOffset, infoChild) {
                 final opacities = _pinOpacitiesForOffset(scrollOffset, pinStart);
                 if (opacities.pinnedPanelOpacity <= 0) {
                   return const SizedBox.shrink();
                 }
+                final topPad =
+                    MediaQuery.paddingOf(context).top + navbarHeight + 8;
+                final panel = Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withValues(alpha: 0.85),
+                        Colors.black.withValues(alpha: 0.7),
+                        Colors.black.withValues(alpha: 0.0),
+                      ],
+                      stops: const [0.0, 0.85, 1.0],
+                    ),
+                  ),
+                  padding: EdgeInsets.fromLTRB(
+                    navbarLeftInset,
+                    topPad,
+                    16,
+                    8,
+                  ),
+                  child: Opacity(
+                    opacity: opacities.pinnedInfoOpacity,
+                    child: infoChild,
+                  ),
+                );
+                // AFTT: never run BackdropFilter (σ≈30) on Home-Info.
+                // Opaque gradient scrim is enough; lean prefs also force
+                // browsing blur amount to 0 for the full-screen backdrop.
+                final filtered = UserPreferences.appliesLeanTvRuntime
+                    ? panel
+                    : BackdropFilter(
+                        filter: ui.ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                        child: panel,
+                      );
                 return IgnorePointer(
                   child: Opacity(
                     opacity: opacities.pinnedPanelOpacity,
-                    child: ClipRect(
-                      child: Builder(
-                        builder: (context) {
-                          // AFTT: never run BackdropFilter (σ≈30) on Home-Info.
-                          // Opaque gradient scrim is enough; lean prefs also force
-                          // browsing blur amount to 0 for the full-screen backdrop.
-                          final panel = Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.black.withValues(alpha: 0.85),
-                                  Colors.black.withValues(alpha: 0.7),
-                                  Colors.black.withValues(alpha: 0.0),
-                                ],
-                                stops: const [0.0, 0.85, 1.0],
-                              ),
-                            ),
-                            padding: EdgeInsets.fromLTRB(
-                              navbarLeftInset,
-                              MediaQuery.of(context).padding.top +
-                                  navbarHeight +
-                                  8,
-                              16,
-                              8,
-                            ),
-                            child: Opacity(
-                              opacity: opacities.pinnedInfoOpacity,
-                              child: InfoArea(item: widget.selectedItem),
-                            ),
-                          );
-                          if (UserPreferences.appliesLeanTvRuntime) {
-                            return panel;
-                          }
-                          return BackdropFilter(
-                            filter: ui.ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-                            child: panel,
-                          );
-                        },
-                      ),
-                    ),
+                    child: ClipRect(child: filtered),
                   ),
                 );
               },
+              child: InfoArea(item: widget.selectedItem),
             ),
           ),
       ],

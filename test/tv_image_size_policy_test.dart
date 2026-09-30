@@ -85,16 +85,14 @@ void main() {
       expect(TvImageSizePolicy.posterServerMaxHeight, 480);
     });
 
-    test('posterMaxWidth mins against 320 when lean', () {
-      // Force lean path by temporarily trusting constants math:
+    test('poster server class is fixed 320', () {
+      expect(TvImageSizePolicy.posterServerMaxWidth, 320);
+      // Lean path ignores requested and returns the fixed class (see policy).
+      // isLeanTv is platform-gated; assert the constant used by Home/Library.
       expect(
-        TvImageSizePolicy.posterServerMaxWidth,
-        lessThanOrEqualTo(320),
+        TvImageSizePolicy.posterMaxWidth(requested: 200),
+        anyOf(200, 320), // non-lean: requested; lean: fixed 320
       );
-      final capped = 500 < TvImageSizePolicy.posterServerMaxWidth
-          ? 500
-          : TvImageSizePolicy.posterServerMaxWidth;
-      expect(capped, 320);
     });
   });
 }

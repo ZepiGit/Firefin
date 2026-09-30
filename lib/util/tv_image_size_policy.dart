@@ -34,14 +34,13 @@ class TvImageSizePolicy {
   /// Fixed decode-width / decode-height buckets (device pixels). Round **up**.
   static const List<int> decodeBuckets = <int>[160, 240, 320, 480, 640, 960];
 
+  /// Lean TV: always the fixed server class (320), never min(requested, 320).
+  /// Variable caps fragment cache keys between Home and Library/Search.
   static int posterMaxWidth({int? requested}) {
-    if (!isLeanTv) {
-      return requested ?? posterServerMaxWidth;
-    }
-    if (requested == null) {
+    if (isLeanTv) {
       return posterServerMaxWidth;
     }
-    return math.min(requested, posterServerMaxWidth);
+    return requested ?? posterServerMaxWidth;
   }
 
   static int posterMaxHeight({int? requested}) {
