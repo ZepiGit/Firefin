@@ -7,6 +7,7 @@ import 'package:server_core/server_core.dart';
 
 import '../../preference/user_preferences.dart';
 import '../../util/platform_detection.dart';
+import '../../util/tv_image_size_policy.dart';
 import '../models/media_bar_slide_item.dart';
 import '../models/media_bar_state.dart';
 
@@ -238,7 +239,9 @@ class MediaBarRepository {
     final backdropUrl = (backdropTags != null && backdropTags.isNotEmpty)
         ? _client.imageApi.getBackdropImageUrl(
             itemId,
-            maxWidth: isLegacyTv ? 960 : 1920,
+            maxWidth: isLegacyTv
+            ? TvImageSizePolicy.backdropServerMaxWidth
+            : 1920,
             tag: backdropTags[0] as String,
           )
         : null;

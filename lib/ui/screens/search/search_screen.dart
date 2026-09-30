@@ -11,6 +11,7 @@ import '../../navigation/destinations.dart';
 import '../../widgets/library_row.dart';
 import '../../widgets/media_card.dart';
 import '../../widgets/navigation_layout.dart';
+import '../../../util/tv_image_size_policy.dart';
 
 class SearchScreen extends StatefulWidget {
   final String? initialQuery;
@@ -72,18 +73,36 @@ class _SearchScreenState extends State<SearchScreen> {
   String? _imageUrl(AggregatedItem item) {
     final api = _vm.imageApi;
     final type = item.type;
+    // Align Search with Home/Library TV classes (not unbounded full-res).
+    final int? posterW =
+        TvImageSizePolicy.isLeanTv ? TvImageSizePolicy.posterServerMaxWidth : null;
+    final int? landscapeW = TvImageSizePolicy.isLeanTv
+        ? TvImageSizePolicy.landscapeServerMaxWidth
+        : null;
     if (type == 'Episode' || type == 'Program' || type == 'Recording') {
       if (item.backdropImageTags.isNotEmpty) {
-        return api.getBackdropImageUrl(item.id, tag: item.backdropImageTags.first);
+        return api.getBackdropImageUrl(
+          item.id,
+          maxWidth: landscapeW,
+          tag: item.backdropImageTags.first,
+        );
       }
       final parentId = item.parentBackdropItemId;
       final parentTags = item.parentBackdropImageTags;
       if (parentId != null && parentTags.isNotEmpty) {
-        return api.getBackdropImageUrl(parentId, tag: parentTags.first);
+        return api.getBackdropImageUrl(
+          parentId,
+          maxWidth: landscapeW,
+          tag: parentTags.first,
+        );
       }
     }
     if (item.primaryImageTag != null) {
-      return api.getPrimaryImageUrl(item.id, tag: item.primaryImageTag);
+      return api.getPrimaryImageUrl(
+        item.id,
+        maxWidth: posterW,
+        tag: item.primaryImageTag,
+      );
     }
     return null;
   }

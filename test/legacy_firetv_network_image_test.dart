@@ -47,4 +47,36 @@ void main() {
       );
     });
   });
+
+  group('Welle B width-only / height-only keying', () {
+    test('width-only keys differ from dual-target keys', () {
+      const widthOnly = LegacyFireTvNetworkImage(
+        'https://example.test/a.jpg',
+        cacheWidth: 240,
+      );
+      const dual = LegacyFireTvNetworkImage(
+        'https://example.test/a.jpg',
+        cacheWidth: 240,
+        cacheHeight: 360,
+      );
+      expect(widthOnly, isNot(equals(dual)));
+    });
+
+    test('height-only landscape keys are stable', () {
+      const a = LegacyFireTvNetworkImage(
+        'https://example.test/a.jpg',
+        cacheHeight: 270,
+      );
+      const b = LegacyFireTvNetworkImage(
+        'https://example.test/a.jpg',
+        cacheHeight: 270,
+      );
+      const other = LegacyFireTvNetworkImage(
+        'https://example.test/a.jpg',
+        cacheHeight: 320,
+      );
+      expect(a, equals(b));
+      expect(a, isNot(equals(other)));
+    });
+  });
 }

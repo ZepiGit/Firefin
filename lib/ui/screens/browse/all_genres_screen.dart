@@ -10,6 +10,7 @@ import '../../../data/services/background_service.dart';
 import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
 import '../../../util/platform_detection.dart';
+import '../../../util/tv_image_size_policy.dart';
 import '../../navigation/destinations.dart';
 import '../../widgets/genre_grid_card.dart';
 import '../../widgets/poster_size_settings_dialog.dart';
@@ -156,31 +157,54 @@ class _AllGenresScreenState extends State<AllGenresScreen> {
     final bannerTag = _tagForType(item, 'Banner');
     final resolvedBackdropUrl = backdropUrl ?? _backdropUrlFor(item);
 
+    final int? posterW =
+        TvImageSizePolicy.isLeanTv ? TvImageSizePolicy.posterServerMaxWidth : null;
+    final int? landscapeW = TvImageSizePolicy.isLeanTv
+        ? TvImageSizePolicy.landscapeServerMaxWidth
+        : null;
     return switch (imageType) {
       ImageType.poster =>
         primaryTag != null
-            ? _client.imageApi.getPrimaryImageUrl(itemId, tag: primaryTag)
+            ? _client.imageApi.getPrimaryImageUrl(
+                itemId,
+                maxWidth: posterW,
+                tag: primaryTag,
+              )
             : resolvedBackdropUrl ??
                   (thumbTag != null
-                      ? _client.imageApi.getThumbImageUrl(itemId, tag: thumbTag)
+                      ? _client.imageApi.getThumbImageUrl(
+                          itemId,
+                          maxWidth: landscapeW,
+                          tag: thumbTag,
+                        )
                       : null),
       ImageType.thumb =>
         thumbTag != null
-            ? _client.imageApi.getThumbImageUrl(itemId, tag: thumbTag)
+            ? _client.imageApi.getThumbImageUrl(
+                itemId,
+                maxWidth: landscapeW,
+                tag: thumbTag,
+              )
             : resolvedBackdropUrl ??
                   (primaryTag != null
                       ? _client.imageApi.getPrimaryImageUrl(
                           itemId,
+                          maxWidth: posterW,
                           tag: primaryTag,
                         )
                       : null),
       ImageType.banner =>
         bannerTag != null
-            ? _client.imageApi.getBannerImageUrl(itemId, tag: bannerTag)
+            ? _client.imageApi.getBannerImageUrl(
+                itemId,
+                maxWidth: landscapeW,
+                tag: bannerTag,
+              )
             : resolvedBackdropUrl ??
                   (primaryTag != null
                       ? _client.imageApi.getPrimaryImageUrl(
                           itemId,
+                          maxWidth: posterW,
                           tag: primaryTag,
                         )
                       : null),
