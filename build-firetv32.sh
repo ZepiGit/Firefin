@@ -26,7 +26,7 @@ cd "$REPO_ROOT"
   --release \
   --target-platform android-arm \
   --build-name 1.1.0 \
-  --build-number 3000012
+  --build-number 3000028
 
 if [ ! -f "$APK_SOURCE" ]; then
   echo "APK not found at $APK_SOURCE" >&2
