@@ -3,13 +3,48 @@ import 'package:jellyfin_preference/jellyfin_preference.dart';
 
 import 'home_section_config.dart';
 import 'preference_constants.dart';
+import '../util/platform_detection.dart';
 
 class UserPreferences extends ChangeNotifier {
   final PreferenceStore _store;
 
   UserPreferences(this._store);
 
-  T get<T>(Preference<T> pref) => _store.get(pref);
+  /// Fire OS 5 / AFTT Leanback: thin runtime lean profile.
+  /// Overrides are computed here and never written back to the store.
+  /// Does not rewrite or re-run `firetv32_performance_defaults_r4`.
+  static bool get appliesLeanTvRuntime =>
+      PlatformDetection.isAndroid && PlatformDetection.isTV;
+
+  T get<T>(Preference<T> pref) {
+    final value = _store.get(pref);
+    if (!appliesLeanTvRuntime) {
+      return value;
+    }
+    return leanTvEffective(pref, value);
+  }
+
+  /// Pure lean overrides for tests / callers. [backdropEnabled] is untouched
+  /// (user Off stays Off; user On stays On — cheaper path is blur=0).
+  @visibleForTesting
+  static T leanTvEffective<T>(Preference<T> pref, T value) {
+    final key = pref.key;
+    if (key == cardFocusExpansion.key) {
+      return false as T;
+    }
+    if (key == mediaBarEnabled.key ||
+        key == mediaBarAutoAdvance.key ||
+        key == mediaBarTrailerPreview.key ||
+        key == episodePreviewEnabled.key ||
+        key == previewAudioEnabled.key) {
+      return false as T;
+    }
+    if (key == detailsBackgroundBlurAmount.key ||
+        key == browsingBackgroundBlurAmount.key) {
+      return 0 as T;
+    }
+    return value;
+  }
 
   Future<void> set<T>(Preference<T> pref, T value) async {
     await _store.set(pref, value);

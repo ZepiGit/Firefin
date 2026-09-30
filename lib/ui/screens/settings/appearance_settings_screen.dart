@@ -66,8 +66,11 @@ class _AppearanceSettingsScreenState extends State<AppearanceSettingsScreen> {
             SwitchPreferenceTile(
               preference: UserPreferences.cardFocusExpansion,
               title: 'Focus Expansion Animation',
-              subtitle: 'Scale focused or hovered cards and tiles',
+              subtitle: UserPreferences.appliesLeanTvRuntime
+                  ? 'Locked off on Fire TV / Leanback (device profile)'
+                  : 'Scale focused or hovered cards and tiles',
               icon: Icons.zoom_in,
+              enabled: !UserPreferences.appliesLeanTvRuntime,
             ),
           SwitchPreferenceTile(
             preference: UserPreferences.backdropEnabled,
@@ -139,26 +142,37 @@ class _AppearanceSettingsScreenState extends State<AppearanceSettingsScreen> {
               onChanged: _pushSync,
             ),
           const Divider(),
-          SliderPreferenceTile(
-            preference: UserPreferences.detailsBackgroundBlurAmount,
-            title: 'Details Background Blur',
-            icon: Icons.blur_on,
-            min: 0,
-            max: 25,
-            divisions: 25,
-            labelOf: (v) => '${v}px',
-            onChangeEnd: _pushSync,
-          ),
-          SliderPreferenceTile(
-            preference: UserPreferences.browsingBackgroundBlurAmount,
-            title: 'Browsing Background Blur',
-            icon: Icons.blur_circular,
-            min: 0,
-            max: 25,
-            divisions: 25,
-            labelOf: (v) => '${v}px',
-            onChangeEnd: _pushSync,
-          ),
+          if (UserPreferences.appliesLeanTvRuntime)
+            const ListTile(
+              leading: Icon(Icons.blur_off),
+              title: Text('Background Blur'),
+              subtitle: Text(
+                'Locked at 0 on Fire TV / Leanback (no live blur / BackdropFilter)',
+              ),
+              enabled: false,
+            )
+          else ...[
+            SliderPreferenceTile(
+              preference: UserPreferences.detailsBackgroundBlurAmount,
+              title: 'Details Background Blur',
+              icon: Icons.blur_on,
+              min: 0,
+              max: 25,
+              divisions: 25,
+              labelOf: (v) => '${v}px',
+              onChangeEnd: _pushSync,
+            ),
+            SliderPreferenceTile(
+              preference: UserPreferences.browsingBackgroundBlurAmount,
+              title: 'Browsing Background Blur',
+              icon: Icons.blur_circular,
+              min: 0,
+              max: 25,
+              divisions: 25,
+              labelOf: (v) => '${v}px',
+              onChangeEnd: _pushSync,
+            ),
+          ],
         ],
       ),
     );

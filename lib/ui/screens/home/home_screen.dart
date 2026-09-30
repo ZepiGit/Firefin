@@ -987,32 +987,45 @@ class _ContentRowsState extends State<_ContentRows>
               child: Opacity(
                 opacity: pinnedPanelOpacity,
                 child: ClipRect(
-                  child: BackdropFilter(
-                    filter: ui.ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.black.withValues(alpha: 0.85),
-                            Colors.black.withValues(alpha: 0.7),
-                            Colors.black.withValues(alpha: 0.0),
-                          ],
-                          stops: const [0.0, 0.85, 1.0],
+                  child: Builder(
+                    builder: (context) {
+                      // AFTT: never run BackdropFilter (σ≈30) on Home-Info.
+                      // Opaque gradient scrim is enough; lean prefs also force
+                      // browsing blur amount to 0 for the full-screen backdrop.
+                      final panel = Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withValues(alpha: 0.85),
+                              Colors.black.withValues(alpha: 0.7),
+                              Colors.black.withValues(alpha: 0.0),
+                            ],
+                            stops: const [0.0, 0.85, 1.0],
+                          ),
                         ),
-                      ),
-                      padding: EdgeInsets.fromLTRB(
-                        navbarLeftInset,
-                        MediaQuery.of(context).padding.top + navbarHeight + 8,
-                        16,
-                        8,
-                      ),
-                      child: Opacity(
-                        opacity: pinnedInfoOpacity,
-                        child: InfoArea(item: widget.selectedItem),
-                      ),
-                    ),
+                        padding: EdgeInsets.fromLTRB(
+                          navbarLeftInset,
+                          MediaQuery.of(context).padding.top +
+                              navbarHeight +
+                              8,
+                          16,
+                          8,
+                        ),
+                        child: Opacity(
+                          opacity: pinnedInfoOpacity,
+                          child: InfoArea(item: widget.selectedItem),
+                        ),
+                      );
+                      if (UserPreferences.appliesLeanTvRuntime) {
+                        return panel;
+                      }
+                      return BackdropFilter(
+                        filter: ui.ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                        child: panel,
+                      );
+                    },
                   ),
                 ),
               ),
