@@ -238,7 +238,7 @@ class MediaBarRepository {
     final backdropUrl = (backdropTags != null && backdropTags.isNotEmpty)
         ? _client.imageApi.getBackdropImageUrl(
             itemId,
-            maxWidth: isLegacyTv ? 1280 : 1920,
+            maxWidth: isLegacyTv ? 960 : 1920,
             tag: backdropTags[0] as String,
           )
         : null;

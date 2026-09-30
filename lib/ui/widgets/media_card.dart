@@ -262,11 +262,29 @@ class _CardImage extends StatelessWidget {
                 Container(
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   child: imageUrl != null
-                      ? Image(
-                          image: LegacyFireTvNetworkImage(imageUrl!),
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) =>
-                              _PlaceholderIcon(itemType: itemType),
+                      ? LayoutBuilder(
+                          builder: (context, constraints) {
+                            // cacheWidth/Height are device pixels (logical × DPR).
+                            final dpr = MediaQuery.devicePixelRatioOf(context);
+                            final int? cacheWidth = constraints.maxWidth.isFinite
+                                ? (constraints.maxWidth * dpr).round().clamp(1, 4096)
+                                : null;
+                            final int? cacheHeight = constraints.maxHeight.isFinite
+                                ? (constraints.maxHeight * dpr)
+                                    .round()
+                                    .clamp(1, 4096)
+                                : null;
+                            return Image(
+                              image: LegacyFireTvNetworkImage(
+                                imageUrl!,
+                                cacheWidth: cacheWidth,
+                                cacheHeight: cacheHeight,
+                              ),
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) =>
+                                  _PlaceholderIcon(itemType: itemType),
+                            );
+                          },
                         )
                       : _PlaceholderIcon(itemType: itemType),
                 ),

@@ -1,56 +1,40 @@
-Moonfin Fire TV 32-bit v1.1.0-r1 - Build Verification
+Moonfin Fire TV 32-bit v1.1.0-r21 - Build Verification
 ======================================================
 
-Build date:             2026-07-29
+Build date:             2026-09-30
 Upstream tag:           1.1.0
 Upstream commit:        2563c9d8ef1dc191b1e1fbf8d5027c88a27b45a1
 Application ID:         org.moonfin.firetv32
-Version:                1.1.0-firetv32-r1 (3000008)
+Version:                1.1.0-firetv32-r21 (3000028)
 Minimum Android SDK:    21
 Target Android SDK:     35
 Compile Android SDK:    36
 Native ABI:             armeabi-v7a only
-APK size:               23,961,431 bytes
-APK SHA-256:            de676679c0623415d264c942b90fcab295b783ea33dd2fe4f150b07f62f1430d
+APK size:               (build pending — run build-firetv32.sh / flutter build apk)
+APK SHA-256:            (fill after release APK is produced)
 Certificate SHA-256:    3633514033016395dc07407a414bb3857a84eca682ef021c8f82c5e6abc622d0
 
-Static validation:
-- Clean Flutter release build: passed
-- FireTV32 URL regression tests: 4 passed
-- Targeted app/settings static analysis: passed after the recorded lint fix
-- aapt manifest/package inspection: passed
-- Fire TV Leanback launcher and application banner: present
-- Touchscreen requirement: disabled
-- apksigner v1 verification: passed
-- apksigner v2 verification: passed
-- zipalign 4-byte verification: passed
-- Native libraries: armeabi-v7a only
+r21 performance changes (static review):
+- LegacyFireTvNetworkImage cacheWidth/cacheHeight (device px) → instantiateImageCodec
+- TV ImageCache 40 / 32 MiB
+- firetv32_performance_defaults_r4 re-forces Media Bar / preview audio / focus expand OFF
+- Library TV maxImageWidth 320; backdrop paths prefer 960
+- Image Dio/HttpClient maxConnectionsPerHost = 2
 
-Physical device:
+Static validation:
+- Clean Flutter release build: pending (Flutter SDK may be absent on build host)
+- FireTV32 URL / image / decode-key regression tests: run when Flutter available
+- aapt manifest/package inspection: pending after APK
+- Fire TV Leanback launcher and application banner: present in sources
+- Touchscreen requirement: disabled
+- Native libraries: armeabi-v7a only (packaging unchanged)
+
+Physical device (target):
 - Fire TV model: AFTT / LY73PR
 - Fire OS: 5.2.9.5
 - Android: 5.1.1
 - Display: 1920 x 1080
-- ADB update installation: passed
-- Direct activity start: passed
-- Login/settings retained after update and reboot: passed
-- Jellyfin posters, library images and static backdrops: passed
-- Home and settings D-pad focus: passed
-- Media Bar disabled and locked: passed
-- Slider Left/Right adjustment and Up/Down traversal: passed
-- Seerr settings entry visible: passed
-- False server-unavailable banner regression: passed
-
-Native libraries:
-- libapp.so
-- libc++_shared.so
-- libflutter.so
-- libmediakitandroidhelper.so
-- libmpv.so
-- libpdfium.so
-- libpdfrx.so
-- librar_native.so
-- libsqlite3.so
+- Focus: D-pad scroll lag with poster grids after update — primary r21 goal
 
 The complete unfiltered repository analysis also traverses vendored package
 examples and generated tests with independent development dependencies. Those

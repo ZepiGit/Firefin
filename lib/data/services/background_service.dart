@@ -12,7 +12,7 @@ enum BlurContext { details, browsing, none }
 
 class BackgroundService {
   static int get backdropMaxWidth =>
-      PlatformDetection.isAndroid && PlatformDetection.isTV ? 1280 : 1920;
+      PlatformDetection.isAndroid && PlatformDetection.isTV ? 960 : 1920;
   static const slideshowDuration = Duration(seconds: 30);
   static const transitionDuration = Duration(milliseconds: 800);
 

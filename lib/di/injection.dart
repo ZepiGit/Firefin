@@ -151,22 +151,20 @@ Future<void> _applyFireTv32PerformanceDefaults(PreferenceStore store) async {
     return;
   }
 
-  const migrationKey = 'firetv32_performance_defaults_r3';
+  // r4 re-forces known lag sources even if a user/import profile re-enabled
+  // them after r3. Soft defaults below still only fill unset prefs.
+  const migrationKey = 'firetv32_performance_defaults_r4';
   if (store.getBool(migrationKey) == true) {
     return;
   }
 
-  // Preserve explicit user choices. These defaults only fill settings that
-  // have not been saved before.
+  // Preserve unrelated user prefs. Soft-fill only when never saved.
   if (store.getString(UserPreferences.maxBitrate.key) == null) {
     await store.setString(UserPreferences.maxBitrate.key, '15');
   }
-  // Keep posters, covers and static backdrops visible. Only moving previews
-  // and the expensive featured Media Bar are disabled below.
+  // Keep posters, covers and static backdrops. Animated Media Bar stays off.
+  // Backdrop remains enabled (static library/home art); prefer static-only.
   await store.setBool(UserPreferences.backdropEnabled.key, true);
-  if (store.getBool(UserPreferences.cardFocusExpansion.key) == null) {
-    await store.setBool(UserPreferences.cardFocusExpansion.key, false);
-  }
   if (store.getBool(UserPreferences.cinemaModeEnabled.key) == null) {
     await store.setBool(UserPreferences.cinemaModeEnabled.key, false);
   }
@@ -177,9 +175,9 @@ Future<void> _applyFireTv32PerformanceDefaults(PreferenceStore store) async {
     await store.setBool(UserPreferences.assDirectPlay.key, false);
   }
 
-  // The featured Media Bar is too expensive for the Fire TV Stick 2nd Gen:
-  // its large artwork, animation and preview player make D-pad navigation lag.
-  // Keep the setting visibly disabled and turn off every related preview.
+  // r4 hard re-force: Media Bar + trailer/episode/preview audio + focus
+  // expansion are known AFTT lag sources even after user/import re-enable.
+  await store.setBool(UserPreferences.cardFocusExpansion.key, false);
   await store.setBool(UserPreferences.mediaBarEnabled.key, false);
   await store.setBool(UserPreferences.mediaBarAutoAdvance.key, false);
   await store.setBool(UserPreferences.mediaBarTrailerPreview.key, false);

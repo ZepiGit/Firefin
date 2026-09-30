@@ -67,8 +67,8 @@ artwork needed for a usable television interface.
 
 | Field | Value |
 |---|---|
-| Release | `1.1.0-firetv32-r20` |
-| Version code | `3000027` |
+| Release | `1.1.0-firetv32-r21` |
+| Version code | `3000028` |
 | Package | `org.moonfin.firetv32` |
 | Minimum Android API | 21 (Android 5.0) |
 | Architecture | `armeabi-v7a` only |
@@ -87,7 +87,7 @@ connect from a computer with Android Platform Tools:
 
 ```text
 adb connect FIRE_TV_IP:5555
-adb install Moonfin_FireTV32_Unofficial_1.1.0-r20.apk
+adb install Moonfin_FireTV32_Unofficial_1.1.0-r21.apk
 ```
 
 If an older community build was signed with another certificate, Android cannot
@@ -95,7 +95,7 @@ update it in place. Removing the old package also removes its local app data:
 
 ```text
 adb uninstall org.moonfin.firetv32
-adb install Moonfin_FireTV32_Unofficial_1.1.0-r20.apk
+adb install Moonfin_FireTV32_Unofficial_1.1.0-r21.apk
 ```
 
 Start the correct package explicitly if more than one Moonfin variant is
@@ -108,7 +108,7 @@ adb shell am start -W -n org.moonfin.firetv32/org.moonfin.androidtv.MainActivity
 Verify the APK before installation:
 
 ```text
-certutil -hashfile Moonfin_FireTV32_Unofficial_1.1.0-r20.apk SHA256
+certutil -hashfile Moonfin_FireTV32_Unofficial_1.1.0-r21.apk SHA256
 ```
 
 Compare the result with the published `SHA256SUMS.txt` release asset.
@@ -120,7 +120,7 @@ Compare the result with the published `SHA256SUMS.txt` release asset.
 | [FireTV32 release guide](FIRETV32-README.md) | Technical release overview and fixes |
 | [Building](BUILDING.md) | Reproducible Android build and signing workflow |
 | [Compatibility](COMPATIBILITY.md) | Supported hardware and test status |
-| [Release notes](RELEASE_NOTES_1.1.0-r20.md) | Changes and known limitations in r20 |
+| [Release notes](RELEASE_NOTES_1.1.0-r21.md) | Changes and known limitations in r21 |
 | [Changelog](CHANGELOG.md) | Development history |
 | [Security](SECURITY.md) | Signing-key and vulnerability guidance |
 | [Third-party notices](THIRD_PARTY_NOTICES.md) | Upstream attribution and dependencies |
@@ -142,7 +142,7 @@ release-signing environment variables, and verification commands.
 
 ## Testing and diagnostics
 
-The r20 build was exercised on a Fire TV Stick Basic Edition / 2nd Generation
+The r21 build targets the same AFTT device profile as r20; r20 was exercised on a Fire TV Stick Basic Edition / 2nd Generation
 class device (`AFTT`, Fire OS 5.2.9.5, Android 5.1.1). The test scope included
 app start, library browsing, item selection, Jellyfin playback, transport
 controls, seeking, subtitle/audio dialogs, settings focus, and crash/ANR review.

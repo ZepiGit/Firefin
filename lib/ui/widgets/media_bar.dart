@@ -819,7 +819,7 @@ class _BackdropLayer extends StatelessWidget {
         key: ValueKey(item.itemId),
         imageUrl: item.backdropUrl!,
         fit: BoxFit.cover,
-        memCacheWidth: 1280,
+        memCacheWidth: 960,
         fadeInDuration: Duration.zero,
         fadeOutDuration: Duration.zero,
         useOldImageOnUrlChange: true,

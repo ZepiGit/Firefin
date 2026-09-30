@@ -42,7 +42,7 @@ android {
         minSdk = 21
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
-        versionName = "${flutter.versionName}-firetv32-r20"
+        versionName = "${flutter.versionName}-firetv32-r21"
 
         ndk {
             abiFilters += listOf("armeabi-v7a")
