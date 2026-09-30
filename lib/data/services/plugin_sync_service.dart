@@ -698,48 +698,50 @@ class PluginSyncService extends ChangeNotifier {
   }
 
   List<String> _csvToList(Preference<String> pref) {
-    return _prefs.get(pref).split(',').where((s) => s.isNotEmpty).toList();
+    // Sync must read stored values (not lean-TV UI overrides).
+    return _prefs.getStored(pref).split(',').where((s) => s.isNotEmpty).toList();
   }
 
   Map<String, dynamic> _buildProfileFromLocal() {
+    // Push stored prefs only — leanTvEffective must never leave the device.
     return {
-      'navbarPosition': _prefs.get(UserPreferences.navbarPosition).name,
-      'showClock': _prefs.get(UserPreferences.showClock),
-      'use24HourClock': _prefs.get(UserPreferences.use24HourClock),
-      'showShuffleButton': _prefs.get(UserPreferences.showShuffleButton),
-      'showGenresButton': _prefs.get(UserPreferences.showGenresButton),
-      'showFavoritesButton': _prefs.get(UserPreferences.showFavoritesButton),
-      'showSyncPlayButton': _prefs.get(UserPreferences.showSyncPlayButton),
-      'showLibrariesInToolbar': _prefs.get(
+      'navbarPosition': _prefs.getStored(UserPreferences.navbarPosition).name,
+      'showClock': _prefs.getStored(UserPreferences.showClock),
+      'use24HourClock': _prefs.getStored(UserPreferences.use24HourClock),
+      'showShuffleButton': _prefs.getStored(UserPreferences.showShuffleButton),
+      'showGenresButton': _prefs.getStored(UserPreferences.showGenresButton),
+      'showFavoritesButton': _prefs.getStored(UserPreferences.showFavoritesButton),
+      'showSyncPlayButton': _prefs.getStored(UserPreferences.showSyncPlayButton),
+      'showLibrariesInToolbar': _prefs.getStored(
         UserPreferences.showLibrariesInToolbar,
       ),
-      'shuffleContentType': _prefs.get(UserPreferences.shuffleContentType),
-      'mergeContinueWatchingNextUp': _prefs.get(
+      'shuffleContentType': _prefs.getStored(UserPreferences.shuffleContentType),
+      'mergeContinueWatchingNextUp': _prefs.getStored(
         UserPreferences.mergeContinueWatchingNextUp,
       ),
-      'enableMultiServerLibraries': _prefs.get(
+      'enableMultiServerLibraries': _prefs.getStored(
         UserPreferences.enableMultiServerLibraries,
       ),
-      'enableFolderView': _prefs.get(UserPreferences.enableFolderView),
-      'confirmExit': _prefs.get(UserPreferences.confirmExit),
-      'seasonalSurprise': _prefs.get(UserPreferences.seasonalSurprise),
-      'mediaBarEnabled': _prefs.get(UserPreferences.mediaBarEnabled),
-      'mediaBarSourceType': _prefs.get(UserPreferences.mediaBarContentType),
+      'enableFolderView': _prefs.getStored(UserPreferences.enableFolderView),
+      'confirmExit': _prefs.getStored(UserPreferences.confirmExit),
+      'seasonalSurprise': _prefs.getStored(UserPreferences.seasonalSurprise),
+      'mediaBarEnabled': _prefs.getStored(UserPreferences.mediaBarEnabled),
+      'mediaBarSourceType': _prefs.getStored(UserPreferences.mediaBarContentType),
       'mediaBarItemCount':
-          int.tryParse(_prefs.get(UserPreferences.mediaBarItemCount)) ?? 10,
-      'mediaBarOpacity': _prefs.get(UserPreferences.navbarOpacity),
-      'mediaBarOverlayColor': _prefs.get(UserPreferences.navbarColor),
-      'navbarOpacity': _prefs.get(UserPreferences.navbarOpacity),
-      'navbarColor': _prefs.get(UserPreferences.navbarColor),
-      'mediaBarAutoAdvance': _prefs.get(UserPreferences.mediaBarAutoAdvance),
-      'mediaBarIntervalMs': _prefs.get(UserPreferences.mediaBarIntervalMs),
-      'mediaBarTrailerPreview': _prefs.get(
+          int.tryParse(_prefs.getStored(UserPreferences.mediaBarItemCount)) ?? 10,
+      'mediaBarOpacity': _prefs.getStored(UserPreferences.navbarOpacity),
+      'mediaBarOverlayColor': _prefs.getStored(UserPreferences.navbarColor),
+      'navbarOpacity': _prefs.getStored(UserPreferences.navbarOpacity),
+      'navbarColor': _prefs.getStored(UserPreferences.navbarColor),
+      'mediaBarAutoAdvance': _prefs.getStored(UserPreferences.mediaBarAutoAdvance),
+      'mediaBarIntervalMs': _prefs.getStored(UserPreferences.mediaBarIntervalMs),
+      'mediaBarTrailerPreview': _prefs.getStored(
         UserPreferences.mediaBarTrailerPreview,
       ),
-      'episodePreviewEnabled': _prefs.get(
+      'episodePreviewEnabled': _prefs.getStored(
         UserPreferences.episodePreviewEnabled,
       ),
-      'previewAudioEnabled': _prefs.get(UserPreferences.previewAudioEnabled),
+      'previewAudioEnabled': _prefs.getStored(UserPreferences.previewAudioEnabled),
       'mediaBarLibraryIds': _csvToList(UserPreferences.mediaBarLibraryIds),
       'mediaBarCollectionIds': _csvToList(
         UserPreferences.mediaBarCollectionIds,
@@ -747,31 +749,31 @@ class PluginSyncService extends ChangeNotifier {
       'mediaBarExcludedGenres': _csvToList(
         UserPreferences.mediaBarExcludedGenres,
       ),
-      'themeMusicEnabled': _prefs.get(UserPreferences.themeMusicEnabled),
-      'themeMusicVolume': _prefs.get(UserPreferences.themeMusicVolume),
-      'themeMusicOnHomeRows': _prefs.get(UserPreferences.themeMusicOnHomeRows),
-      'homeRowsImageTypeOverride': _prefs.get(
+      'themeMusicEnabled': _prefs.getStored(UserPreferences.themeMusicEnabled),
+      'themeMusicVolume': _prefs.getStored(UserPreferences.themeMusicVolume),
+      'themeMusicOnHomeRows': _prefs.getStored(UserPreferences.themeMusicOnHomeRows),
+      'homeRowsImageTypeOverride': _prefs.getStored(
         UserPreferences.homeRowsUniversalOverride,
       ),
       'homeRowsImageType': _prefs
-          .get(UserPreferences.homeRowsUniversalImageType)
+          .getStored(UserPreferences.homeRowsUniversalImageType)
           .name,
-      'backdropEnabled': _prefs.get(UserPreferences.backdropEnabled),
+      'backdropEnabled': _prefs.getStored(UserPreferences.backdropEnabled),
       'detailsScreenBlur': _prefs
-          .get(UserPreferences.detailsBackgroundBlurAmount)
+          .getStored(UserPreferences.detailsBackgroundBlurAmount)
           .toString(),
       'browsingBlur': _prefs
-          .get(UserPreferences.browsingBackgroundBlurAmount)
+          .getStored(UserPreferences.browsingBackgroundBlurAmount)
           .toString(),
-      'mdblistEnabled': _prefs.get(UserPreferences.enableAdditionalRatings),
-      'mdblistApiKey': _prefs.get(UserPreferences.mdblistApiKey),
-      'mdblistShowRatingNames': _prefs.get(UserPreferences.showRatingLabels),
-      'mdblistShowRatingBadges': _prefs.get(UserPreferences.showRatingBadges),
-      'tmdbEpisodeRatingsEnabled': _prefs.get(
+      'mdblistEnabled': _prefs.getStored(UserPreferences.enableAdditionalRatings),
+      'mdblistApiKey': _prefs.getStored(UserPreferences.mdblistApiKey),
+      'mdblistShowRatingNames': _prefs.getStored(UserPreferences.showRatingLabels),
+      'mdblistShowRatingBadges': _prefs.getStored(UserPreferences.showRatingBadges),
+      'tmdbEpisodeRatingsEnabled': _prefs.getStored(
         UserPreferences.enableEpisodeRatings,
       ),
-      'tmdbApiKey': _prefs.get(UserPreferences.tmdbApiKey),
-      'jellyseerrEnabled': _prefs.get(UserPreferences.seerrEnabled),
+      'tmdbApiKey': _prefs.getStored(UserPreferences.tmdbApiKey),
+      'jellyseerrEnabled': _prefs.getStored(UserPreferences.seerrEnabled),
       'blockedRatings': _csvToList(UserPreferences.blockedRatings),
       'mdblistRatingSources': _csvToList(UserPreferences.enabledRatings),
       'homeRowOrder': _prefs.homeSectionsConfig

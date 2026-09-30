@@ -24,6 +24,10 @@ class UserPreferences extends ChangeNotifier {
     return leanTvEffective(pref, value);
   }
 
+  /// Stored value without lean-TV runtime overrides.
+  /// Use for sync push (and any path that must not export AFTT ceilings).
+  T getStored<T>(Preference<T> pref) => _store.get(pref);
+
   /// Pure lean overrides for tests / callers. [backdropEnabled] is untouched
   /// (user Off stays Off; user On stays On — cheaper path is blur=0).
   @visibleForTesting
@@ -41,7 +45,14 @@ class UserPreferences extends ChangeNotifier {
     }
     if (key == detailsBackgroundBlurAmount.key ||
         key == browsingBackgroundBlurAmount.key) {
-      return 0 as T;
+      // Type-safe zero: blur prefs are Preference<int>; avoid `0 as double`.
+      if (value is double) {
+        return 0.0 as T;
+      }
+      if (value is int) {
+        return 0 as T;
+      }
+      return value;
     }
     return value;
   }
