@@ -1,39 +1,45 @@
 # Moonfin FireTV32 Unofficial 1.1.0-r21
 
-This community release targets Fire TV Stick 2nd Generation and Basic Edition
-devices running Fire OS 5. It contains only 32-bit ARM (`armeabi-v7a`) native
-code and uses package name `org.moonfin.firetv32`.
+Community release for **Fire TV Stick 2nd Generation / Basic Edition** on
+**Fire OS 5** (Android 5.1 / API 22). ARMv7 (`armeabi-v7a`) only · package
+`org.moonfin.firetv32`.
 
-## Highlights (lag-focused)
+Builds on **r20** (stable playback, D-pad, 720p/4 Mbit/s ceiling) with
+performance waves **A / B / C0** and follow-up fixes.
 
-- Decode-size aware legacy network images: Skia downsamples posters near
-  on-screen size (device pixels = logical × DPR) instead of retaining full
-  server bitmaps
-- Tighter TV in-memory image cache (~40 entries / 32 MiB)
-- Performance defaults r4 re-forces Media Bar, trailer/episode/preview audio,
-  and card focus expansion OFF after updates or preference imports
-- Smaller TV artwork requests: library posters maxWidth 320; static backdrops
-  request/cache around 960 px wide on AFTT
-- Image HTTP concurrency capped at 2 connections per host on the Fire TV
-  image path to reduce decode storms during fast D-pad scrolling
+## Highlights
 
-## Verified target
+| Area | Change |
+|---|---|
+| **r21 base** | Decode-size images; TV cache ~40 / 32 MiB; image HTTP concurrency 2; performance defaults r4 |
+| **Wave A** | Lean AFTT runtime — blur 0, no Home BackdropFilter; Media Bar / previews / card expansion off at read time |
+| **Wave B** | Image policy — width-only decode, buckets; poster **320** / landscape **640** / backdrop **960** |
+| **C0** | Home scroll offset isolated; rows/cards do not rebuild every scroll tick |
+| **Fixes** | Sync uses stored prefs (lean never pushes); fixed poster class 320; library landscape 640; pinned InfoArea as builder child |
+
+Static posters, covers, and backdrops stay enabled at reduced resolution.
+Media Bar and inline video previews remain disabled for AFTT.
+
+## Target
 
 - Fire TV model: AFTT / LY73PR
-- Fire OS: 5.2.9.5
-- Android: 5.1.1 / API 22
+- Fire OS: 5.2.9.5 · Android 5.1.1 / API 22
 - APK: versionCode `3000028`, versionName `1.1.0-firetv32-r21`
 
-The Fire TV Stick 1st Generation remains experimental. Newer 64-bit Fire TV
-models are not the intended target for this build.
+1st-gen Fire TV is experimental. 64-bit Fire TV models are not the intended
+target.
 
-## Publication and signing
+## Limits
 
-The public source archive does not contain a keystore, signing properties or
-passwords. Public maintainers should generate and protect their own release
-key. APKs signed by a different certificate cannot update this package in
-place; uninstalling first also removes local app data.
+- **No lag / responsiveness claim** for r21 until measured on a physical AFTT
+  device. On-device verification so far covers the **r20** baseline.
+- Performance still depends on Wi-Fi, transcoder, artwork, and codecs.
 
-See `FIRETV32-README.md`, `COMPATIBILITY.md`, `BUILDING.md`, `SECURITY.md` and
-`THIRD_PARTY_NOTICES.md` for complete installation, testing and licensing
-information.
+## Signing
+
+The public source archive has no keystore, signing properties, or passwords.
+Different certificates cannot update this package in place; uninstalling also
+clears local app data.
+
+See `FIRETV32-README.md`, `COMPATIBILITY.md`, `BUILDING.md`, `SECURITY.md`, and
+`THIRD_PARTY_NOTICES.md`.
