@@ -17,6 +17,7 @@ import '../../../data/services/media_server_client_factory.dart';
 import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
 import '../../../util/platform_detection.dart';
+import '../../../util/tv_image_size_policy.dart';
 import '../../navigation/app_router.dart';
 import '../../navigation/destinations.dart';
 import '../../../data/models/media_bar_state.dart';
@@ -260,8 +261,8 @@ class _Backdrop extends StatelessWidget {
     final image = CachedNetworkImage(
       imageUrl: imageUrl,
       fit: BoxFit.cover,
-      memCacheWidth: PlatformDetection.isAndroid && PlatformDetection.isTV
-          ? 960
+      memCacheWidth: TvImageSizePolicy.isLeanTv
+          ? TvImageSizePolicy.backdropServerMaxWidth
           : null,
       fadeInDuration: Duration.zero,
       errorWidget: (_, __, ___) => const SizedBox.shrink(),
@@ -1135,25 +1136,37 @@ class _ContentRowsState extends State<_ContentRows>
     double height,
     bool useSeriesThumbs,
   ) {
-    final maxH = (height * 2).toInt();
+    // Poster class: TV uses server maxWidth 320 (not maxHeight everywhere).
+    final maxW = TvImageSizePolicy.posterMaxWidth(requested: (height * 2 * 2 / 3).toInt());
+    final maxH = TvImageSizePolicy.posterMaxHeight(requested: (height * 2).toInt());
     if (useSeriesThumbs && item.type == 'Episode' && item.seriesId != null) {
       return imageApi.getPrimaryImageUrl(
         item.seriesId!,
-        maxHeight: maxH,
+        maxWidth: TvImageSizePolicy.isLeanTv ? maxW : null,
+        maxHeight: TvImageSizePolicy.isLeanTv ? null : maxH,
         tag: item.seriesPrimaryImageTag,
       );
     }
     if (item.primaryImageTag != null) {
       return imageApi.getPrimaryImageUrl(
         item.id,
-        maxHeight: maxH,
+        maxWidth: TvImageSizePolicy.isLeanTv ? maxW : null,
+        maxHeight: TvImageSizePolicy.isLeanTv ? null : maxH,
         tag: item.primaryImageTag,
       );
     }
     if (item.type == 'Episode' && item.seriesId != null) {
-      return imageApi.getPrimaryImageUrl(item.seriesId!, maxHeight: maxH);
+      return imageApi.getPrimaryImageUrl(
+        item.seriesId!,
+        maxWidth: TvImageSizePolicy.isLeanTv ? maxW : null,
+        maxHeight: TvImageSizePolicy.isLeanTv ? null : maxH,
+      );
     }
-    return imageApi.getPrimaryImageUrl(item.id, maxHeight: maxH);
+    return imageApi.getPrimaryImageUrl(
+      item.id,
+      maxWidth: TvImageSizePolicy.isLeanTv ? maxW : null,
+      maxHeight: TvImageSizePolicy.isLeanTv ? null : maxH,
+    );
   }
 
   static String? _resolveLandscapeImageUrl(
@@ -1161,7 +1174,9 @@ class _ContentRowsState extends State<_ContentRows>
     ImageApi imageApi,
     double height,
   ) {
-    final maxW = (height * 16 / 9 * 2).toInt();
+    final maxW = TvImageSizePolicy.landscapeMaxWidth(
+      requested: (height * 16 / 9 * 2).toInt(),
+    );
     if (item.backdropImageTags.isNotEmpty) {
       return imageApi.getBackdropImageUrl(
         item.id,
@@ -1275,7 +1290,9 @@ class _ContentRowsState extends State<_ContentRows>
     }
 
     if (imageType == ImageType.banner) {
-      final maxW = (height * 16 / 9 * 2).toInt();
+      final maxW = TvImageSizePolicy.landscapeMaxWidth(
+        requested: (height * 16 / 9 * 2).toInt(),
+      );
       if (itemBannerTag != null) {
         return imageApi.getBannerImageUrl(
           item.id,
@@ -1301,7 +1318,9 @@ class _ContentRowsState extends State<_ContentRows>
     }
 
     if (imageType == ImageType.thumb) {
-      final maxW = (height * 16 / 9 * 2).toInt();
+      final maxW = TvImageSizePolicy.landscapeMaxWidth(
+        requested: (height * 16 / 9 * 2).toInt(),
+      );
       if (itemThumbTag != null) {
         return imageApi.getThumbImageUrl(
           item.id,
@@ -1343,8 +1362,13 @@ class _ContentRowsState extends State<_ContentRows>
     double height,
     ImageType imageType,
   ) {
-    final maxW = (height * 16 / 9 * 2).toInt();
-    final maxH = (height * 2).toInt();
+    final maxW = TvImageSizePolicy.landscapeMaxWidth(
+      requested: (height * 16 / 9 * 2).toInt(),
+    );
+    final maxH = TvImageSizePolicy.posterMaxHeight(requested: (height * 2).toInt());
+    final posterW = TvImageSizePolicy.posterMaxWidth(
+      requested: (height * 2 * 2 / 3).toInt(),
+    );
     final seriesId = item.seriesId;
     final seriesPrimaryTag = item.seriesPrimaryImageTag;
     final parentThumbItemId = item.rawData['ParentThumbItemId'] as String?;
@@ -1356,11 +1380,16 @@ class _ContentRowsState extends State<_ContentRows>
       if (seriesId != null) {
         return imageApi.getPrimaryImageUrl(
           seriesId,
-          maxHeight: maxH,
+          maxWidth: TvImageSizePolicy.isLeanTv ? posterW : null,
+          maxHeight: TvImageSizePolicy.isLeanTv ? null : maxH,
           tag: seriesPrimaryTag,
         );
       }
-      return imageApi.getPrimaryImageUrl(item.id, maxHeight: maxH);
+      return imageApi.getPrimaryImageUrl(
+        item.id,
+        maxWidth: TvImageSizePolicy.isLeanTv ? posterW : null,
+        maxHeight: TvImageSizePolicy.isLeanTv ? null : maxH,
+      );
     }
 
     if (imageType == ImageType.thumb) {

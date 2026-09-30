@@ -14,6 +14,7 @@ import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
 import '../../../ui/mixins/focus_state_mixin.dart';
 import '../../../util/platform_detection.dart';
+import '../../../util/tv_image_size_policy.dart';
 import '../../navigation/destinations.dart';
 import '../../widgets/media_card.dart';
 import '../../widgets/rating_display.dart';
@@ -106,11 +107,16 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
   String? _imageUrl(AggregatedItem item) {
     final api = _vm.imageApi;
+    final int? posterW =
+        TvImageSizePolicy.isLeanTv ? TvImageSizePolicy.posterServerMaxWidth : null;
+    final int? landscapeW = TvImageSizePolicy.isLeanTv
+        ? TvImageSizePolicy.landscapeServerMaxWidth
+        : null;
     if (_vm.imageType == ImageType.thumb && item.backdropImageTags.isNotEmpty) {
-      return api.getBackdropImageUrl(item.id);
+      return api.getBackdropImageUrl(item.id, maxWidth: landscapeW);
     }
     return item.primaryImageTag != null
-        ? api.getPrimaryImageUrl(item.id)
+        ? api.getPrimaryImageUrl(item.id, maxWidth: posterW)
         : null;
   }
 

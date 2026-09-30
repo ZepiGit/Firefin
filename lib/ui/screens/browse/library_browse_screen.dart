@@ -14,6 +14,7 @@ import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
 import '../../../ui/mixins/focus_state_mixin.dart';
 import '../../../util/platform_detection.dart';
+import '../../../util/tv_image_size_policy.dart';
 import '../../navigation/destinations.dart';
 import '../../widgets/media_card.dart';
 import '../../widgets/rating_display.dart';
@@ -193,8 +194,9 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
 
   String? _imageUrl(AggregatedItem item) {
     final api = _vm.imageApi;
-    final maxImageWidth =
-        PlatformDetection.isAndroid && PlatformDetection.isTV ? 320 : 480;
+    final maxImageWidth = TvImageSizePolicy.isLeanTv
+        ? TvImageSizePolicy.posterServerMaxWidth
+        : 480;
 
     final itemThumbTag = _tagForType(item, 'Thumb');
     final itemBannerTag = _tagForType(item, 'Banner');
@@ -416,7 +418,7 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
                   alignment: Alignment.topCenter,
                   memCacheWidth:
                       PlatformDetection.isAndroid && PlatformDetection.isTV
-                      ? 960
+                      ? TvImageSizePolicy.backdropServerMaxWidth
                       : null,
                   fadeInDuration:
                       PlatformDetection.isAndroid && PlatformDetection.isTV

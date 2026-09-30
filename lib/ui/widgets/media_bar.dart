@@ -19,6 +19,7 @@ import '../../preference/preference_constants.dart';
 import '../../preference/user_preferences.dart';
 import '../navigation/destinations.dart';
 import '../../util/platform_detection.dart';
+import '../../util/tv_image_size_policy.dart';
 import 'rating_display.dart';
 
 const _textShadows = [Shadow(blurRadius: 4, color: Colors.black54)];
@@ -819,7 +820,7 @@ class _BackdropLayer extends StatelessWidget {
         key: ValueKey(item.itemId),
         imageUrl: item.backdropUrl!,
         fit: BoxFit.cover,
-        memCacheWidth: 960,
+        memCacheWidth: TvImageSizePolicy.backdropServerMaxWidth,
         fadeInDuration: Duration.zero,
         fadeOutDuration: Duration.zero,
         useOldImageOnUrlChange: true,

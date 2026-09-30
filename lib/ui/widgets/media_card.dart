@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../preference/preference_constants.dart';
 import '../../util/legacy_firetv_network_image.dart';
+import '../../util/tv_image_size_policy.dart';
 import '../mixins/focus_state_mixin.dart';
 
 class MediaCard extends StatefulWidget {
@@ -264,21 +265,27 @@ class _CardImage extends StatelessWidget {
                   child: imageUrl != null
                       ? LayoutBuilder(
                           builder: (context, constraints) {
-                            // cacheWidth/Height are device pixels (logical × DPR).
+                            // Device-pixel decode targets. Cover posters:
+                            // width-only; landscape: height-only. Bucketed so
+                            // ImageCache keys do not fragment on AFTT.
                             final dpr = MediaQuery.devicePixelRatioOf(context);
-                            final int? cacheWidth = constraints.maxWidth.isFinite
-                                ? (constraints.maxWidth * dpr).round().clamp(1, 4096)
-                                : null;
-                            final int? cacheHeight = constraints.maxHeight.isFinite
-                                ? (constraints.maxHeight * dpr)
-                                    .round()
-                                    .clamp(1, 4096)
-                                : null;
+                            final logicalW = constraints.maxWidth.isFinite
+                                ? constraints.maxWidth
+                                : 160.0;
+                            final logicalH = constraints.maxHeight.isFinite
+                                ? constraints.maxHeight
+                                : logicalW / aspectRatio;
+                            final targets = TvImageSizePolicy.decodeTargets(
+                              logicalWidth: logicalW,
+                              logicalHeight: logicalH,
+                              devicePixelRatio: dpr,
+                              aspectRatio: aspectRatio,
+                            );
                             return Image(
                               image: LegacyFireTvNetworkImage(
                                 imageUrl!,
-                                cacheWidth: cacheWidth,
-                                cacheHeight: cacheHeight,
+                                cacheWidth: targets.cacheWidth,
+                                cacheHeight: targets.cacheHeight,
                               ),
                               fit: BoxFit.cover,
                               errorBuilder: (_, __, ___) =>
