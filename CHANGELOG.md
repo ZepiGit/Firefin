@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.1.0-firetv32-r21
+
+- Decode-size aware `LegacyFireTvNetworkImage` with optional device-pixel
+  `cacheWidth`/`cacheHeight` passed to `instantiateImageCodec` so Skia
+  downsamples on decode; media cards wire sizes from layout × DPR.
+- Reduced TV `ImageCache` to ~40 entries / 32 MiB.
+- Added `firetv32_performance_defaults_r4` migration that re-forces Media Bar,
+  trailer/episode/preview audio, and card focus expansion OFF without wiping
+  unrelated prefs; static backdrops remain enabled.
+- Library browse TV poster maxWidth 320 (else 480); backdrop memCacheWidth /
+  BackgroundService TV width prefer 960 for AFTT.
+- Capped legacy Fire TV image Dio/HttpClient `maxConnectionsPerHost` at 2.
+- Version bump to `1.1.0+3000028` / `1.1.0-firetv32-r21`.
+
 ## 1.1.0-firetv32-r20
 
 - Stabilized Fire OS 5 playback by using synchronous media-player commands and

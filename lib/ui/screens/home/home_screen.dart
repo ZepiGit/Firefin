@@ -260,6 +260,9 @@ class _Backdrop extends StatelessWidget {
     final image = CachedNetworkImage(
       imageUrl: imageUrl,
       fit: BoxFit.cover,
+      memCacheWidth: PlatformDetection.isAndroid && PlatformDetection.isTV
+          ? 960
+          : null,
       fadeInDuration: Duration.zero,
       errorWidget: (_, __, ___) => const SizedBox.shrink(),
     );

@@ -10,8 +10,8 @@ Amazon, Jellyfin or Emby.
 
 ## Release
 
-- Release: `1.1.0-firetv32-r20`
-- Android version code: `3000027`
+- Release: `1.1.0-firetv32-r21`
+- Android version code: `3000028`
 - Package: `org.moonfin.firetv32`
 - Minimum Android API: 21
 - Architecture: ARMv7 / `armeabi-v7a` only
@@ -37,8 +37,16 @@ legacy hardware:
 The Media Bar remains disabled internally on Android TV in this compatibility
 build even if an imported settings profile tries to enable it.
 
-## Fixes through r20
+## Fixes through r21
 
+- Decode-size aware legacy network images downsample on decode to near
+  on-screen size (device pixels), reducing RAM pressure while scrolling.
+- Tighter TV image memory budget (~40 / 32 MiB) and image host concurrency
+  capped at 2 connections to limit decode storms.
+- Performance defaults r4 re-force Media Bar, trailer/episode/preview audio,
+  and card focus expansion OFF after updates or preference imports; static
+  posters, covers and backdrops stay enabled at reduced resolution (posters
+  ~320 px, backdrops ~960 px on AFTT).
 - Jellyfin 10.11 device-profile fields use `Width` and `Height`, avoiding the
   HTTP 400 playback error caused by the obsolete `VideoWidth` and
   `VideoHeight` values.
@@ -75,7 +83,7 @@ Enable ADB debugging on the Fire TV, then run:
 
 ```text
 adb connect FIRE_TV_IP:5555
-adb install Moonfin_FireTV32_Unofficial_1.1.0-r20.apk
+adb install Moonfin_FireTV32_Unofficial_1.1.0-r21.apk
 ```
 
 An older build signed with another certificate cannot be updated in place.
@@ -83,7 +91,7 @@ Remove that package first; uninstalling also removes its local app data:
 
 ```text
 adb uninstall org.moonfin.firetv32
-adb install Moonfin_FireTV32_Unofficial_1.1.0-r20.apk
+adb install Moonfin_FireTV32_Unofficial_1.1.0-r21.apk
 ```
 
 ## Build

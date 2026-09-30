@@ -193,7 +193,8 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
 
   String? _imageUrl(AggregatedItem item) {
     final api = _vm.imageApi;
-    const maxImageWidth = 480;
+    final maxImageWidth =
+        PlatformDetection.isAndroid && PlatformDetection.isTV ? 320 : 480;
 
     final itemThumbTag = _tagForType(item, 'Thumb');
     final itemBannerTag = _tagForType(item, 'Banner');
@@ -415,7 +416,7 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
                   alignment: Alignment.topCenter,
                   memCacheWidth:
                       PlatformDetection.isAndroid && PlatformDetection.isTV
-                      ? 1280
+                      ? 960
                       : null,
                   fadeInDuration:
                       PlatformDetection.isAndroid && PlatformDetection.isTV

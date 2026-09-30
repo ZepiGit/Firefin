@@ -61,4 +61,22 @@ void main() {
       expect(client.baseUrl, 'https://other.test');
     });
   });
+
+  group('FireTV32 r21 artwork width conventions', () {
+    test('Jellyfin primary maxWidth 320 encodes in query for TV posters', () {
+      final api = JellyfinImageApi('https://example.test/jellyfin');
+      final uri = Uri.parse(
+        api.getPrimaryImageUrl('item-id', maxWidth: 320),
+      );
+      expect(uri.queryParameters['maxWidth'], '320');
+    });
+
+    test('Jellyfin backdrop maxWidth 960 encodes for AFTT static art', () {
+      final api = JellyfinImageApi('https://example.test/jellyfin');
+      final uri = Uri.parse(
+        api.getBackdropImageUrl('item-id', maxWidth: 960),
+      );
+      expect(uri.queryParameters['maxWidth'], '960');
+    });
+  });
 }

@@ -21,9 +21,9 @@ import 'util/platform_detection.dart';
 void _configureImageCache() {
   final imageCache = PaintingBinding.instance.imageCache;
   if (PlatformDetection.isTV) {
-    // Keep memory pressure low on 1 GB Fire TV hardware.
-    imageCache.maximumSize = 60;
-    imageCache.maximumSizeBytes = 48 << 20;
+    // Keep memory pressure low on 1 GB Fire TV hardware (r21: tighter).
+    imageCache.maximumSize = 40;
+    imageCache.maximumSizeBytes = 32 << 20;
     return;
   }
   if (PlatformDetection.isMobile) {
