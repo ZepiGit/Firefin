@@ -4,7 +4,7 @@ This document covers the native Kotlin app (`app/`). The legacy Flutter build
 is kept at the end as history; it is validation-only and is never published.
 
 Build status, in short: a clean local build of the current working tree passed
-29 unit tests, strict lint (0 errors, 58 warnings) and an R8 release build, and
+39 unit tests, strict lint (0 errors, 58 warnings) and an R8 release build, and
 the debug APK installed and launched on an API 22 stock x86 emulator. There is
 no signed release and no AFTT hardware result. The commit carrying these fixes
 is pending (working tree on top of `8d53ab583`).

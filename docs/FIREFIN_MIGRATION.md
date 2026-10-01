@@ -28,7 +28,7 @@ evidence. Rerun everything on the committed SHA.
 
 | Evidence | Status |
 |---|---|
-| Clean local build: 29 unit tests, strict lint 0 errors / 58 warnings, R8 release APK (unsigned) | Verified locally, working tree only |
+| Clean local build: 39 unit tests, strict lint 0 errors / 58 warnings, R8 release APK (unsigned) | Verified locally on `firefin/dev` HEAD |
 | API 22 stock x86 emulator install/launch smoke: package ID `zepigit.firefin.app`, `LoginActivity` shown, no `FATAL` | Verified manually; login, browsing and playback not exercised |
 | CI (`android.yml`) on the current tree | Absent; earlier green runs apply to older SHAs only |
 | Physical AFTT (ARMv7) run | **Absent** |
@@ -223,3 +223,32 @@ requirements remain visible rather than being counted as successful probes.
 - Test account credentials/tokens and raw server content are private; never copy
   them into sources, CI, prompts or public documentation. Login success alone is
   not a complete playback test.
+
+
+## Final overall review cycle FF-FINAL-OVERALL-01 (firefin-core, gpt-6.1-sol high) → fixed
+
+Findings against 56134a362, all fixed on the follow-up commit:
+
+- F1 (High): the Media3 stream now uses the SAME immutable credential snapshot
+  as the session reporter (`ServerTransport.snapshot().mediaHttp`), so an
+  account switch mid-playback can no longer mix identities. Regression test:
+  media request keeps old origin/token after the main transport switches.
+- F2 (High): single timeline contract extracted into `PlaybackTimeline`
+  (unit-tested): HLS/direct = Media3 applies resume locally, offset 0;
+  non-HLS transcode restart = server StartTimeTicks with Media3 start 0 and
+  offset tracked exactly once for reporting and seeks.
+- F3 (Medium): artwork input is now bounded end to end — 12 MiB cap on network
+  and disk bytes, per-image call/read timeouts, startup disk-cache trim.
+- F5 (Low/Medium): test/lint report uploads are fail-closed
+  (`if-no-files-found: error`).
+- F4 (Medium): stale evidence claims in README/BUILDING/ledger refreshed
+  (39 tests, current SHA basis, resolved observations marked historical).
+- Test-infra defect found and fixed during verification: the media-snapshot
+  regression test had no enqueued MockWebServer response and blocked the whole
+  suite; the reporter contract tests were rewritten to drain recorded requests
+  only after the terminal state (no scheduler timing dependence).
+
+Open items (unchanged, explicitly not claimed): API 22 playback/D-Pad smoke on
+the stock emulator, real AFTT hardware evidence, production signing run, and
+full legacy-feature parity (Live TV, Seerr, downloads, music, books, DLNA,
+Quick Connect, admin, plugin sync).

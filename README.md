@@ -28,13 +28,15 @@ The native version code is deliberately above the legacy `3000028` build line.
 
 ## Verification status
 
-Evidence is tied to the working tree on top of commit `8d53ab583`. The fixes
-in that tree are **uncommitted**; the commit that carries them is pending, and
-CI has not run on it. Nothing below is a claim about a published release.
+Evidence is tied to the current `firefin/dev` HEAD (see
+[docs/FIREFIN_MIGRATION.md](docs/FIREFIN_MIGRATION.md) for the exact SHA and
+CI run IDs). Nothing below is a claim about a published release.
 
 Verified locally (one clean build of the current working tree):
 
-- 29 JVM unit tests pass (`:app:testDebugUnitTest`).
+- 39 JVM unit tests pass (`:app:testDebugUnitTest`), including regression
+  tests for transport isolation, session-report ordering and the playback
+  timeline contract.
 - Strict lint (`abortOnError = true`): 0 errors, 58 warnings.
 - R8-minified release APK builds (unsigned).
 - API 22 stock x86 emulator: debug APK installs and launches, package ID is
@@ -47,7 +49,7 @@ Not verified / absent:
   An x86 emulator smoke is not hardware evidence.
 - A signed release APK: none built, no production key or pinned certificate
   fingerprint is recorded in this repository.
-- CI on the current working tree.
+- CI on the current `firefin/dev` HEAD (runs are linked in the migration ledger).
 
 ## Feature parity (open)
 

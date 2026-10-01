@@ -69,7 +69,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: firefin-reports-${{ github.sha }}
-          if-no-files-found: warn
+          if-no-files-found: error
           path: |
             app/build/test-results/
             app/build/reports/

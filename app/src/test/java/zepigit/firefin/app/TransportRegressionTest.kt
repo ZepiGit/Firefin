@@ -73,6 +73,21 @@ class TransportRegressionTest {
         }
     }
 
+    @Test fun `media snapshot keeps old origin and token after account switch`() = runBlocking {
+        MockWebServer().use { origin -> MockWebServer().use { other: MockWebServer ->
+            origin.start(); other.start()
+            origin.enqueue(MockResponse().setBody("fixture"))
+            val mainTransport = ServerTransport(ServerCredentials(origin.url("/").toString(), "user-a", "token-a"), "device-1")
+            val snapshot = mainTransport.snapshot()
+            mainTransport.update(ServerCredentials(other.url("/").toString(), "user-b", "token-b"))
+            snapshot.mediaHttp.newCall(okhttp3.Request.Builder().url(origin.url("videos/i1/hls1/master.m3u8")).build()).execute().use { assertTrue(it.isSuccessful) }
+            assertEquals(1, origin.requestCount)
+            assertEquals(0, other.requestCount)
+            val request = origin.takeRequest()
+            assertTrue(request.getHeader("Authorization")!!.contains("Token=\"token-a\""))
+        } }
+    }
+
     @Test fun `cancelling request cancels its actual okhttp call`() = runBlocking {
         val server = MockWebServer()
         server.start()

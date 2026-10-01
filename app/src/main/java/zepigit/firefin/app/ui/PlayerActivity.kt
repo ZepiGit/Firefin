@@ -18,6 +18,7 @@ import kotlinx.coroutines.launch
 import zepigit.firefin.app.R
 import zepigit.firefin.app.ServiceLocator
 import zepigit.firefin.app.playback.PlaybackEngine
+import zepigit.firefin.app.playback.PlaybackTimeline
 import zepigit.firefin.app.util.SessionReporter
 import zepigit.firefin.app.util.Ticks
 import zepigit.firefin.app.util.Urls
@@ -58,14 +59,23 @@ class PlayerActivity : AppCompatActivity() {
         val name = intent.getStringExtra(EXTRA_NAME) ?: "Firefin"
         title = name
 
-        val playerView = findViewById<PlayerView>(R.id.playerView)
-        engine = PlaybackEngine(this, ServiceLocator.client.okHttp).also { e ->
-            playerView.player = e.player
-            e.prepare(url, startMs)
+        // One immutable credential snapshot serves BOTH the media stream and
+        // session reporting, so an account switch mid-playback cannot mix
+        // identities. The global client remains for browsing/images only.
+        val playbackTransport = ServiceLocator.client.transportSnapshot()
+        val timeline = PlaybackTimeline.start(isTranscode, isHls, startMs)
+        transcodeOffsetMs = timeline.offsetMs
+        val playbackUrl = if (isTranscode && !isHls) {
+            // The restarted TS stream begins at the server-side offset.
+            Urls.withStartTimeTicks(url, Ticks.fromMs(startMs))
+        } else {
+            url
         }
-        // TS-over-HTTP transcodes start at the requested offset; the reported
-        // position and seeks must account for that offset (no double apply).
-        transcodeOffsetMs = if (isTranscode && !isHls) startMs else 0L
+        val playerView = findViewById<PlayerView>(R.id.playerView)
+        engine = PlaybackEngine(this, playbackTransport.mediaHttp).also { e ->
+            playerView.player = e.player
+            e.prepare(playbackUrl, timeline.preparePositionMs)
+        }
         engine?.player?.addListener(object : androidx.media3.common.Player.Listener {
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                 Toast.makeText(this@PlayerActivity, error.errorCodeName, Toast.LENGTH_LONG).show()
@@ -73,7 +83,7 @@ class PlayerActivity : AppCompatActivity() {
         })
 
         reporter = SessionReporter(
-            ServiceLocator.client.transportSnapshot(),
+            playbackTransport,
             itemId,
             playSessionId,
             intent.getStringExtra(EXTRA_SOURCE).orEmpty(),
