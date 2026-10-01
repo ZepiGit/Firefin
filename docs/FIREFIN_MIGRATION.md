@@ -154,12 +154,37 @@ until they land.
 
 ## Phase 6 — Performance & security rules 🟡
 
-Ported: image classes/caches/concurrency, no blur/preview effects (native UI
-has none), stable ids + payload-free adapters, stored-vs-effective preference
-separation pending (settings surface is minimal so far). The legacy global TLS
-bypass (`badCertificateCallback => true`) is **not** ported: the native stack
-uses default certificate and hostname verification; TLS failures fail visibly.
+Ported: image classes/caches/concurrency (incl. poster 480 height cap,
+backdrop fallback, shared OkHttp client, retry-on-failed-rebind), no
+blur/preview effects (native UI has none), stable ids actually enabled,
+sort-race guard, stored-vs-effective preference split with tests
+(`EffectiveDevicePreferences` — device limits exist only in the effective
+type and are excluded from serialization). The legacy global TLS bypass
+(`badCertificateCallback => true`) is **not** ported: the native stack uses
+default certificate and hostname verification; TLS failures fail visibly.
 A user-configurable trust-store path for self-hosted servers is still open.
+
+## Review cycle FF-P5-UI-01 (firefin-ui, SHA eb315af55) → fixed in dfae8305f
+
+11 findings applied (F1–F11), highlights: **F1 BLOCKER** — media cards were
+not D-Pad focusable on API 22 (clickable ⇒ focusable only from API 26; fixed
+with explicit focusable/clickable), **F2** — PlayerView consumed keys while
+the controller was hidden (fixed: deterministic dispatchKeyEvent routing,
+MENU toggles, UP/DOWN open audio/subtitle track dialogs), **F3** — logout
+left stale Home on the back stack (fixed: CLEAR_TASK login start), plus
+stable ids, per-row poster/landscape artwork classes, loading/empty/error
+states, off-thread stop reporting, generation-guarded sorting, remote
+deviceId self-filter and PlayPause command. Runtime-only checks (real AFTT)
+remain open. Re-check of F1/F2/F3 suggested after fixes.
+
+## Native CI (Phase 7) ✅ first green run
+
+`.github/workflows/android.yml` — PR/push/dispatch + `v*` tag release path:
+`testDebugUnitTest`, `lintDebug`, `assembleDebug`, `assembleRelease` (R8,
+debug-signed fallback without secrets). First full run on `firefin/dev`
+(36869237388): **success in 5m25s** incl. release/R8. Fixed on the way:
+`gradlew` exec bit. Release publication still requires FIREFIN_* signing
+secrets (open, user-provided). Legacy `build.yml` continues as baseline.
 
 ## Subagent routing preflight (§6.1)
 
