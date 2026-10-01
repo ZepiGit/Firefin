@@ -51,6 +51,7 @@ class DeviceProfileTest {
     fun `transcoding produces h264 aac ts`() {
         val transcoding = profile.getJSONArray("TranscodingProfiles").getJSONObject(0)
         assertEquals("ts", transcoding.getString("Container"))
+        assertEquals("hls", transcoding.getString("Protocol"))
         assertEquals("h264", transcoding.getString("VideoCodec"))
         assertEquals("aac", transcoding.getString("AudioCodec"))
     }

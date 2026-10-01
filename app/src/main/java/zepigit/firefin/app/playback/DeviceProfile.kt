@@ -34,11 +34,13 @@ object DeviceProfile {
         })
         put("TranscodingProfiles", org.json.JSONArray().apply {
             put(JSONObject().apply {
+                // HLS gives Media3 a seekable VOD timeline on API 22; the
+                // player applies the user resume position exactly once.
                 put("Container", "ts")
                 put("Type", "Video")
                 put("VideoCodec", "h264")
                 put("AudioCodec", "aac")
-                put("Protocol", "http")
+                put("Protocol", "hls")
                 put("CopyTimestamps", true)
                 put("BreakOnNonKeyFrames", true)
             })

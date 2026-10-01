@@ -36,10 +36,10 @@ data class MediaItem(
                 type = json.optString("Type"),
                 year = json.optInt("ProductionYear", 0),
                 overview = json.optString("Overview"),
-                posterTag = imageTags.optString("Primary", null),
-                backdropTag = if (backdropTags != null && backdropTags.length() > 0) backdropTags.optString(0, null) else null,
-                thumbTag = json.optJSONObject("ImageTags")?.optString("Thumb", null) ?: imageTags.optString("Thumb", null),
-                parentId = json.optString("ParentId", null),
+                posterTag = imageTags.optString("Primary").takeIf { it.isNotBlank() },
+                backdropTag = if (backdropTags != null && backdropTags.length() > 0) backdropTags.optString(0).takeIf { it.isNotBlank() } else null,
+                thumbTag = imageTags.optString("Thumb").takeIf { it.isNotBlank() },
+                parentId = json.optString("ParentId").takeIf { it.isNotBlank() },
                 seriesName = json.optString("SeriesName"),
                 indexNumber = json.optInt("IndexNumber", 0),
                 parentIndexNumber = json.optInt("ParentIndexNumber", 0),
@@ -64,7 +64,9 @@ data class PlaybackSource(
     val mediaSourceId: String,
     val url: String,
     val isTranscode: Boolean,
+    val isHls: Boolean,
     val container: String,
+    val resumeTicks: Long = 0L,
 )
 
 data class RemoteSession(

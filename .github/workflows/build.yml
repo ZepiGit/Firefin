@@ -1,77 +1,42 @@
-name: Legacy Flutter Build (Fire TV baseline)
-
-# Legacy baseline for the Flutter FireTV32 app while the native Kotlin
-# migration is in progress. Android/Fire TV is the only release target;
-# iOS, macOS, Windows and Linux jobs from the inherited multiplatform
-# workflow were removed. The native Kotlin pipeline lives in
-# .github/workflows/android.yml.
+name: Legacy Flutter baseline (validation only)
 
 on:
   workflow_dispatch:
   pull_request:
+    paths: ['lib/**', 'packages/**', 'android/**', 'test/**', 'pubspec.*', 'build-android.sh', '.github/workflows/build.yml']
   push:
-    branches: ['**']
-    tags: ['v*']
+    branches: [main, 'firefin/**']
+    paths: ['lib/**', 'packages/**', 'android/**', 'test/**', 'pubspec.*', 'build-android.sh', '.github/workflows/build.yml']
 
 permissions:
   contents: read
 
+concurrency:
+  group: legacy-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
-  # Pinned to the documented legacy toolchain (BUILDING.md); do not bump silently.
   FLUTTER_VERSION: '3.32.8'
-  HAS_RELEASE_SIGNING: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
 
 jobs:
   android:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
-
-      - name: Run unit tests
+      - name: Run legacy tests
         run: flutter test
-
-      - name: Set up release signing (only when secrets are configured)
-        if: ${{ env.HAS_RELEASE_SIGNING == 'true' }}
-        run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/release.keystore
-          cat > android/keystore.properties <<EOF
-          storeFile=../release.keystore
-          storePassword=${{ secrets.ANDROID_STORE_PASSWORD }}
-          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
-          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
-          EOF
-
-      - name: Build Fire TV APK (armeabi-v7a)
-        run: |
-          chmod +x build-android.sh
-          ./build-android.sh
-
+      - name: Build legacy validation APK (never published)
+        run: ./build-android.sh
       - uses: actions/upload-artifact@v4
         with:
-          name: firetv32-apk
+          name: legacy-validation-only-${{ github.sha }}
           path: Moonfin_FireTV32_Unofficial_*.apk
-
-  release:
-    if: startsWith(github.ref, 'refs/tags/')
-    needs: [android]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          merge-multiple: true
-
-      - uses: softprops/action-gh-release@v2
-        with:
-          files: Moonfin_FireTV32_Unofficial_*.apk
-          generate_release_notes: true
+          if-no-files-found: error

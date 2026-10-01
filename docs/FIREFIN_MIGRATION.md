@@ -1,262 +1,167 @@
-# Firefin Migration
+# Firefin migration: acceptance ledger
 
-Central migration log for turning `ZepiGit/Moonfin-FireTV32` into **Firefin**, an
-independent native Kotlin Jellyfin client for Fire TV Stick 2nd Gen / Basic Edition
-(AFTT / LY73PR, Fire OS 5.2.8.0, Android 5.1 / API 22, ARMv7, 1 GB RAM).
+## Current objective and authority
 
-Product identity: app name `Firefin`, applicationId / namespace `zepigit.firefin.app`,
-minSdk 21 (runtime verification on API 22). Moonfin remains credited as origin
-(LICENSE, THIRD_PARTY_NOTICES, history). Status legend: ✅ done · 🟡 in progress ·
-⬜ open · ⛔ blocked.
+Continue the existing repository as Firefin, with a native Kotlin/Views client for
+AFTT / LY73PR, Fire OS 5.2.8.0, Android API 22, ARMv7 and 1 GiB RAM. Keep minSdk 21.
+Application ID, namespace and base package are `zepigit.firefin.app`.
+The current executing developer is GPT-6-astra (user instruction); configured
+Firefin subagents research and independently review, never implement production
+code. Maximum three supporting agents and one heavy build/emulator per host.
 
-## Phase 0 — Inventory and backup ✅
+**Status: incomplete, not release-ready.** The previous completion labels were
+not acceptance evidence. This ledger supersedes the inaccurate earlier claims
+of clean lint, all review findings fixed, protected signing, bounded disk decode,
+and completed API-22 validation. No final migration, hardware or release approval
+is claimed. No Flutter cleanup is permitted while active features lack parity.
 
-- Start state: main `9f46e1e34469a0f5ac2da438bc3649fba08ea9c1` (= squash of PR #1,
-  app 1.1.0-firetv32-r21, versionCode 3000028). No additional commits on origin/main.
-- Backup: `firefin-backup/firefin-pre-repair-9f46e1e.bundle` (verified complete
-  history), archive refs `refs/archive/firefin-pre-repair/{main,books-native-20260928}`,
-  remote branch `archive/pre-repair-main-9f46e1e`.
-- Divergent contributor branch `books-native-20260928` (4 commits on 900af3e,
-  MichelFlix Books custom-app line) is preserved untouched; not part of Firefin scope.
-- CI failure evidence: run `36852773811` = `failure` after 0 s, job list empty
-  (`total_count: 0`) → workflow-validation failure. Root defect in old
-  `build.yml` line 117: `if: ${{ secrets.APPLE_ID != '' }}` — the `secrets`
-  context is not allowed in step `if` conditions. Additional confirmed defects:
-  Flutter 3.41.2 vs documented 3.32.8; artifact glob `Moonfin_Android_v*.*`
-  vs actual `Moonfin_FireTV32_Unofficial_…apk`; stale `-r2` suffix; tag filter
-  `[0-9]+…` vs actual `v…` tags; release job waiting on all desktop platforms;
-  release signing threw at Gradle configure time without secrets; `lintVital*`
-  disabled.
-- Feature matrix: ~90 routes inventoried (Explore sweep). Active on Fire TV:
-  leanback UI + D-Pad, Home (resume/next-up/latest), libraries/genres/letters,
-  search, item details, video/audio playback, Live TV incl. EPG, Seerr, downloads,
-  music, books/comics (PDF/EPUB/CBZ), DLNA casting (native Kotlin), remote session
-  control, Quick Connect (both directions), Emby support, admin suite, plugin sync.
-  Disabled on Fire TV: media bar/hero carousel, card focus expansion, episode
-  previews, live blur, backdrop slideshow, mpv.conf editor, Google Cast, PiP,
-  HEVC/VP9/AV1 direct play (H.264 only, stereo downmix). Transcode ceiling
-  1280×720 / 4 000 000 bit/s incl. audio. Image classes: poster 320 w,
-  landscape 640 w, backdrop 960 w; decode buckets [160,240,320,480,640,960];
-  image cache 32 MiB / 40 entries; image host concurrency 2.
-- Legacy TLS bypass (`legacy_firetv_certificate_support.dart`:
-  `badCertificateCallback => true`) must NOT be ported.
+## Verified starting points and history
 
-## Phase 1 — Git history repair ✅ (independent review pending)
+- Original main: `9f46e1e34469a0f5ac2da438bc3649fba08ea9c1`.
+- Reconstructed history: `3af0e6b728ba336c30eb6c0dbd901b8c7b508682`.
+  FF-P1-01 and FF-P1-02 independently reviewed tree identity, ancestry and authors.
+- Original upstream base: `2563c9d8ef1dc191b1e1fbf8d5027c88a27b45a1`;
+  306 original upstream objects, one import delta, 20 legacy and eight original
+  PR #1 commits. The squash commit is not applied twice. The separate books
+  branch is preserved, not silently merged or discarded.
+- Import root/delta tree: `79eb22b2fb506ccd67cf34c8d89cb0234199097f`.
+  Final old-main/reconstructed tree: `94a6903d88e2e4089da8f6ecf60a67e6f9f6ac09`.
+- Delta commit: `ca70c744f3e0d3d0a15b2501a73f35402d504638`.
+  Legacy replay committer-date leakage was corrected and independently rechecked.
+  Replayed SHAs and committer metadata are reconstructed, not original signatures.
+- Development baseline for this audit: `e32fcfbf17e526bee0ecf49d6d23ca4061e24582`.
+- External verified audit bundle: `../firefin-audit/e32fcfbf17e5/start.bundle`,
+  SHA256 `0f49c5ca64ef87b7a9dc02118ce9e6d99631fa59575f08611c894c06040a3469`.
+  Read-only git-archive snapshots for reviewers live alongside it, outside Git.
+- Published main is still the original lineage. Replacement requires separate
+  explicit approval, fresh remote verification and an exact `--force-with-lease`.
+  Existing tags/releases must not move. No approval is inferred from `/goal`.
+- Repository has been renamed in place to `ZepiGit/Firefin`; origin uses the new
+  URL. The repository-ID assertion still needs current API evidence in the final audit.
 
-- Upstream `Moonfin-Client/Moonfin-Core` fetched; base commit
-  `2563c9d8ef1dc191b1e1fbf8d5027c88a27b45a1` ("Updated readme and app to 1.1.0")
-  has genuine ancestry and was preserved SHA-identical.
-- Reconstruction (worktree `firefin-repair`, branch `repair-main`, pushed as
-  `repair/history-main`):
-  - Delta commit `ca70c744f3e0d3d0a15b2501a73f35402d504638` on top of upstream
-    base, tree = `fbd4a3c^{tree}` (`94a6903d88e2e4089da8f6ecf60a67e6f9f6ac09`),
-    original author/committer metadata preserved
-    ("Moonfin FireTV32 Baseline <moonfin-firetv32@localhost>",
-    2026-07-29T13:22:55+02:00 / 13:24:12+02:00).
-  - 20 legacy commits replayed (`repair-legacy`), then the 8 original PR #1
-    commits (from tag `v1.1.0-firetv32-r21`) replayed on top. The squash commit
-    `9f46e1e` was deliberately **not** applied.
-- Verification: `git diff --exit-code 9f46e1e repair-main` → empty;
-  tree IDs identical (`94a6903d…`); upstream is ancestor; `git fsck --full` clean;
-  335 commits; authors preserved (Axl Nunez, RadicalMuffinMan, Michel Tie,
-  Moonfin FireTV32 Baseline). Full old→new SHA mapping:
-  `firefin-backup/sha-mapping.txt` (only "no match" is the intentionally dropped
-  squash commit).
-- Reviewer note: rebased own commits keep authorship but legitimately get new
-  SHAs/committers; the delta commit preserves both original author and committer
-  identity of the import snapshot.
-- **Open:** independent `firefin-review` (Opus) review FF-P1-01. The published
-  main history is replaced only after explicit user approval, using
-  `--force-with-lease` bound to the verified old main SHA.
+## Prompt-to-artifact acceptance checklist
 
-## Phase 2 — Legacy CI repair ✅ (CI run pending)
+A file or green job is evidence of existence, not of correct behavior. OPEN means
+unproven or incomplete; HISTORICAL means evidence applies only to its named SHA.
 
-- `build.yml` replaced with Android/Fire-TV-only baseline: pinned Flutter 3.32.8,
-  `flutter test` step, conditional release signing (job-level env mirrors secret
-  presence, step `if: env.HAS_RELEASE_SIGNING == 'true'` — valid context usage),
-  artifact `Moonfin_FireTV32_Unofficial_<version>-build<nnnn>.apk`, release job
-  only for Android, tag filter `v*`.
-- `android/app/build.gradle.kts`: signing env names `FIREFIN_*`; missing release
-  keys no longer throw at configure time (fallback to debug signing so PR/test
-  builds run; real releases require the production key).
-- `lintVital` disablement kept only as documented legacy baseline behavior; the
-  native pipeline must not copy it.
+| Requirement / gate | Artifact or required evidence | Status |
+|---|---|---|
+| Read full implementation order, repo rules, current main/branches/PR/comments | Original order, repo status; refresh PR/comment metadata before publication | Partial |
+| Gate 0: backup, actual features, CI logs | Verified external bundle; reachability matrix below; FF-AUDIT-BUILD/UI | Partial |
+| Gate 1: original upstream, import delta, per-commit attribution and final tree identity | repair-main 3af0e6b; FF-P1-01/02 | Historical pass |
+| Complete old-to-new mapping including eight PR commits | Regenerate mapping in this document against final frozen refs | OPEN |
+| Gate 2: syntax accepted, real legacy jobs and build status | Runs 36852773811 (0 jobs), 36870222276 (legacy success); independent audit | Historical only |
+| Gate 3: rename same repo, app identity, icons/banner, credits, install instructions | GitHub repository ID; Gradle/manifest/APK; LICENSE/notices/docs | Partial |
+| Gate 4: pinned dependencies, locked/verified resolution, stock API22 fixture playback | Root :app; dependency graph, Lint, instrumentation on API22 | OPEN |
+| Gate 5A: URL/subpath/HTTPS/explicit HTTP, login/logout/session, Quick Connect and switching | data, auth screens, MockWebServer + UI tests | OPEN |
+| Gate 5B: all home/libraries/detail/search/favorite/filter/sort/page flows, focus/scroll | ui/ + actual feature matrix and API22 tests | OPEN |
+| Gate 5C: source/track negotiation, HLS auth, resume/seek, reports, next episode and cleanup | playback/ + delayed-request/media fixtures and device smoke | OPEN |
+| Gate 5D: deterministic player controls, remote/media keys, focus, audio focus and lifecycle | Instrumented D-Pad and suspend/resume tests | OPEN |
+| Gate 5E: all other actually active AFTT features | Native path and tests for each matrix row | OPEN |
+| Gate 6: 720p/4 Mbit incl audio, lower limits, 320/640/960, bounded caches/decodes/queues | Serialized profile/URL tests; image cold/warm cache stress | OPEN |
+| Gate 6: stored/effective preferences and end-to-end plugin sync | Preferences and protocol fixture tests; no unused-only type proof | OPEN |
+| Gate 6: trust chain/hostname, API22 CA policy, redirect/token isolation | Transport TLS and redirect negative tests | OPEN |
+| Gate 7: actionlint, wrapper/dependency verification, tests, strict debug/release lint, both builds | android.yml with mandatory reports/APKs | OPEN |
+| Gate 7: separate protected signing, required secrets, stable cert, tag/full SHA, v1, checksums/source | release.yml, verifier, protected environment and actual run/release | OPEN |
+| Gate 8: native-only cleanup after parity; updated public English docs/templates | README, BUILDING, COMPATIBILITY, CHANGELOG, SECURITY, notices/templates | OPEN |
+| Final SHA: repeat tests/reviews/CI/APK after cleanup; no stale-run substitution | Exact commit/tag/run/artifact evidence | OPEN |
+| Existing authorized server and hardware only; no new server/emulator platform | Fixtures/MockWebServer + stock SDK images; test account kept private | Required |
+| All five supporting roles, correct routing/effort/tools/context, isolated exact SHA reviews | Preflight table and review ledger below | Partial |
+| Independent final architecture/security/UI/core/build reviews; developer fixes and rechecks | Review ledger with exact scopes/SHAs and outputs | OPEN |
+| Public maintainer reply only after proven implementation | Existing thread reply, not yet posted | OPEN |
 
-## Phase 3 — Firefin identity ✅
+## Actual feature matrix
 
-- GitHub repository renamed `Moonfin-FireTV32` → **`ZepiGit/Firefin`** (same repo,
-  redirects active, remotes updated). Description set to a migration-phase wording.
-- Legacy app (until removal in Phase 8): label `Firefin`, namespace +
-  applicationId `zepigit.firefin.app`, Kotlin bridge packages moved to
-  `zepigit/firefin/app`, Flutter channels `zepigit.firefin.app/…`,
-  DeviceProfile name `Firefin for Fire TV (32-bit)`.
-- Documented exceptions: internal Dart package name `moonfin` and its derived
-  auth-header appName stay until the Flutter stack is deleted (avoiding mass
-  import churn on code slated for removal); protocol key `MoonfinLegacyFireTv`
-  stays (server-plugin protocol identifier); `storage_path_service` directory
-  `Moonfin/` stays (user-data migration concern).
-- Install note (native app): new applicationId = different Android app, fresh
-  login required, old app can stay installed; no token/setting migration.
+The baseline inventory found the following routes and candidate flows. A route
+alone is not proof of Fire-TV reachability. FF-AUDIT-UI-01 is verifying gates and
+entry points. Until then no potentially active area is removed as "out of scope".
 
-## Phase 4 — Native API 22 base ✅ (local build + tests green)
+| Flow | Legacy status / native status | Acceptance gap |
+|---|---|---|
+| Server list, discovery, saved users, password login, Quick Connect, Emby Connect | Legacy present; native password login only | Switching, restore, invalid tokens, Quick Connect |
+| Home resume/next-up/latest/libraries/favorites | Native partial, formerly limited to four views | All libraries, empty/error/retry, refresh without lost focus |
+| Movies, shows, seasons/episodes, folders, box sets, genres/letters/suggestions | Native partial recursive grid/details | Hierarchy, filters, stable sort and navigation |
+| Search, favorites, watched-state | Native partial | Mutating endpoints, cancellation, pagination and status refresh |
+| Video direct play/remux/transcode, versions/tracks/chapters/quality/speed/aspect | Native partial, reports not yet correct | HLS/source/timeline/track contracts, teardown |
+| Next-up/still-watching prompts, local/remote trailers | Legacy present, native missing | Native flow + fixtures |
+| Music albums/artists/songs/genres/playlists, queue, lyrics, background audio | Legacy present, native missing | Native browsing/audio and lifecycle |
+| Live TV channels/EPG/player/schedule/DVR/series timers | Legacy present, native missing | Native complete flows and cleanup |
+| Seerr discovery/search/media/people/request/status/config | Legacy present, native missing | Server-configured optional integration |
+| Downloads/offline/storage management | Legacy present, native missing | Quota/cancellation/offline navigation/resume |
+| Books/comics PDF/EPUB/CBZ/CBR/7z, photos/slideshows | Legacy present, native missing | Format support/security, native D-Pad reader |
+| DLNA discovery/control and remote server sessions | DLNA missing; remote sessions partial | Scope-safe native reuse, actual remote commands |
+| Plugin synchronization | Native stored/effective types are not wired | End-to-end protocol parity, local caps never exported |
+| Settings, parental/PIN, screensaver, ratings, navigation and home customization | Native settings minimal | Port reachable configuration and authorization |
+| Admin suite | Routes present, AFTT entry/gates being verified | Do not silently discard active functionality |
+| Google Cast, PiP, hero/preview/blur/focus expansion | Explicitly disabled on AFTT | Keep disabled, no added GMS or expensive effects |
 
-Toolchain (pinned): JDK 17, Gradle 8.10.2 (wrapper committed), AGP 8.7.3,
-Kotlin 2.0.21, compileSdk 35, targetSdk 34, minSdk 21, Media3 1.8.1 (last line
-with minSdkVersion 21 per `constants.gradle`; 1.9.0 needs API 23), OkHttp 4.12.0,
-org.json (platform, plus `org.json:json` for JVM tests). No Compose, no
-`tools:overrideLibrary`, no NewApi suppressions.
+## Independent review and remediation ledger
 
-Evidence (local, API of the build host ≠ API 22 runtime):
-- `./gradlew :app:testDebugUnitTest :app:assembleDebug` → BUILD SUCCESSFUL,
-  18/18 unit tests green.
-- `./gradlew :app:lintDebug` → BUILD SUCCESSFUL, no NewApi errors.
-- `aapt2 dump badging app-debug.apk`: package `zepigit.firefin.app`, versionCode 1,
-  versionName `0.1.0-firefin`, minSdk 21, targetSdk 34, label `Firefin`,
-  launchable + leanback-launchable `zepigit.firefin.app.ui.HomeActivity`,
-  banner `res/drawable/tv_banner.png`.
-- Fixed along the way: `sdk.dir` property escaping, OkHttp 4 `MediaType.parse`
-  deprecation (error level), `Build.MODEL` null-safety, JVM-test `org.json`.
+| Review | Scope / SHA | Result and current interpretation |
+|---|---|---|
+| FF-P1-01/02 | History at 226ff14 then corrected 3af0e6b | PASS, valid for history only |
+| FF-P5-UI-01 | app at eb315af55 | F1–F12; prior claim "all fixed" withdrawn; recheck required |
+| FF-P5-CORE-01 | app at eb315af55 and dfae8305 | F1–F10; unsafe TS offset and report races remain at e32fcfbf |
+| FF-AUDIT-BUILD-01 | isolated e32fcfbf snapshot | Running: tests/lint/APK/CI evidence audit |
+| FF-AUDIT-UI-01 | isolated e32fcfbf snapshot | Running: reachability/parity and claimed fixes |
+| FF-AUDIT-RESEARCH-01 | isolated e32fcfbf + installed SDK/official sources | Running: API22 fixture prerequisites and timeline contract |
 
-## Phase 5 — Native flows 🟡 (core slice implemented)
+Confirmed current audit defects at e32fcfbf:
+- `lint.abortOnError=false` allowed at least nine Media3 opt-in errors to appear
+  green. No claim of clean lint or API22 runtime may derive from that exit code.
+- CI uploaded `app-release.apk`, while unsigned Gradle emits
+  `app-release-unsigned.apk`; upload missing-file behavior was not fail-closed.
+- Native signing settings were not wired at all. Legacy tag workflow could
+  publish debug-signed artifacts. Both release paths need fail-closed replacement.
+- `local.properties` was repeatedly reintroduced because the ignore pattern
+  covered only android/local.properties. Root file is being untracked and ignored.
+- TS resume added an offset without requesting the matching server offset,
+  so the previously claimed "exactly once" timeline was not true.
+- Terminal session set does not serialize already queued/in-flight reports and
+  grows for the whole process. Cleanup and reporting need a per-playback actor.
+- Image disk hits decode originals without bounded sampling/concurrency.
+- URI prefix matching, explicit cleartext consent and HLS origin authentication
+  are not yet secured; network errors and mutation statuses are inconsistent.
+- Stored/effective types and their tests are not proof of actual sync isolation.
 
-Implemented as real vertical slices (package `zepigit.firefin.app`):
-- Data: `JellyfinClient` (OkHttp; auth header incl. Token, AuthenticateByName,
-  Views, Resume/NextUp/Latest, Items browse with paging/sort, item/children,
-  PlaybackInfo with DeviceProfile, session reporting start/progress/stop,
-  remote sessions + commands, favorite/played toggles), `SessionStore`
-  (SharedPreferences, device id persisted; no passwords stored).
-- Util: `Ticks` (ms↔ticks), `Urls` (server normalization incl. subpath,
-  image/direct-stream URLs, root-relative transcoding join — regression-tested).
-- Images: `ArtworkPolicy` (320/640/960 classes, 480 poster height cap,
-  decode buckets + clamp), `ImageLoader` (LruCache ≤32 MiB / heap/8, disk cache
-  ≤64 MiB trimmed, max 2 concurrent fetches, single-axis cache keys).
-- Playback: `DeviceProfile` (H.264 direct play, stereo AAC, TS/HLS transcoding,
-  1280×720 + 4 000 000 bit/s ceilings), `PlaybackEngine` (Media3 ExoPlayer,
-  audio focus via setAudioAttributes, becoming-noisy handling).
-- UI: HomeActivity (resume/next-up/latest rows, toolbar, scroll restore),
-  LoginActivity, LibraryActivity (grid, paging, sort cycle), DetailActivity
-  (backdrop 960, play/resume, favorite/watched, episodes), PlayerActivity
-  (SurfaceView via PlayerView, deterministic D-Pad: center play/pause,
-  left/right seek 10 s, menu controller; progress every 10 s, Stopped on exit),
-  SearchActivity (debounce + stale-request cancellation), SettingsActivity,
-  RemoteActivity (session control Play/Pause/Stop).
-- Tests: UrlsTest, TicksTest, DeviceProfileTest (ceilings + buckets),
-  JellyfinClientTest (MockWebServer: login contract, PlaybackInfo body carries
-  profile ceilings, transcoding URL join).
+Current corrective work (not yet accepted): strict Lint with explicit Media3
+unstable-API opt-ins; version.properties; unsigned PR release checks; required
+production signing flag; exact APK checker; separate manual main-only protected
+release; legacy validation-only pipeline without publishing.
 
-**Not yet ported (honest status — NOT feature-complete):** Live TV incl. EPG,
-Seerr, downloads/offline, music browsing/audio player, books/comics reader,
-DLNA casting, Quick Connect, photo viewer, trailers, next-up/still-watching
-prompts, admin suite, plugin sync, subtitle/audio track selection dialogs,
-parental controls/PIN, screensaver, home-section customization. These remain
-legacy-only until ported; the migration must not be advertised as feature-equal
-until they land.
+## Agent routing evidence and limitations
 
-## Phase 6 — Performance & security rules 🟡
+Existing Agent tool successfully launched build-qa, ui and research for this
+new audit, using the existing named profiles and read-only snapshot prompts.
+The installed loader maps `thoughtLevel` to `modelSelection.options.reasoningLevel`.
+No provider-internal weight/effort attestation is available.
 
-Ported: image classes/caches/concurrency (incl. poster 480 height cap,
-backdrop fallback, shared OkHttp client, retry-on-failed-rebind), no
-blur/preview effects (native UI has none), stable ids actually enabled,
-sort-race guard, stored-vs-effective preference split with tests
-(`EffectiveDevicePreferences` — device limits exist only in the effective
-type and are excluded from serialization). The legacy global TLS bypass
-(`badCertificateCallback => true`) is **not** ported: the native stack uses
-default certificate and hostname verification; TLS failures fail visibly.
-A user-configurable trust-store path for self-hosted servers is still open.
+| Role | Profile model / effort observed | Current evidence |
+|---|---|---|
+| firefin-build-qa | openai/gpt-6-luna / max | Probe + independent baseline build requested |
+| firefin-ui | anthropic/claude-sonnet-5-5 / high | Probe + static parity review requested |
+| firefin-research | new-provider/gemini-3.8-flash / high | Probe + official source/SDK checks requested |
+| firefin-review | anthropic/claude-opus-5-5; project medium, user high | Conflicting scopes; effective setting must be resolved before claiming medium |
+| firefin-core | openai/gpt-6.1-sol / high | 272000 appears in description only; worker-specific context not proven |
 
-## Review cycle FF-P5-UI-01 (firefin-ui, SHA eb315af55) → fixed in dfae8305f
+The installed profile parser has no context-window field; inventing one in
+Markdown would not configure it. No global 272000 context override, new bridge,
+substitute model or silent effort fallback is authorized. Pending configuration
+requirements remain visible rather than being counted as successful probes.
 
-11 findings applied (F1–F11), highlights: **F1 BLOCKER** — media cards were
-not D-Pad focusable on API 22 (clickable ⇒ focusable only from API 26; fixed
-with explicit focusable/clickable), **F2** — PlayerView consumed keys while
-the controller was hidden (fixed: deterministic dispatchKeyEvent routing,
-MENU toggles, UP/DOWN open audio/subtitle track dialogs), **F3** — logout
-left stale Home on the back stack (fixed: CLEAR_TASK login start), plus
-stable ids, per-row poster/landscape artwork classes, loading/empty/error
-states, off-thread stop reporting, generation-guarded sorting, remote
-deviceId self-filter and PlayPause command. Runtime-only checks (real AFTT)
-remain open. Re-check of F1/F2/F3 suggested after fixes.
+## Audit work in progress
 
-## Review cycle FF-P5-CORE-01 (firefin-core) → partially fixed, remainder tracked
+- Strict pipeline and fail-closed verifier are being validated locally on the revised working tree; no green result is claimed until the exact SHA is committed and CI is rerun.
+- `ServerTransport` and URL hardening are implemented in the working tree but not yet integrated through every existing JellyfinClient/image/player call site; this remains an open integration gate.
+- API22 stock packages are available but not installed; no emulator smoke result exists.
 
-Findings F1–F10 against SHAs 284e7202f/eb315af55 (+ re-check of dfae8305f):
+## External gates (not waived)
 
-**Fixed in the follow-up commit:**
-- F1 (P1): `CodecProfiles.Type` used invalid enum values `VideoCodec`/
-  `VideoAudioCodec` → corrected to Jellyfin's `Video`/`VideoAudio`; test now
-  asserts the valid enum set (the old test pinned the wrong value).
-- F4 (P1): BACK-UP was consumed when the controller was hidden → key routing
-  now consumes only keys it actually handles; BACK always reaches the
-  framework.
-- F3 (P1, partial): `runBlocking` removed, activity scopes cancelled, stop
-  reports sent off-thread; progress reports after a terminal stop are dropped
-  (SessionReporter guard). Ordered per-generation event serialization with
-  cancellable HTTP remains open (P2-grade follow-up).
-- F2 (P1, contract): progressive TS transcodes are unseekable → implemented
-  the explicit restart contract: seek rebuilds the transcode URL with
-  `StartTimeTicks` and rebases the offset (`Urls.withStartTimeTicks`),
-  progress reports `offset + player position` (single application of resume).
-
-**Open (documented, not fixed yet):** F5 (report on player-state listeners,
-buffering vs. pause, MediaSourceId/PlayMethod reporting), F6 (disk-cache
-decode bypasses sampling limits), F7 (uniform HTTP error handling incl. 401
-surfacing), F8 (media source selection by Support* flags), F9 (transport/
-redirect token policy incl. cross-origin 307 on login; OkHttp strips
-Authorization cross-origin, query tokens are not), F10 (playback request
-lifecycle bound to activity), plus HLS negotiation decision (current profile
-negotiates progressive TS with an explicit restart contract instead).
-These are tracked for the next slices before a release candidate.
-
-## Native CI (Phase 7) ✅ first green run
-
-`.github/workflows/android.yml` — PR/push/dispatch + `v*` tag release path:
-`testDebugUnitTest`, `lintDebug`, `assembleDebug`, `assembleRelease` (R8,
-debug-signed fallback without secrets). First full run on `firefin/dev`
-(36869237388): **success in 5m25s** incl. release/R8. Fixed on the way:
-`gradlew` exec bit. Release publication still requires FIREFIN_* signing
-secrets (open, user-provided). Legacy `build.yml` continues as baseline.
-
-## Subagent routing preflight (§6.1)
-
-Session after restart, roles from `.zcode/agents/` registered globally in
-`~/.zcode/agents/`:
-
-| Role | Model (as configured) | Probe | Status |
-|---|---|---|---|
-| firefin-review | claude-opus-5-5, medium | FF-P1-01/02 real reviews | CONFIGURED_AND_PROBED |
-| firefin-research | gemini-3.8-flash, high | file read probe | CONFIGURED_AND_PROBED |
-| firefin-ui | claude-sonnet-5-5, high | ArtworkPolicy parity check (found: poster height, clamp) | CONFIGURED_AND_PROBED |
-| firefin-core | gpt-6.1-sol, high (272000 worker ctx per config) | DeviceProfile/URL review (found: subpath join bug, fixed) | CONFIGURED_AND_PROBED |
-| firefin-build-qa | gpt-6-luna, max | gradle/YAML read probe | CONFIGURED_AND_PROBED |
-
-Provider-internal model/effort attestation is not exposed by the harness;
-internal model identity is therefore unattested (documented limitation, no
-self-declaration accepted). Max 3 concurrent subagents respected.
-
-## Phase 1 correction log (post-review)
-
-- FF-P1-01 REVIEW PASS; F1 (LOW, leaked GIT_COMMITTER_* onto legacy replay)
-  fixed by redoing the rebase with `--committer-date-is-author-date`; FF-P1-02
-  re-check: REVIEW PASS. Corrected tree IDs: `fbd4a3c^{tree}` =
-  `79eb22b2fb506ccd67cf34c8d89cb0234199097f` (delta commit target), final main
-  tree = `94a6903d88e2e4089da8f6ecf60a67e6f9f6ac09` (both preserved).
-- Branch layout: development on `firefin/dev` in the main worktree;
-  `repair-main`/`repair-legacy` are frozen references of the reconstruction
-  (pushed as `origin/repair/history-main`). `origin/main` is still the old
-  squash lineage; replacement requires explicit user approval.
-
-## Phase 2 — Legacy CI status
-
-- Workflow accepted; jobs now run (1m27s failure vs 0 s validation failure
-  before). First real failure: `widget_test` pumping the whole app
-  (StateError from platform-channel services) — pre-existing, now exposed and
-  fixed (kAppName = 'Firefin', test pins identity instead of booting DI).
-- `repair/history-main` CI failures are expected: that branch preserves the
-  historical tree including the old broken workflow.
-
-## Phases 7–8
-
-Open: native CI workflow (Phase 7), Flutter legacy removal + docs (Phase 8),
-published-main history replacement (needs explicit user approval), AFTT
-hardware tests (device ADB access not yet available), release signing keys
-(not available; CI release path will require FIREFIN_* secrets).
+- No explicit approval to replace the published main history has been given.
+- Production signing key, pinned signing certificate and protected release
+  environment must be available before a release can succeed; no debug-key release.
+- API22 stock emulator and actual AFTT are separate evidence. Neither was proven
+  in the preceding work. Hardware release approval remains separate from x86 smoke.
+- Test account credentials/tokens and raw server content are private; never copy
+  them into sources, CI, prompts or public documentation. Login success alone is
+  not a complete playback test.

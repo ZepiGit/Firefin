@@ -33,6 +33,7 @@ class LibraryActivity : AppCompatActivity() {
     private var loading = false
     private var sortByIndex = 0
     private var generation = 0
+    private var requestJob: kotlinx.coroutines.Job? = null
 
     private val sortOptions = listOf(
         "SortName" to "Ascending",
@@ -64,6 +65,8 @@ class LibraryActivity : AppCompatActivity() {
         findViewById<Button>(R.id.sortButton).setOnClickListener {
             sortByIndex = (sortByIndex + 1) % sortOptions.size
             generation++
+            requestJob?.cancel()
+            loading = false
             adapter.submit(emptyList())
             total = -1
             loadMore()
@@ -83,7 +86,7 @@ class LibraryActivity : AppCompatActivity() {
         val gen = generation
         val start = adapter.itemCount
         val (by, order) = sortOptions[sortByIndex]
-        scope.launch {
+        requestJob = scope.launch {
             try {
                 val (items, totalCount) = ServiceLocator.client.items(
                     parentId = libraryId,

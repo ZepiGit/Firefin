@@ -116,3 +116,11 @@ firefin-pre-repair-*.bundle
 
 # Backup artifacts
 *.bundle
+
+# Native Android local configuration and outputs
+/local.properties
+/keystore.properties
+/.kotlin/
+/artifacts/
+Firefin_*.apk
+SHA256SUMS.txt

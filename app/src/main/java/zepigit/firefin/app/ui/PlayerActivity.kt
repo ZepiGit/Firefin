@@ -32,6 +32,7 @@ import zepigit.firefin.app.util.Urls
  * = play/pause, left/right = seek. Progress is reported every 10 s and on
  * pause; stop position is reported best-effort after release. No auto retries.
  */
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class PlayerActivity : AppCompatActivity() {
 
     private val scope = CoroutineScope(Dispatchers.Main + Job())
@@ -41,7 +42,9 @@ class PlayerActivity : AppCompatActivity() {
     private var itemId = ""
     private var playSessionId = ""
     private var isTranscode = false
+    private var isHls = false
     private var transcodeOffsetMs = 0L
+    private var reporter: SessionReporter? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,6 +54,7 @@ class PlayerActivity : AppCompatActivity() {
         val url = intent.getStringExtra(EXTRA_URL) ?: return finish()
         val startMs = intent.getLongExtra(EXTRA_START, 0L)
         isTranscode = intent.getBooleanExtra(EXTRA_TRANSCODE, false)
+        isHls = intent.getBooleanExtra(EXTRA_HLS, false)
         val name = intent.getStringExtra(EXTRA_NAME) ?: "Firefin"
         title = name
 
@@ -61,25 +65,20 @@ class PlayerActivity : AppCompatActivity() {
         }
         // TS-over-HTTP transcodes start at the requested offset; the reported
         // position and seeks must account for that offset (no double apply).
-        transcodeOffsetMs = if (isTranscode) startMs else 0L
+        transcodeOffsetMs = if (isTranscode && !isHls) startMs else 0L
         engine?.player?.addListener(object : androidx.media3.common.Player.Listener {
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                 Toast.makeText(this@PlayerActivity, error.errorCodeName, Toast.LENGTH_LONG).show()
             }
         })
 
+        reporter = SessionReporter(ServiceLocator.client, itemId, playSessionId, intent.getStringExtra(EXTRA_SOURCE).orEmpty(), scope)
+        reporter?.playing()
         scope.launch {
-            runCatching { ServiceLocator.client.reportPlaying(itemId, playSessionId) }
             while (isActive && reporting) {
                 delay(10_000)
                 val p = engine?.player ?: break
-                SessionReporter.reportProgress(
-                    ServiceLocator.client,
-                    itemId,
-                    playSessionId,
-                    Ticks.fromMs(actualPositionMs(p)),
-                    !p.isPlaying,
-                )
+                reporter?.progress(Ticks.fromMs(actualPositionMs(p)), !p.isPlaying)
             }
         }
     }
@@ -90,7 +89,7 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun seekTo(targetPlayerMs: Long) {
         val player = engine?.player ?: return
-        if (!isTranscode) {
+        if (!isTranscode || isHls) {
             player.seekTo(targetPlayerMs.coerceAtLeast(0))
             return
         }
@@ -110,13 +109,7 @@ class PlayerActivity : AppCompatActivity() {
         super.onPause()
         val p = engine?.player ?: return
         p.pause()
-        SessionReporter.reportProgress(
-            ServiceLocator.client,
-            itemId,
-            playSessionId,
-            Ticks.fromMs(actualPositionMs(p)),
-            true,
-        )
+        reporter?.progress(Ticks.fromMs(actualPositionMs(p)), true)
     }
 
     override fun onDestroy() {
@@ -125,7 +118,7 @@ class PlayerActivity : AppCompatActivity() {
         if (p != null) {
             val positionTicks = Ticks.fromMs(actualPositionMs(p))
             p.release()
-            SessionReporter.reportStopped(ServiceLocator.client, itemId, playSessionId, positionTicks)
+            reporter?.stopped(positionTicks)
         }
         engine = null
         scope.cancel()
@@ -163,13 +156,14 @@ class PlayerActivity : AppCompatActivity() {
         if (event.action == KeyEvent.ACTION_DOWN) {
             val player = engine?.player
             when (keyCode) {
-                KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
-                KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN,
-                KeyEvent.KEYCODE_MENU,
-                -> {
-                    playerView.showController()
-                    return true
-                }
+                KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
+                if (player != null) { if (player.isPlaying) player.pause() else player.play() }
+                return true
+            }
+            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_MENU -> {
+                playerView.showController()
+                return true
+            }
                 KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_MEDIA_REWIND -> {
                     seekTo((player?.currentPosition ?: 0L) - SEEK_MS)
                     return true
@@ -197,7 +191,8 @@ class PlayerActivity : AppCompatActivity() {
     private const val EXTRA_SOURCE = "p.source"
     private const val EXTRA_START = "p.start"
     private const val EXTRA_NAME = "p.name"
-    private const val EXTRA_TRANSCODE = "p.transcode"
+        private const val EXTRA_TRANSCODE = "p.transcode"
+        private const val EXTRA_HLS = "p.hls"
 
     fun start(
         context: Context,
@@ -208,6 +203,7 @@ class PlayerActivity : AppCompatActivity() {
         startMs: Long,
         name: String,
         isTranscode: Boolean = false,
+        isHls: Boolean = false,
     ) {
         context.startActivity(
             Intent(context, PlayerActivity::class.java)
@@ -217,7 +213,8 @@ class PlayerActivity : AppCompatActivity() {
                 .putExtra(EXTRA_SOURCE, mediaSourceId)
                 .putExtra(EXTRA_START, startMs)
                 .putExtra(EXTRA_NAME, name)
-                .putExtra(EXTRA_TRANSCODE, isTranscode),
+                .putExtra(EXTRA_TRANSCODE, isTranscode)
+                .putExtra(EXTRA_HLS, isHls),
         )
     }
     }

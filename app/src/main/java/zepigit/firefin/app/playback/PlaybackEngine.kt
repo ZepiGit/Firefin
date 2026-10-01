@@ -16,6 +16,7 @@ import androidx.media3.datasource.okhttp.OkHttpDataSource
  * Audio focus and noisy-pair handling are delegated to ExoPlayer so there is
  * exactly one owner of focus per playback session.
  */
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class PlaybackEngine(context: Context, okHttpClient: okhttp3.OkHttpClient) {
 
     val player: ExoPlayer = ExoPlayer.Builder(

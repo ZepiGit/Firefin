@@ -1,64 +1,73 @@
 package zepigit.firefin.app.util
 
-/** Jellyfin URL helpers: server base normalization, API and image URLs. */
-object Urls {
+import okhttp3.HttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrl
 
-    /** Normalizes a user-provided server address to "<scheme>://host[:port][/subpath]" without trailing slash. */
+object Urls {
     fun normalizeServer(input: String): String {
-        var url = input.trim()
-        if (url.isEmpty()) throw IllegalArgumentException("Empty server URL")
-        if (!url.startsWith("http://") && !url.startsWith("https://")) {
-            url = "http://$url"
+        val value = input.trim()
+        require(value.isNotEmpty()) { "Enter a server address." }
+        val qualified = if (value.contains("://")) value else "https://$value"
+        val url = qualified.toHttpUrl()
+        require(url.username.isEmpty() && url.password.isEmpty() && url.query == null && url.fragment == null) {
+            "Server addresses must not include credentials, query parameters or fragments."
         }
-        while (url.endsWith("/")) url = url.dropLast(1)
-        return url
+        return url.toString().trimEnd('/')
     }
 
     fun imageUrl(
-        baseUrl: String,
-        itemId: String,
-        imageType: String,
-        maxWidth: Int,
-        tag: String?,
-        accessToken: String,
-        maxHeight: Int? = null,
+        baseUrl: String, itemId: String, imageType: String, maxWidth: Int,
+        tag: String?, accessToken: String = "", maxHeight: Int? = null,
     ): String {
-        val sb = StringBuilder(baseUrl)
-            .append("/Items/").append(itemId)
-            .append("/Images/").append(imageType)
-            .append("?maxWidth=").append(maxWidth)
-        if (maxHeight != null) sb.append("&maxHeight=").append(maxHeight)
-        sb.append("&quality=90")
-        if (!tag.isNullOrEmpty()) sb.append("&tag=").append(tag)
-        if (accessToken.isNotEmpty()) sb.append("&api_key=").append(accessToken)
-        return sb.toString()
+        val builder = (normalizeServer(baseUrl) + "/").toHttpUrl().newBuilder()
+            .addPathSegment("Items").addPathSegment(itemId).addPathSegment("Images").addPathSegment(imageType)
+            .addQueryParameter("maxWidth", maxWidth.coerceIn(1, 960).toString())
+        maxHeight?.let { builder.addQueryParameter("maxHeight", it.coerceIn(1, 960).toString()) }
+        builder.addQueryParameter("quality", "90")
+        if (!tag.isNullOrBlank()) builder.addQueryParameter("tag", tag)
+        // Authentication belongs to the origin-bound HTTP client, never a cache key or URI.
+        return builder.build().toString()
     }
 
-    fun directStreamUrl(baseUrl: String, itemId: String, mediaSourceId: String, accessToken: String): String =
-        "$baseUrl/Videos/$itemId/stream?static=true&MediaSourceId=$mediaSourceId&api_key=$accessToken"
+    fun directStreamUrl(baseUrl: String, itemId: String, mediaSourceId: String, accessToken: String = ""): String =
+        (normalizeServer(baseUrl) + "/").toHttpUrl().newBuilder()
+            .addPathSegment("Videos").addPathSegment(itemId).addPathSegment("stream")
+            .addQueryParameter("static", "true").addQueryParameter("MediaSourceId", mediaSourceId).build().toString()
 
-    /** Replaces or appends StartTimeTicks on a transcoding URL when restarting a transcode. */
     fun withStartTimeTicks(url: String, ticks: Long): String {
-        val cleaned = url.replaceFirst("""[?&]StartTimeTicks=\d+""".toRegex(), "")
-        val separator = if (cleaned.contains("?")) "&" else "?"
-        return cleaned + separator + "StartTimeTicks=" + ticks
+        require(ticks >= 0)
+        return replaceQuery(url.toHttpUrl(), "StartTimeTicks", ticks.toString()).toString()
     }
 
-    /**
-     * Transcoding paths returned by PlaybackInfo are root-relative; they may or
-     * may not already contain the base URL's subpath. Join at the origin when
-     * the subpath is present, otherwise at the full base URL.
-     */
+    fun replaceQuery(url: HttpUrl, key: String, value: String): HttpUrl {
+        val builder = url.newBuilder()
+        url.queryParameterNames.filter { it.equals(key, ignoreCase = true) }.forEach(builder::removeAllQueryParameters)
+        return builder.addQueryParameter(key, value).build()
+    }
+
+    fun stripCredentials(url: String): String {
+        val parsed = url.toHttpUrl()
+        val builder = parsed.newBuilder()
+        parsed.queryParameterNames.filter { it.lowercase() in setOf("api_key", "apikey", "access_token", "token") }
+            .forEach(builder::removeAllQueryParameters)
+        return builder.build().toString()
+    }
+
     fun resolveRelative(baseUrl: String, path: String): String {
-        if (path.startsWith("http://") || path.startsWith("https://")) return path
-        val base = baseUrl.trimEnd('/')
-        val suffix = if (path.startsWith("/")) path else "/$path"
-        val basePath = runCatching { java.net.URI(baseUrl).rawPath ?: "" }.getOrDefault("")
-        return if (basePath.isNotEmpty() && suffix.startsWith(basePath)) {
-            val origin = baseUrl.removeSuffix(basePath).trimEnd('/')
-            origin + suffix
-        } else {
-            base + suffix
+        val base = (normalizeServer(baseUrl) + "/").toHttpUrl()
+        require(!path.startsWith("//")) { "Network-path URLs are not permitted." }
+        val prefix = base.encodedPath.trimEnd('/')
+        val alreadyPrefixed = prefix.isNotEmpty() && (path == prefix || path.startsWith("$prefix/") || path.startsWith("$prefix?"))
+        val candidate = when {
+            path.contains("://") -> path.toHttpUrl()
+            alreadyPrefixed -> base.resolve(path)
+            else -> base.resolve(path.removePrefix("/"))
+        } ?: throw IllegalArgumentException("Invalid media URL")
+        require(candidate.scheme == base.scheme && candidate.host == base.host && candidate.port == base.port &&
+            candidate.username.isEmpty() && candidate.password.isEmpty() &&
+            (prefix.isEmpty() || candidate.encodedPath == prefix || candidate.encodedPath.startsWith("$prefix/"))) {
+            "Media URL is outside the configured server."
         }
+        return candidate.toString()
     }
 }
