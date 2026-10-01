@@ -24,7 +24,7 @@ Evidence basis: branch `firefin/dev`, commit `cacd4efc90f2c1a5043fe43503b005fe2e
 and later follow-up commits (see commit history). Native Android CI run
 `36926364003` = success on `cacd4efc9`; the legacy validation workflow is
 path-filtered and runs only when legacy sources change. Later commits (incl. the native fixes in `16b6911e5`) are NOT covered by
-run `36926364003`; their own CI result is listed in the commit history.
+run `36926364003`; their CI results are in the GitHub Actions run history for each SHA.
 
 | Evidence | Status |
 |---|---|
