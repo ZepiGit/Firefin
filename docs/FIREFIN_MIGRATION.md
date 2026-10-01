@@ -98,13 +98,110 @@ minSdk 21 (runtime verification on API 22). Moonfin remains credited as origin
 - Install note (native app): new applicationId = different Android app, fresh
   login required, old app can stay installed; no token/setting migration.
 
-## Phase 4 — Native API 22 base 🟡
+## Phase 4 — Native API 22 base ✅ (local build + tests green)
 
-Toolchain: JDK 17, Gradle 8.10.2, AGP 8.7.3, Kotlin 2.0.21, compileSdk 35,
-targetSdk 34, minSdk 21, Media3 1.8.1 (last line with minSdkVersion 21; 1.9.0
-needs API 23), OkHttp 4.12.0, org.json (platform). Dependency matrix with
-API-22 evidence: see `docs/DEPENDENCY_MATRIX.md`.
+Toolchain (pinned): JDK 17, Gradle 8.10.2 (wrapper committed), AGP 8.7.3,
+Kotlin 2.0.21, compileSdk 35, targetSdk 34, minSdk 21, Media3 1.8.1 (last line
+with minSdkVersion 21 per `constants.gradle`; 1.9.0 needs API 23), OkHttp 4.12.0,
+org.json (platform, plus `org.json:json` for JVM tests). No Compose, no
+`tools:overrideLibrary`, no NewApi suppressions.
 
-## Phases 5–8
+Evidence (local, API of the build host ≠ API 22 runtime):
+- `./gradlew :app:testDebugUnitTest :app:assembleDebug` → BUILD SUCCESSFUL,
+  18/18 unit tests green.
+- `./gradlew :app:lintDebug` → BUILD SUCCESSFUL, no NewApi errors.
+- `aapt2 dump badging app-debug.apk`: package `zepigit.firefin.app`, versionCode 1,
+  versionName `0.1.0-firefin`, minSdk 21, targetSdk 34, label `Firefin`,
+  launchable + leanback-launchable `zepigit.firefin.app.ui.HomeActivity`,
+  banner `res/drawable/tv_banner.png`.
+- Fixed along the way: `sdk.dir` property escaping, OkHttp 4 `MediaType.parse`
+  deprecation (error level), `Build.MODEL` null-safety, JVM-test `org.json`.
 
-See the phase checklist at the top; updated as slices land.
+## Phase 5 — Native flows 🟡 (core slice implemented)
+
+Implemented as real vertical slices (package `zepigit.firefin.app`):
+- Data: `JellyfinClient` (OkHttp; auth header incl. Token, AuthenticateByName,
+  Views, Resume/NextUp/Latest, Items browse with paging/sort, item/children,
+  PlaybackInfo with DeviceProfile, session reporting start/progress/stop,
+  remote sessions + commands, favorite/played toggles), `SessionStore`
+  (SharedPreferences, device id persisted; no passwords stored).
+- Util: `Ticks` (ms↔ticks), `Urls` (server normalization incl. subpath,
+  image/direct-stream URLs, root-relative transcoding join — regression-tested).
+- Images: `ArtworkPolicy` (320/640/960 classes, 480 poster height cap,
+  decode buckets + clamp), `ImageLoader` (LruCache ≤32 MiB / heap/8, disk cache
+  ≤64 MiB trimmed, max 2 concurrent fetches, single-axis cache keys).
+- Playback: `DeviceProfile` (H.264 direct play, stereo AAC, TS/HLS transcoding,
+  1280×720 + 4 000 000 bit/s ceilings), `PlaybackEngine` (Media3 ExoPlayer,
+  audio focus via setAudioAttributes, becoming-noisy handling).
+- UI: HomeActivity (resume/next-up/latest rows, toolbar, scroll restore),
+  LoginActivity, LibraryActivity (grid, paging, sort cycle), DetailActivity
+  (backdrop 960, play/resume, favorite/watched, episodes), PlayerActivity
+  (SurfaceView via PlayerView, deterministic D-Pad: center play/pause,
+  left/right seek 10 s, menu controller; progress every 10 s, Stopped on exit),
+  SearchActivity (debounce + stale-request cancellation), SettingsActivity,
+  RemoteActivity (session control Play/Pause/Stop).
+- Tests: UrlsTest, TicksTest, DeviceProfileTest (ceilings + buckets),
+  JellyfinClientTest (MockWebServer: login contract, PlaybackInfo body carries
+  profile ceilings, transcoding URL join).
+
+**Not yet ported (honest status — NOT feature-complete):** Live TV incl. EPG,
+Seerr, downloads/offline, music browsing/audio player, books/comics reader,
+DLNA casting, Quick Connect, photo viewer, trailers, next-up/still-watching
+prompts, admin suite, plugin sync, subtitle/audio track selection dialogs,
+parental controls/PIN, screensaver, home-section customization. These remain
+legacy-only until ported; the migration must not be advertised as feature-equal
+until they land.
+
+## Phase 6 — Performance & security rules 🟡
+
+Ported: image classes/caches/concurrency, no blur/preview effects (native UI
+has none), stable ids + payload-free adapters, stored-vs-effective preference
+separation pending (settings surface is minimal so far). The legacy global TLS
+bypass (`badCertificateCallback => true`) is **not** ported: the native stack
+uses default certificate and hostname verification; TLS failures fail visibly.
+A user-configurable trust-store path for self-hosted servers is still open.
+
+## Subagent routing preflight (§6.1)
+
+Session after restart, roles from `.zcode/agents/` registered globally in
+`~/.zcode/agents/`:
+
+| Role | Model (as configured) | Probe | Status |
+|---|---|---|---|
+| firefin-review | claude-opus-5-5, medium | FF-P1-01/02 real reviews | CONFIGURED_AND_PROBED |
+| firefin-research | gemini-3.8-flash, high | file read probe | CONFIGURED_AND_PROBED |
+| firefin-ui | claude-sonnet-5-5, high | ArtworkPolicy parity check (found: poster height, clamp) | CONFIGURED_AND_PROBED |
+| firefin-core | gpt-6.1-sol, high (272000 worker ctx per config) | DeviceProfile/URL review (found: subpath join bug, fixed) | CONFIGURED_AND_PROBED |
+| firefin-build-qa | gpt-6-luna, max | gradle/YAML read probe | CONFIGURED_AND_PROBED |
+
+Provider-internal model/effort attestation is not exposed by the harness;
+internal model identity is therefore unattested (documented limitation, no
+self-declaration accepted). Max 3 concurrent subagents respected.
+
+## Phase 1 correction log (post-review)
+
+- FF-P1-01 REVIEW PASS; F1 (LOW, leaked GIT_COMMITTER_* onto legacy replay)
+  fixed by redoing the rebase with `--committer-date-is-author-date`; FF-P1-02
+  re-check: REVIEW PASS. Corrected tree IDs: `fbd4a3c^{tree}` =
+  `79eb22b2fb506ccd67cf34c8d89cb0234199097f` (delta commit target), final main
+  tree = `94a6903d88e2e4089da8f6ecf60a67e6f9f6ac09` (both preserved).
+- Branch layout: development on `firefin/dev` in the main worktree;
+  `repair-main`/`repair-legacy` are frozen references of the reconstruction
+  (pushed as `origin/repair/history-main`). `origin/main` is still the old
+  squash lineage; replacement requires explicit user approval.
+
+## Phase 2 — Legacy CI status
+
+- Workflow accepted; jobs now run (1m27s failure vs 0 s validation failure
+  before). First real failure: `widget_test` pumping the whole app
+  (StateError from platform-channel services) — pre-existing, now exposed and
+  fixed (kAppName = 'Firefin', test pins identity instead of booting DI).
+- `repair/history-main` CI failures are expected: that branch preserves the
+  historical tree including the old broken workflow.
+
+## Phases 7–8
+
+Open: native CI workflow (Phase 7), Flutter legacy removal + docs (Phase 8),
+published-main history replacement (needs explicit user approval), AFTT
+hardware tests (device ADB access not yet available), release signing keys
+(not available; CI release path will require FIREFIN_* secrets).

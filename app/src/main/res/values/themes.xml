@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Firefin" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:colorPrimary">#0288D1</item>
+        <item name="android:colorPrimaryDark">#01579B</item>
+        <item name="android:colorAccent">#4FC3F7</item>
+        <item name="android:textColorPrimary">#F5F5F5</item>
+        <item name="android:textColorSecondary">#B0BEC5</item>
+    </style>
+
+    <style name="Theme.Firefin.Player" parent="Theme.Firefin">
+        <item name="android:windowBackground">@android:color/black</item>
+    </style>
+</resources>
