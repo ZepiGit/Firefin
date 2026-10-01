@@ -23,8 +23,8 @@ Native identity: `zepigit.firefin.app`, `0.2.0-firefin`, versionCode `3001000`
 Evidence basis: branch `firefin/dev`, commit `cacd4efc90f2c1a5043fe43503b005fe2e35036e`
 and later follow-up commits (see commit history). Native Android CI run
 `36926364003` = success on `cacd4efc9`; the legacy validation workflow is
-path-filtered and runs only when legacy sources change. Later doc-only commits
-do not change native code.
+path-filtered and runs only when legacy sources change. Later commits (incl. the native fixes in `16b6911e5`) are NOT covered by
+run `36926364003`; their own CI result is listed in the commit history.
 
 | Evidence | Status |
 |---|---|
@@ -33,7 +33,7 @@ do not change native code.
 | CI (`android.yml`) on `cacd4efc9` | Success (run `36926364003`); later commits rerun CI on push |
 | Physical AFTT (ARMv7) run | **Absent** |
 | Signed release (protected `release.yml`, production key, pinned fingerprint) | **Absent**; workflow never run |
-| API 22 playback/D-Pad smoke; media redirect tests; feature parity (Quick Connect, all library types, Live TV, Seerr, downloads, music, books, DLNA, admin, plugin sync) | **Open** |
+| API 22 playback/D-Pad smoke; media redirect behavior on device (JVM test present); feature parity (Quick Connect, all library types, Live TV, Seerr, downloads, music, books, DLNA, admin, plugin sync) | **Open** |
 
 The old "18/21 tests" and "5m25s" CI figures describe earlier trees and are not
 current evidence.
@@ -198,13 +198,13 @@ Markdown would not configure it. No global 272000 context override, new bridge,
 substitute model or silent effort fallback is authorized. Pending configuration
 requirements remain visible rather than being counted as successful probes.
 
-## Audit work in progress
+## Historical audit notes (superseded)
 
 - Strict pipeline and fail-closed verifier passed an equivalent local run on the
   working tree (29 tests, lint 0 errors / 58 warnings, R8 release APK). No green
   CI result is claimed until the fixes are committed and `android.yml` runs on
-  that exact SHA. (Historical note: superseded by later commits; final basis is
-  top of `8d53ab583`).
+  that exact SHA. (Historical: this state preceded `56134a362`/`cacd4efc9`; the current
+  evidence basis is in the header snapshot.)
 - All REST traffic goes through `ServerTransport.http`; Media3 and the image
   loader use `ServerTransport.mediaHttp` via `JellyfinClient.okHttp`. That media
   client split landed later. The commit message of `8d53ab583` mentions it, but

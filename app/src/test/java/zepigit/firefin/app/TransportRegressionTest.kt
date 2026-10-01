@@ -97,17 +97,20 @@ class TransportRegressionTest {
             assertThrows(java.io.IOException::class.java) {
                 transport.mediaHttp.newCall(okhttp3.Request.Builder().url(origin.url("playlist.m3u8")).build()).execute()
             }
+            assertEquals(4, origin.requestCount)
             // Cross-origin redirect is refused before sending.
             origin.enqueue(MockResponse().setResponseCode(302).setHeader("Location", other.url("/stolen")))
             assertThrows(java.io.IOException::class.java) {
                 transport.mediaHttp.newCall(okhttp3.Request.Builder().url(origin.url("playlist.m3u8")).build()).execute()
             }
             assertEquals(0, other.requestCount)
-            // Non-GET redirects are never replayed.
-            origin.enqueue(MockResponse().setResponseCode(307).setHeader("Location", other.url("/stolen")))
+            // Non-GET redirects are never replayed, even to the same origin.
+            val before = origin.requestCount
+            origin.enqueue(MockResponse().setResponseCode(307).setHeader("Location", origin.url("/hop")))
             assertThrows(java.io.IOException::class.java) {
                 transport.mediaHttp.newCall(okhttp3.Request.Builder().url(origin.url("submit")).post(okhttp3.RequestBody.create(null, "x")).build()).execute()
             }
+            assertEquals(before + 1, origin.requestCount)
             assertEquals(0, other.requestCount)
         } }
     }
