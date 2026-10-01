@@ -6,15 +6,27 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
-import zepigit.firefin.app.data.JellyfinClient
+import org.json.JSONObject
+import zepigit.firefin.app.data.ServerResponseException
+import zepigit.firefin.app.data.ServerTransport
 
-/** Ordered, terminal session reporter: Playing < Progress* < Stopped. */
+/**
+ * Ordered, terminal session reporter for one playback:
+ * Playing < (conflated latest Progress)? < Stopped < (ActiveEncodings|LiveStreams cleanup, once).
+ * It owns an immutable [ServerTransport] snapshot, so account switching can
+ * never send a previous playback's credentials to the next account. The
+ * terminal stop is delivered even when the player activity is destroyed, and
+ * cleanup is best-effort: HTTP 404 counts as already cleaned, other failures
+ * are swallowed once without retry loops. Nothing here claims a server-side
+ * effect — only the client-side send order is guaranteed.
+ */
 class SessionReporter(
-    private val client: JellyfinClient,
+    private val transport: ServerTransport,
     private val itemId: String,
     private val sessionId: String,
     private val mediaSourceId: String,
     private val playMethod: String,
+    private val liveStreamId: String = "",
 ) {
     private sealed interface Event {
         data object Playing : Event
@@ -23,23 +35,100 @@ class SessionReporter(
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val events = Channel<Event>(Channel.UNLIMITED)
+    private val wake = Channel<Unit>(Channel.CONFLATED)
+    private val lock = Any()
+    private var latestProgress: Event.Progress? = null
+    private var terminal: Event.Stopped? = null
+    private var closed = false
+
     private val worker = scope.launch {
-        for (event in events) {
-            runCatching {
-                when (event) {
-                    Event.Playing -> client.reportPlaying(itemId, sessionId, mediaSourceId, playMethod)
-                    is Event.Progress -> client.reportProgress(itemId, sessionId, event.ticks, event.paused, mediaSourceId)
-                    is Event.Stopped -> client.reportStopped(itemId, sessionId, event.ticks, mediaSourceId)
-                }
+        send(Event.Playing)
+        while (true) {
+            wake.receive()
+            val nextProgress: Event.Progress?
+            val stop: Event.Stopped?
+            synchronized(lock) {
+                nextProgress = latestProgress
+                latestProgress = null
+                stop = terminal
             }
-            if (event is Event.Stopped) break
+            if (nextProgress != null) send(nextProgress)
+            if (stop != null) {
+                send(stop)
+                cleanupTranscode()
+                break
+            }
         }
         scope.cancel()
     }
 
-    fun playing() { events.trySend(Event.Playing) }
-    fun progress(ticks: Long, paused: Boolean) { events.trySend(Event.Progress(ticks, paused)) }
-    fun stopped(ticks: Long) { events.trySend(Event.Stopped(ticks)); events.close() }
-    fun cancel() { events.close(); scope.cancel(); worker.cancel() }
+    /** Playing is sent by the worker before any progress; this is kept for call-site symmetry. */
+    fun playing() = Unit
+
+    fun progress(ticks: Long, paused: Boolean) {
+        synchronized(lock) {
+            if (closed) return
+            latestProgress = Event.Progress(ticks, paused)
+        }
+        wake.trySend(Unit)
+    }
+
+    fun stopped(ticks: Long) {
+        synchronized(lock) {
+            if (closed) return
+            closed = true
+            terminal = Event.Stopped(ticks)
+        }
+        wake.trySend(Unit)
+    }
+
+    fun cancel() {
+        synchronized(lock) { closed = true }
+        wake.close()
+        scope.cancel()
+        worker.cancel()
+    }
+
+    /** Test/teardown helper: waits until the terminal stop (and cleanup) has been sent. */
+    suspend fun awaitTerminal(timeoutMs: Long = 30_000) = kotlinx.coroutines.withTimeout(timeoutMs) { worker.join() }
+
+    private suspend fun send(event: Event) {
+        runCatching {
+            when (event) {
+                Event.Playing -> transport.json(
+                    "Sessions/Playing", "POST",
+                    sessionEventBody().put("MediaSourceId", mediaSourceId)
+                        .put("PlayMethod", playMethod).put("CanSeek", true).toString(),
+                )
+                is Event.Progress -> transport.json(
+                    "Sessions/Playing/Progress", "POST",
+                    sessionEventBody().put("PositionTicks", event.ticks).put("IsPaused", event.paused)
+                        .put("MediaSourceId", mediaSourceId).put("CanSeek", true).toString(),
+                )
+                is Event.Stopped -> transport.json(
+                    "Sessions/Playing/Stopped", "POST",
+                    sessionEventBody().put("PositionTicks", event.ticks)
+                        .put("MediaSourceId", mediaSourceId).toString(),
+                )
+            }
+        }
+    }
+
+    /** One-shot, idempotent transcode teardown bound to this playback session only. */
+    private suspend fun cleanupTranscode() {
+        runCatching {
+            val query = "?DeviceId=" + urlEncode(transport.deviceId) + "&PlaySessionId=" + urlEncode(sessionId)
+            transport.json("Videos/ActiveEncodings$query", "DELETE")
+        }.onFailure { if (it !is ServerResponseException || it.status != 404) Unit }
+        if (liveStreamId.isNotBlank()) {
+            runCatching {
+                transport.json("LiveStreams/Close", "POST", JSONObject().put("LiveStreamId", liveStreamId).toString())
+            }.onFailure { if (it !is ServerResponseException || it.status != 404) Unit }
+        }
+    }
+
+    private fun urlEncode(value: String): String = java.net.URLEncoder.encode(value, "UTF-8")
+
+    private fun sessionEventBody(): JSONObject =
+        JSONObject().put("ItemId", itemId).put("PlaySessionId", sessionId)
 }

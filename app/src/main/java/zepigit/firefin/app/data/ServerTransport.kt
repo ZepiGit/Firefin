@@ -24,7 +24,7 @@ class ServerResponseException(val status: Int) : IOException("Server request fai
 class ServerCredentials(val serverUrl: String, val userId: String, val token: String)
 
 /** A single origin-bound, cancellable HTTP stack shared by REST, images and Media3. */
-class ServerTransport(initial: ServerCredentials, private val deviceId: String, private val deviceName: String = "Fire TV", private val version: String = "0.1.0-firefin") {
+class ServerTransport(initial: ServerCredentials, val deviceId: String, private val deviceName: String = "Fire TV", private val version: String = "0.1.0-firefin") {
     @Volatile private var current = initial
     private val lock = Any()
 
@@ -81,6 +81,9 @@ class ServerTransport(initial: ServerCredentials, private val deviceId: String, 
     }
 
     fun credentials(): ServerCredentials = current
+
+    /** Immutable-by-construction snapshot for a single playback session. */
+    fun snapshot(): ServerTransport = ServerTransport(current, deviceId, deviceName, version)
 
     fun requireServerUrl(url: HttpUrl) {
         val configured = baseOrNull() ?: throw IOException("No server is configured.")

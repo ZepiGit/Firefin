@@ -66,6 +66,7 @@ data class PlaybackSource(
     val isTranscode: Boolean,
     val isHls: Boolean,
     val container: String,
+    val liveStreamId: String = "",
     val resumeTicks: Long = 0L,
 )
 

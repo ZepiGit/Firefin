@@ -1,6 +1,7 @@
 package zepigit.firefin.app.data
 
 import android.os.Build
+import zepigit.firefin.app.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -21,6 +22,9 @@ class JellyfinClient(private val session: SessionStore) {
 
     val okHttp: okhttp3.OkHttpClient get() = transport.mediaHttp
     val baseUrl: String get() = session.serverUrl
+
+    /** Immutable credential snapshot for one playback; see [ServerTransport.snapshot]. */
+    fun transportSnapshot(): ServerTransport = transport.snapshot()
 
     suspend fun login(serverInput: String, username: String, password: String): JSONObject = withContext(Dispatchers.IO) {
         val server = Urls.normalizeServer(serverInput)
@@ -95,7 +99,11 @@ class JellyfinClient(private val session: SessionStore) {
         val id = source.optString("Id").takeIf { it.isNotBlank() } ?: itemId
         val transcode = source.optString("TranscodingUrl").takeIf { it.isNotBlank() }
         val url = if (transcode != null) Urls.resolveRelative(baseUrl, transcode) else Urls.directStreamUrl(baseUrl, itemId, id)
-        PlaybackSource(json.optString("PlaySessionId"), id, url, transcode != null, transcode?.contains(".m3u8", ignoreCase = true) == true, source.optString("Container"), 0L)
+        PlaybackSource(
+            json.optString("PlaySessionId"), id, url, transcode != null,
+            transcode?.contains(".m3u8", ignoreCase = true) == true, source.optString("Container"),
+            source.optString("LiveStreamId").takeIf { it.isNotBlank() } ?: "",
+        )
     }
 
     suspend fun reportPlaying(itemId: String, playSessionId: String, mediaSourceId: String = "", playMethod: String = "DirectPlay") = postSessionEvent("Sessions/Playing", itemId, playSessionId) {
@@ -132,5 +140,5 @@ class JellyfinClient(private val session: SessionStore) {
     private fun syncTransport() { transport.update(ServerCredentials(session.serverUrl, session.userId, session.accessToken)) }
     private fun urlEncode(value: String): String = URLEncoder.encode(value, "UTF-8")
 
-    companion object { const val VERSION = "0.1.0" }
+    companion object { const val VERSION = BuildConfig.VERSION_NAME }
 }

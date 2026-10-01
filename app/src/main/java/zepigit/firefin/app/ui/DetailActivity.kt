@@ -167,6 +167,7 @@ class DetailActivity : AppCompatActivity() {
                     name = loaded.name,
                     isTranscode = source.isTranscode,
                     isHls = source.isHls,
+                    liveStreamId = source.liveStreamId,
                 )
             } catch (e: Exception) {
                 Toast.makeText(this@DetailActivity, e.message ?: "Playback-Fehler", Toast.LENGTH_LONG).show()

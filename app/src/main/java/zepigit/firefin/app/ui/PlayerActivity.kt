@@ -72,13 +72,20 @@ class PlayerActivity : AppCompatActivity() {
             }
         })
 
-        reporter = SessionReporter(ServiceLocator.client, itemId, playSessionId, intent.getStringExtra(EXTRA_SOURCE).orEmpty(), if (isTranscode) "Transcode" else "DirectPlay")
+        reporter = SessionReporter(
+            ServiceLocator.client.transportSnapshot(),
+            itemId,
+            playSessionId,
+            intent.getStringExtra(EXTRA_SOURCE).orEmpty(),
+            if (isTranscode) "Transcode" else "DirectPlay",
+            intent.getStringExtra(EXTRA_LIVE_STREAM).orEmpty(),
+        )
         reporter?.playing()
         scope.launch {
             while (isActive && reporting) {
                 delay(10_000)
                 val p = engine?.player ?: break
-                reporter?.progress(Ticks.fromMs(actualPositionMs(p)), !p.isPlaying)
+                reporter?.progress(Ticks.fromMs(actualPositionMs(p)), !p.playWhenReady)
             }
         }
     }
@@ -121,7 +128,8 @@ class PlayerActivity : AppCompatActivity() {
             reporter?.stopped(positionTicks)
         }
         engine = null
-        reporter?.cancel()
+        // The reporter owns its IO queue and drains terminal Stopped after the
+        // Activity scope is cancelled. Do not cancel it immediately here.
         scope.cancel()
         super.onDestroy()
     }
@@ -194,6 +202,7 @@ class PlayerActivity : AppCompatActivity() {
     private const val EXTRA_NAME = "p.name"
         private const val EXTRA_TRANSCODE = "p.transcode"
         private const val EXTRA_HLS = "p.hls"
+        private const val EXTRA_LIVE_STREAM = "p.livestream"
 
     fun start(
         context: Context,
@@ -205,6 +214,7 @@ class PlayerActivity : AppCompatActivity() {
         name: String,
         isTranscode: Boolean = false,
         isHls: Boolean = false,
+        liveStreamId: String = "",
     ) {
         context.startActivity(
             Intent(context, PlayerActivity::class.java)
@@ -215,7 +225,8 @@ class PlayerActivity : AppCompatActivity() {
                 .putExtra(EXTRA_START, startMs)
                 .putExtra(EXTRA_NAME, name)
                 .putExtra(EXTRA_TRANSCODE, isTranscode)
-                .putExtra(EXTRA_HLS, isHls),
+                .putExtra(EXTRA_HLS, isHls)
+                .putExtra(EXTRA_LIVE_STREAM, liveStreamId),
         )
     }
     }

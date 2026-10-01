@@ -43,7 +43,8 @@ android {
     }
 
     defaultConfig {
-        applicationId = "zepigit.firefin.app"
+        // Historical Flutter validation app stays installable beside native Firefin.
+        applicationId = "org.moonfin.firetv32"
         minSdk = 21
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
