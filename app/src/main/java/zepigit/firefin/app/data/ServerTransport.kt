@@ -7,6 +7,7 @@ import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
@@ -27,25 +28,41 @@ class ServerTransport(initial: ServerCredentials, private val deviceId: String, 
     @Volatile private var current = initial
     private val lock = Any()
 
-    val http: OkHttpClient = OkHttpClient.Builder()
+    private fun baseBuilder() = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
-        .readTimeout(20, TimeUnit.SECONDS)
-        .callTimeout(25, TimeUnit.SECONDS)
         .followRedirects(false)
         .followSslRedirects(false)
         .retryOnConnectionFailure(false)
-        .addInterceptor { chain ->
+
+    val http: OkHttpClient = baseBuilder()
+        .readTimeout(20, TimeUnit.SECONDS)
+        .callTimeout(25, TimeUnit.SECONDS)
+        .addInterceptor(Interceptor { chain ->
+            val request = chain.request().newBuilder()
+                .header("Authorization", authorization())
+                .header("Accept", "application/json")
+                .removeHeader("Cookie")
+                .build()
+            requireServerUrl(request.url)
+            chain.proceed(request)
+        }).build()
+
+    /** Media3 keeps long-running VOD bodies open while sharing origin/auth policy. */
+    val mediaHttp: OkHttpClient = baseBuilder()
+        .callTimeout(0, TimeUnit.MILLISECONDS)
+        .readTimeout(0, TimeUnit.MILLISECONDS)
+        .addInterceptor(Interceptor { chain ->
             var request = chain.request()
             var redirects = 0
             while (true) {
                 requireServerUrl(request.url)
                 request = request.newBuilder()
                     .header("Authorization", authorization())
-                    .header("Accept", "application/json")
+                    .header("Accept", if (request.header("Accept")?.contains("json") == true) "application/json" else "*/*")
                     .removeHeader("Cookie")
                     .build()
                 val response = chain.proceed(request)
-                if (response.code !in REDIRECTS) return@addInterceptor response
+                if (response.code !in REDIRECTS) return@Interceptor response
                 val target = response.header("Location")?.let(request.url::resolve)
                 response.close()
                 if (request.method != "GET" || target == null || ++redirects > 3) {
@@ -56,7 +73,7 @@ class ServerTransport(initial: ServerCredentials, private val deviceId: String, 
             }
             @Suppress("UNREACHABLE_CODE")
             error("unreachable")
-        }
+        })
         .build()
 
     fun update(credentials: ServerCredentials) {

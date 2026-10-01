@@ -19,7 +19,7 @@ class JellyfinClient(private val session: SessionStore) {
         VERSION,
     )
 
-    val okHttp: okhttp3.OkHttpClient get() = transport.http
+    val okHttp: okhttp3.OkHttpClient get() = transport.mediaHttp
     val baseUrl: String get() = session.serverUrl
 
     suspend fun login(serverInput: String, username: String, password: String): JSONObject = withContext(Dispatchers.IO) {

@@ -11,6 +11,8 @@ import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -23,6 +25,8 @@ class SearchActivity : AppCompatActivity() {
     private val scope = CoroutineScope(Dispatchers.Main + Job())
     private var currentQuery = ""
     private var queryJob: Job? = null
+
+    override fun onDestroy() { queryJob?.cancel(); scope.cancel(); super.onDestroy() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,6 +64,8 @@ class SearchActivity : AppCompatActivity() {
                         if (currentQuery != q) return@launch
                         adapter.submit(items)
                         empty.visibility = if (items.isEmpty()) View.VISIBLE else View.GONE
+                    } catch (e: CancellationException) {
+                        throw e
                     } catch (e: Exception) {
                         Toast.makeText(this@SearchActivity, e.message ?: "Fehler", Toast.LENGTH_LONG).show()
                     } finally {

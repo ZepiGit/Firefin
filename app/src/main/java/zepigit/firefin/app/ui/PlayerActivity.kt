@@ -72,7 +72,7 @@ class PlayerActivity : AppCompatActivity() {
             }
         })
 
-        reporter = SessionReporter(ServiceLocator.client, itemId, playSessionId, intent.getStringExtra(EXTRA_SOURCE).orEmpty(), scope)
+        reporter = SessionReporter(ServiceLocator.client, itemId, playSessionId, intent.getStringExtra(EXTRA_SOURCE).orEmpty(), if (isTranscode) "Transcode" else "DirectPlay")
         reporter?.playing()
         scope.launch {
             while (isActive && reporting) {
@@ -121,6 +121,7 @@ class PlayerActivity : AppCompatActivity() {
             reporter?.stopped(positionTicks)
         }
         engine = null
+        reporter?.cancel()
         scope.cancel()
         super.onDestroy()
     }

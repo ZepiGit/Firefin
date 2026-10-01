@@ -34,6 +34,8 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var progress: ProgressBar
     private lateinit var emptyView: TextView
     private var pendingScroll: Int? = null
+    private var homeLoaded = false
+    private var loadingHome = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -78,12 +80,19 @@ class HomeActivity : AppCompatActivity() {
         pendingScroll = state.getInt(KEY_SCROLL, -1).takeIf { it >= 0 }
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (::rowsAdapter.isInitialized && homeLoaded && !loadingHome) loadHome()
+    }
+
     override fun onDestroy() {
         scope.cancel()
         super.onDestroy()
     }
 
     private fun loadHome() {
+        if (loadingHome) return
+        loadingHome = true
         progress.visibility = View.VISIBLE
         scope.launch {
             try {
@@ -105,6 +114,8 @@ class HomeActivity : AppCompatActivity() {
                     )
                 }
                 rowsAdapter.submitRows(rows)
+                homeLoaded = true
+                emptyView.text = if (rowsAdapter.itemCount == 0) getString(R.string.empty_home) else ""
                 emptyView.visibility = if (rowsAdapter.itemCount == 0) View.VISIBLE else View.GONE
                 pendingScroll?.let {
                     (rowsView.layoutManager as LinearLayoutManager).scrollToPosition(it)
@@ -114,6 +125,7 @@ class HomeActivity : AppCompatActivity() {
                 emptyView.text = e.message ?: getString(R.string.error_generic)
                 emptyView.visibility = View.VISIBLE
             } finally {
+                loadingHome = false
                 progress.visibility = View.GONE
             }
         }

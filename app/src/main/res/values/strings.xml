@@ -25,4 +25,5 @@
     <string name="empty_library">Diese Bibliothek ist leer</string>
     <string name="empty_search">Keine Ergebnisse</string>
     <string name="empty_remote">Keine steuerbaren Sitzungen</string>
+    <string name="empty_home">Keine Inhalte verfügbar</string>
 </resources>

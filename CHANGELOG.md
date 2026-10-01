@@ -1,8 +1,73 @@
 # Changelog
 
-## 1.1.0-firetv32-r21
+The native Firefin line and the legacy Flutter line have separate histories.
+Native entries come first; the legacy Moonfin FireTV32 entries below are
+preserved unchanged as history.
 
-### Base (decode / cache / defaults)
+## Native Firefin
+
+### 0.2.0-firefin (versionCode 3001000), unreleased
+
+Not released: no signed APK exists and no AFTT hardware result is recorded.
+The working tree described below sits on top of commit `8d53ab583`; the commit
+that carries it is pending, so none of it has run in CI.
+
+Verified locally on the working tree (clean build): 29 unit tests, strict lint
+0 errors / 58 warnings, R8 release APK (unsigned). API 22 stock x86 emulator:
+install, launch, package `zepigit.firefin.app`, `LoginActivity`, no `FATAL`.
+
+#### Uncommitted working-tree changes (after `8d53ab583`)
+
+- Transport: `ServerTransport` now exposes a REST client with bounded call and
+  read timeouts and a separate media client without call/read timeouts, used
+  by Media3 and the image loader. Both stay origin-bound and header-authenticated.
+- Session reporting: `SessionReporter` owns its coroutine scope, reports the
+  actual play method (`DirectPlay` or `Transcode`), stays ordered
+  (Playing, Progress, Stopped) and is cancelled when the player is destroyed.
+- UI lifecycle: scopes are cancelled in `onDestroy` (login, detail, search,
+  remote); cancellation is no longer shown as an error toast; Home reloads on
+  resume and shows an empty state; Detail refreshes in place after
+  favorite/watched changes instead of relaunching and no longer re-queries
+  episodes on resume; the Play button is hidden for series; the focus overlay
+  of the home row title is a background so it renders while focused.
+
+#### Committed after the `e32fcfbf1` baseline (`36af9208f`, `8d53ab583`)
+
+- Strict native pipeline: lint fails the build, APK identity/alignment/signature
+  verifier (`scripts/verify-native-apk.py`), fail-closed artifact upload,
+  tracked machine-local `local.properties` removed and ignored.
+- Separate manual, protected `Firefin signed release` workflow (main only,
+  tag and full SHA, successful CI for that SHA, required reviewers, required
+  `FIREFIN_*` signing inputs and pinned certificate, checksums, source archive,
+  no overwrite). The legacy Flutter workflow is validation-only and never
+  publishes.
+- Origin-bound, cancellable `ServerTransport`: default TLS trust, no automatic
+  cross-origin redirects, `Authorization` header instead of query tokens.
+- HLS transcoding profile with an absolute resume timeline; ordered session
+  events with media-source reporting; disk-cache sampling for artwork.
+- `version.properties` (single version source), native version raised above the
+  legacy build line.
+
+#### Still open
+
+Quick Connect, all library types beyond movies/shows/mixed, Live TV, Seerr,
+downloads, music, books/comics/photos, DLNA, admin, plugin sync, settings and
+parental controls, English UI strings (German only today), a signed release,
+and an AFTT hardware run. See [docs/FIREFIN_MIGRATION.md](docs/FIREFIN_MIGRATION.md).
+
+### Earlier native work (superseded claims)
+
+Earlier notes claimed clean lint, "all review findings fixed", protected
+signing, bounded disk decode, and completed API 22 validation. Those claims
+were not acceptance evidence and are withdrawn. The earlier figures of 18 or
+21 unit tests and the 5m25s CI run describe older trees, not the current one
+(29 unit tests).
+
+## Legacy Flutter line (history)
+
+### 1.1.0-firetv32-r21
+
+#### Base (decode / cache / defaults)
 
 - Decode-size aware `LegacyFireTvNetworkImage` with optional device-pixel
   `cacheWidth`/`cacheHeight` passed to `instantiateImageCodec`.
@@ -12,7 +77,7 @@
   preview audio, and card focus expansion OFF without wiping unrelated prefs.
 - Version bump to `1.1.0+3000028` / `1.1.0-firetv32-r21`.
 
-### Wave A — lean AFTT runtime
+#### Wave A: lean AFTT runtime
 
 - Lean-TV preference ceiling at read time: blur 0, Media Bar / previews / card
   expansion off; values are not written back to storage.
@@ -20,27 +85,27 @@
 - Appearance settings: focus-expansion and blur controls locked on lean TV;
   backdrop toggle remains user-editable.
 
-### Wave B — TV image policy
+#### Wave B: TV image policy
 
 - Central `TvImageSizePolicy`: poster maxWidth **320**, landscape/thumb **640**,
-  backdrop **960**; decode buckets 160–960; BoxFit.cover uses width-only
+  backdrop **960**; decode buckets 160-960; BoxFit.cover uses width-only
   (portrait) or height-only (landscape).
 - MediaCard, Home, Search, Detail, Library, Favorites, All Genres, Media Bar,
-  and BackgroundService aligned to policy classes (not “320 everywhere”).
+  and BackgroundService aligned to policy classes (not "320 everywhere").
 
-### C0 — home scroll isolation
+#### C0: home scroll isolation
 
 - Home `_scrollOffset` moved to `ValueNotifier`; list rows/cards no longer
   rebuild on every scroll tick. Opacity consumers use `ValueListenableBuilder`.
 
-### Fixes (post A/B/C0)
+#### Fixes (post A/B/C0)
 
 - Plugin sync reads `getStored` so lean ceilings never push to other devices.
 - Lean poster server class fixed at 320 (no variable URL fragmentation).
 - Library thumbs/banners use landscape 640; pinned InfoArea passed as
   `ValueListenableBuilder.child`.
 
-## 1.1.0-firetv32-r20
+### 1.1.0-firetv32-r20
 
 - Stabilized Fire OS 5 playback by using synchronous media-player commands and
   a direct native pause recovery path without the blocked player mutex.
@@ -59,7 +124,7 @@
 - Retained Seerr in the toolbar and Integrations settings when configured.
 - Added high-contrast TV settings surfaces and Left/Right-only value sliders.
 
-## 1.1.0-firetv32-r1
+### 1.1.0-firetv32-r1
 
 - Base updated to the public Moonfin Core 1.1.0 source.
 - Added Android 5.1 / API 21 compatibility layer and ARMv7-only packaging.

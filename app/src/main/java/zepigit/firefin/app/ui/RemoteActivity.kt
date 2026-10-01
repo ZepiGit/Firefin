@@ -13,6 +13,8 @@ import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import zepigit.firefin.app.R
 import zepigit.firefin.app.ServiceLocator
@@ -23,6 +25,8 @@ class RemoteActivity : AppCompatActivity() {
 
     private val scope = CoroutineScope(Dispatchers.Main + Job())
     private lateinit var adapter: SessionsAdapter
+
+    override fun onDestroy() { scope.cancel(); super.onDestroy() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,6 +56,8 @@ class RemoteActivity : AppCompatActivity() {
                 adapter.submit(sessions)
                 findViewById<TextView>(R.id.empty).visibility =
                     if (sessions.isEmpty()) View.VISIBLE else View.GONE
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Toast.makeText(this@RemoteActivity, e.message ?: "Fehler", Toast.LENGTH_LONG).show()
             } finally {
@@ -65,6 +71,7 @@ private class SessionsAdapter(
     private val onCommand: (RemoteSession, String) -> Unit,
 ) : RecyclerView.Adapter<SessionsAdapter.Holder>() {
 
+    init { setHasStableIds(true) }
     private val sessions = mutableListOf<RemoteSession>()
 
     fun submit(newSessions: List<RemoteSession>) {

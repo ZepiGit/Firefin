@@ -14,6 +14,8 @@ import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import zepigit.firefin.app.R
 import zepigit.firefin.app.ServiceLocator
@@ -46,14 +48,27 @@ class DetailActivity : AppCompatActivity() {
         loadItem()
     }
 
+    override fun onDestroy() {
+        scope.cancel()
+        super.onDestroy()
+    }
+
     /** Re-queries user data on return from the player so resume/watch state stays current. */
     override fun onResume() {
         super.onResume()
-        if (!firstLoad) loadItem()
+        if (!firstLoad) refreshUserData()
     }
 
     private fun loadItem() {
         firstLoad = false
+        loadItemInternal(reloadChildren = true)
+    }
+
+    private fun refreshUserData() {
+        loadItemInternal(reloadChildren = false)
+    }
+
+    private fun loadItemInternal(reloadChildren: Boolean) {
         val backdrop = findViewById<ImageView>(R.id.backdrop)
         val name = findViewById<TextView>(R.id.name)
         val meta = findViewById<TextView>(R.id.meta)
@@ -85,7 +100,7 @@ class DetailActivity : AppCompatActivity() {
                 overview.text = loaded.overview
                 // Only leaf items can play; series get the episode strip, other
                 // containers (Season, BoxSet, MusicAlbum, Folder) get no play button.
-                if (loaded.isPlayable || loaded.isSeries) {
+                if (loaded.isPlayable) {
                     play.visibility = View.VISIBLE
                 } else {
                     play.visibility = View.GONE
@@ -96,16 +111,16 @@ class DetailActivity : AppCompatActivity() {
                 play.setOnClickListener { startPlayback(loaded, loaded.resumeTicks) }
                 favorite.setOnClickListener {
                     scope.launch {
-                        runCatching { ServiceLocator.client.setFavorite(loaded.id, !loaded.favorite) }
-                        DetailActivity.start(this@DetailActivity, loaded.id)
-                        finish()
+                        try { ServiceLocator.client.setFavorite(loaded.id, !loaded.favorite); refreshUserData() }
+                        catch (e: CancellationException) { throw e }
+                        catch (e: Exception) { Toast.makeText(this@DetailActivity, e.message ?: "Fehler", Toast.LENGTH_LONG).show() }
                     }
                 }
                 watched.setOnClickListener {
                     scope.launch {
-                        runCatching { ServiceLocator.client.setPlayed(loaded.id, !loaded.played) }
-                        DetailActivity.start(this@DetailActivity, loaded.id)
-                        finish()
+                        try { ServiceLocator.client.setPlayed(loaded.id, !loaded.played); refreshUserData() }
+                        catch (e: CancellationException) { throw e }
+                        catch (e: Exception) { Toast.makeText(this@DetailActivity, e.message ?: "Fehler", Toast.LENGTH_LONG).show() }
                     }
                 }
                 val backdropUrl = Urls.imageUrl(
@@ -117,7 +132,7 @@ class DetailActivity : AppCompatActivity() {
                     ServiceLocator.session.accessToken,
                 )
                 ServiceLocator.images.load(backdropUrl, ArtworkPolicy.decodeBucket(ArtworkPolicy.BACKDROP_WIDTH), backdrop)
-                if (loaded.isSeries) {
+                if (loaded.isSeries && reloadChildren) {
                     children.layoutManager = LinearLayoutManager(
                         this@DetailActivity,
                         LinearLayoutManager.HORIZONTAL,
@@ -130,6 +145,8 @@ class DetailActivity : AppCompatActivity() {
                     val episodes = ServiceLocator.client.children(loaded.id)
                     (children.adapter as MediaCardAdapter).submit(episodes)
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Toast.makeText(this@DetailActivity, e.message ?: "Fehler", Toast.LENGTH_LONG).show()
             }

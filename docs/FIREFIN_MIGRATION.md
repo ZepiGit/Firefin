@@ -15,6 +15,29 @@ of clean lint, all review findings fixed, protected signing, bounded disk decode
 and completed API-22 validation. No final migration, hardware or release approval
 is claimed. No Flutter cleanup is permitted while active features lack parity.
 
+## Current verification snapshot
+
+Native identity: `zepigit.firefin.app`, `0.2.0-firefin`, versionCode `3001000`
+(`version.properties`; above the legacy `3000028`), minSdk 21, targetSdk 34.
+
+Evidence applies to the **working tree on top of `8d53ab583`**. That tree holds
+uncommitted fixes (REST/media HTTP client split, per-playback session reporter,
+UI lifecycle/focus changes; 11 files). The commit that carries them is
+**pending**; no SHA, CI run or tag exists for it, so none of this is final
+evidence. Rerun everything on the committed SHA.
+
+| Evidence | Status |
+|---|---|
+| Clean local build: 29 unit tests, strict lint 0 errors / 58 warnings, R8 release APK (unsigned) | Verified locally, working tree only |
+| API 22 stock x86 emulator install/launch smoke: package ID `zepigit.firefin.app`, `LoginActivity` shown, no `FATAL` | Verified manually; login, browsing and playback not exercised |
+| CI (`android.yml`) on the current tree | Absent; earlier green runs apply to older SHAs only |
+| Physical AFTT (ARMv7) run | **Absent** |
+| Signed release (protected `release.yml`, production key, pinned fingerprint) | **Absent**; workflow never run |
+| Feature parity (Quick Connect, all library types, Live TV, Seerr, downloads, music, books, DLNA, admin, plugin sync) | **Open** |
+
+The old "18/21 tests" and "5m25s" CI figures describe earlier trees and are not
+current evidence.
+
 ## Verified starting points and history
 
 - Original main: `9f46e1e34469a0f5ac2da438bc3649fba08ea9c1`.
@@ -52,18 +75,18 @@ unproven or incomplete; HISTORICAL means evidence applies only to its named SHA.
 | Complete old-to-new mapping including eight PR commits | Regenerate mapping in this document against final frozen refs | OPEN |
 | Gate 2: syntax accepted, real legacy jobs and build status | Runs 36852773811 (0 jobs), 36870222276 (legacy success); independent audit | Historical only |
 | Gate 3: rename same repo, app identity, icons/banner, credits, install instructions | GitHub repository ID; Gradle/manifest/APK; LICENSE/notices/docs | Partial |
-| Gate 4: pinned dependencies, locked/verified resolution, stock API22 fixture playback | Root :app; dependency graph, Lint, instrumentation on API22 | OPEN |
-| Gate 5A: URL/subpath/HTTPS/explicit HTTP, login/logout/session, Quick Connect and switching | data, auth screens, MockWebServer + UI tests | OPEN |
+| Gate 4: pinned dependencies, locked/verified resolution, stock API22 fixture playback | Root :app; dependency graph, Lint, instrumentation on API22 | Partial: versions pinned, strict lint, API22 x86 install/launch smoke; no lock/verification metadata, no instrumented or fixture playback |
+| Gate 5A: URL/subpath/HTTPS/explicit HTTP, login/logout/session, Quick Connect and switching | data, auth screens, MockWebServer + UI tests | Partial: URL/subpath/HTTPS-default and password login unit-tested; no cleartext consent, no Quick Connect, no switching |
 | Gate 5B: all home/libraries/detail/search/favorite/filter/sort/page flows, focus/scroll | ui/ + actual feature matrix and API22 tests | OPEN |
 | Gate 5C: source/track negotiation, HLS auth, resume/seek, reports, next episode and cleanup | playback/ + delayed-request/media fixtures and device smoke | OPEN |
 | Gate 5D: deterministic player controls, remote/media keys, focus, audio focus and lifecycle | Instrumented D-Pad and suspend/resume tests | OPEN |
 | Gate 5E: all other actually active AFTT features | Native path and tests for each matrix row | OPEN |
 | Gate 6: 720p/4 Mbit incl audio, lower limits, 320/640/960, bounded caches/decodes/queues | Serialized profile/URL tests; image cold/warm cache stress | OPEN |
 | Gate 6: stored/effective preferences and end-to-end plugin sync | Preferences and protocol fixture tests; no unused-only type proof | OPEN |
-| Gate 6: trust chain/hostname, API22 CA policy, redirect/token isolation | Transport TLS and redirect negative tests | OPEN |
-| Gate 7: actionlint, wrapper/dependency verification, tests, strict debug/release lint, both builds | android.yml with mandatory reports/APKs | OPEN |
-| Gate 7: separate protected signing, required secrets, stable cert, tag/full SHA, v1, checksums/source | release.yml, verifier, protected environment and actual run/release | OPEN |
-| Gate 8: native-only cleanup after parity; updated public English docs/templates | README, BUILDING, COMPATIBILITY, CHANGELOG, SECURITY, notices/templates | OPEN |
+| Gate 6: trust chain/hostname, API22 CA policy, redirect/token isolation | Transport TLS and redirect negative tests | Partial: default trust (no bypass in code), REST redirect and header-only token tests; no TLS negative tests, no media-client redirect test, no API22 CA test |
+| Gate 7: actionlint, wrapper/dependency verification, tests, strict debug/release lint, both builds | android.yml with mandatory reports/APKs | Partial: workflow implemented, equivalent local run passes; CI not run on the current tree; no dependency verification |
+| Gate 7: separate protected signing, required secrets, stable cert, tag/full SHA, v1, checksums/source | release.yml, verifier, protected environment and actual run/release | OPEN: workflow implemented, never run; secrets, pinned fingerprint and environment reviewers unconfirmed |
+| Gate 8: native-only cleanup after parity; updated public English docs/templates | README, BUILDING, COMPATIBILITY, CHANGELOG, SECURITY, notices/templates | Partial: the seven English docs updated for the current tree; issue/PR templates, `FIRETV32-README.md`, `RELEASE_NOTES_*` and the German UI strings are untouched |
 | Final SHA: repeat tests/reviews/CI/APK after cleanup; no stale-run substitution | Exact commit/tag/run/artifact evidence | OPEN |
 | Existing authorized server and hardware only; no new server/emulator platform | Fixtures/MockWebServer + stock SDK images; test account kept private | Required |
 | All five supporting roles, correct routing/effort/tools/context, isolated exact SHA reviews | Preflight table and review ledger below | Partial |
@@ -79,7 +102,7 @@ entry points. Until then no potentially active area is removed as "out of scope"
 | Flow | Legacy status / native status | Acceptance gap |
 |---|---|---|
 | Server list, discovery, saved users, password login, Quick Connect, Emby Connect | Legacy present; native password login only | Switching, restore, invalid tokens, Quick Connect |
-| Home resume/next-up/latest/libraries/favorites | Native partial, formerly limited to four views | All libraries, empty/error/retry, refresh without lost focus |
+| Home resume/next-up/latest/libraries/favorites | Native partial: continue watching, next up, latest for at most four movies/tvshows/mixed libraries; no favorites row; empty state added in working tree | All libraries and types, retry, refresh without lost focus |
 | Movies, shows, seasons/episodes, folders, box sets, genres/letters/suggestions | Native partial recursive grid/details | Hierarchy, filters, stable sort and navigation |
 | Search, favorites, watched-state | Native partial | Mutating endpoints, cancellation, pagination and status refresh |
 | Video direct play/remux/transcode, versions/tracks/chapters/quality/speed/aspect | Native partial, reports not yet correct | HLS/source/timeline/track contracts, teardown |
@@ -102,32 +125,54 @@ entry points. Until then no potentially active area is removed as "out of scope"
 | FF-P1-01/02 | History at 226ff14 then corrected 3af0e6b | PASS, valid for history only |
 | FF-P5-UI-01 | app at eb315af55 | F1–F12; prior claim "all fixed" withdrawn; recheck required |
 | FF-P5-CORE-01 | app at eb315af55 and dfae8305 | F1–F10; unsafe TS offset and report races remain at e32fcfbf |
-| FF-AUDIT-BUILD-01 | isolated e32fcfbf snapshot | Running: tests/lint/APK/CI evidence audit |
-| FF-AUDIT-UI-01 | isolated e32fcfbf snapshot | Running: reachability/parity and claimed fixes |
-| FF-AUDIT-RESEARCH-01 | isolated e32fcfbf + installed SDK/official sources | Running: API22 fixture prerequisites and timeline contract |
+| FF-AUDIT-BUILD-01 | isolated e32fcfbf snapshot | Findings below; no final result recorded here; recheck on the final SHA |
+| FF-AUDIT-UI-01 | isolated e32fcfbf snapshot | Reachability/parity findings feed the feature matrix; no final result recorded here |
+| FF-AUDIT-RESEARCH-01 | isolated e32fcfbf + installed SDK/official sources | API22 fixture prerequisites and timeline contract; no final result recorded here |
+| FF-DOCS-SONNET-01 | working tree on top of 8d53ab583 | Documentation accuracy review; observations at the end of this section |
 
-Confirmed current audit defects at e32fcfbf:
-- `lint.abortOnError=false` allowed at least nine Media3 opt-in errors to appear
-  green. No claim of clean lint or API22 runtime may derive from that exit code.
-- CI uploaded `app-release.apk`, while unsigned Gradle emits
-  `app-release-unsigned.apk`; upload missing-file behavior was not fail-closed.
-- Native signing settings were not wired at all. Legacy tag workflow could
-  publish debug-signed artifacts. Both release paths need fail-closed replacement.
-- `local.properties` was repeatedly reintroduced because the ignore pattern
-  covered only android/local.properties. Root file is being untracked and ignored.
-- TS resume added an offset without requesting the matching server offset,
-  so the previously claimed "exactly once" timeline was not true.
-- Terminal session set does not serialize already queued/in-flight reports and
-  grows for the whole process. Cleanup and reporting need a per-playback actor.
-- Image disk hits decode originals without bounded sampling/concurrency.
-- URI prefix matching, explicit cleartext consent and HLS origin authentication
-  are not yet secured; network errors and mutation statuses are inconsistent.
-- Stored/effective types and their tests are not proof of actual sync isolation.
+Defects found at e32fcfbf and their state in the current tree (none is accepted
+until rechecked on the final committed SHA):
 
-Current corrective work (not yet accepted): strict Lint with explicit Media3
-unstable-API opt-ins; version.properties; unsigned PR release checks; required
-production signing flag; exact APK checker; separate manual main-only protected
-release; legacy validation-only pipeline without publishing.
+| Defect at e32fcfbf | Current state |
+|---|---|
+| `lint.abortOnError=false` hid Media3 opt-in errors | `abortOnError = true`; local strict lint 0 errors / 58 warnings; not yet in CI |
+| CI uploaded `app-release.apk` but unsigned Gradle emits `app-release-unsigned.apk`; uploads not fail-closed | CI uploads `app-release-unsigned.apk` with `if-no-files-found: error`; verifier fails closed |
+| No native signing wiring; legacy tag workflow could publish debug-signed artifacts | `-Pfirefin.productionSigning=true` plus `FIREFIN_*` inputs; protected manual `release.yml`; legacy workflow is validation-only. Release path never run |
+| `local.properties` repeatedly reintroduced | Root file untracked and `/local.properties` ignored; CI rejects tracked copies |
+| TS resume added an offset without a matching server offset | HLS transcode profile; start position applied once via the Media3 start position. Non-HLS TS streams still use the offset/restart path. Not verified on device |
+| Terminal session set grew for the whole process; queued reports not serialized | One ordered `SessionReporter` per playback (Playing, Progress, Stopped) with its own scope, cancelled with the player; no stress or delayed-request test |
+| Image disk hits decoded originals without bounded sampling | Disk and network paths now decode with bucket sampling (RGB_565), 2 network fetch permits, 32 MiB memory and 64 MiB disk caps. Disk hits still read the whole file without a permit; no cold/warm stress evidence |
+| URI prefix matching, cleartext consent, HLS origin authentication | Origin and path-segment binding in `ServerTransport`/`Urls`; header-only auth; same-origin media redirects. Cleartext consent still open; media-client redirect path untested |
+| Stored/effective types are not proof of sync isolation | Unchanged: types and tests only; plugin sync not implemented |
+
+Corrective work in the tree: strict lint with explicit Media3 unstable-API
+opt-ins; `version.properties`; unsigned release checks in CI; required
+production signing flag; exact APK verifier; separate manual main-only protected
+release; legacy validation-only pipeline without publishing; REST/media client
+split and per-playback reporter (uncommitted).
+
+Observations from the documentation review (code not changed by that task; each
+needs a developer decision and a recheck):
+
+- `JellyfinClient.VERSION` is `0.1.0`. It is sent in the `Authorization`
+  header and shown in Settings > About, while the APK is `0.2.0-firefin`.
+- `ServerTransport.mediaHttp` is built from the same mutable `OkHttpClient.Builder`
+  after the REST interceptor was added to it, so it appears to run the REST
+  interceptor too. That would force `Accept: application/json` on media and
+  image requests and make the `*/*` branch unreachable. Needs a test.
+- The image loader uses the media client (no call/read timeout, 10 s connect
+  only). A stalled artwork body can hold one of the two fetch permits
+  indefinitely.
+- The `mediaHttp` redirect loop and header policy have no unit test; the HLS
+  header-auth test exercises the REST client (`transport.http`).
+- `HomeActivity` calls `loadHome()` in `onCreate` and again in `onResume`, so
+  the first start issues two concurrent loads; `homeLoaded` is written but never
+  read.
+- The player does not side-load external subtitle files although the device
+  profile declares external SRT/VTT.
+- `Urls.stripCredentials` is unused by production code.
+- The login screen hint suggests an `http://` address; there is no cleartext
+  consent. Platform defaults block cleartext on API 23+ for this target SDK.
 
 ## Agent routing evidence and limitations
 
@@ -151,17 +196,30 @@ requirements remain visible rather than being counted as successful probes.
 
 ## Audit work in progress
 
-- Strict pipeline and fail-closed verifier are being validated locally on the revised working tree; no green result is claimed until the exact SHA is committed and CI is rerun.
-- `ServerTransport` and URL hardening are implemented in the working tree but not yet integrated through every existing JellyfinClient/image/player call site; this remains an open integration gate.
-- API22 stock packages are available but not installed; no emulator smoke result exists.
+- Strict pipeline and fail-closed verifier passed an equivalent local run on the
+  working tree (29 tests, lint 0 errors / 58 warnings, R8 release APK). No green
+  CI result is claimed until the fixes are committed and `android.yml` runs on
+  that exact SHA. Current commit: **pending** (GLM commits; working tree is on
+  top of `8d53ab583`).
+- All REST traffic goes through `ServerTransport.http`; Media3 and the image
+  loader use `ServerTransport.mediaHttp` via `JellyfinClient.okHttp`. That media
+  client split is uncommitted. The commit message of `8d53ab583` mentions it, but
+  that commit does not contain the change.
+- API22 stock x86 emulator: debug APK installed and launched (package ID,
+  `LoginActivity`, no `FATAL`). Login, browsing and playback on the emulator have
+  not been exercised, and no instrumented tests exist.
 
 ## External gates (not waived)
 
 - No explicit approval to replace the published main history has been given.
-- Production signing key, pinned signing certificate and protected release
-  environment must be available before a release can succeed; no debug-key release.
-- API22 stock emulator and actual AFTT are separate evidence. Neither was proven
-  in the preceding work. Hardware release approval remains separate from x86 smoke.
+- Production signing key, pinned signing certificate (`FIREFIN_CERTIFICATE_SHA256`)
+  and the protected `firefin-release` environment with required reviewers must
+  exist before a release can succeed; no debug-key release. The release workflow
+  needs a lightweight tag `firefin-v0.2.0-firefin` on a reviewed `main` commit
+  with a successful `android.yml` run for that SHA.
+- API22 stock emulator and actual AFTT are separate evidence. The emulator
+  install/launch smoke exists; the AFTT run does not. Hardware release approval
+  remains separate from x86 smoke.
 - Test account credentials/tokens and raw server content are private; never copy
   them into sources, CI, prompts or public documentation. Login success alone is
   not a complete playback test.

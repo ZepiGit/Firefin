@@ -13,6 +13,8 @@ import androidx.appcompat.app.AppCompatActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import zepigit.firefin.app.R
 import zepigit.firefin.app.ServiceLocator
@@ -20,6 +22,8 @@ import zepigit.firefin.app.ServiceLocator
 class LoginActivity : AppCompatActivity() {
 
     private val scope = CoroutineScope(Dispatchers.Main + Job())
+
+    override fun onDestroy() { scope.cancel(); super.onDestroy() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
