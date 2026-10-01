@@ -57,26 +57,30 @@ class SessionReporterContractTest {
 
     @Test
     fun `progress conflation keeps only the latest state before terminal stop`() {
+        // Withhold the Playing response so the worker cannot drain mid-sequence:
+        // every progress lands in the conflated slot and exactly the latest state
+        // (300) plus the terminal stop (400) must be sent after release.
+        val playingGate = java.util.concurrent.CountDownLatch(1)
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                if (request.path == "/Sessions/Playing") playingGate.await(10, java.util.concurrent.TimeUnit.SECONDS)
+                return MockResponse().setResponseCode(200).setBody("{}")
+            }
+        }
         val requests = SessionReporter(transport(), "item-1", "session-1", "ms-1", "DirectPlay").runAndDrain {
             progress(100, false)
             progress(200, false)
             progress(300, false)
-            progress(300, false)
             stopped(400)
+            playingGate.countDown()
         }
-        // Ordered contract: Playing first, terminal Stopped, cleanup after it.
-        assertEquals("/Sessions/Playing", requests.first().path)
+        // Strict, now deterministic: Playing < Progress(300) < Stopped(400) < cleanup.
         assertEquals(
-            listOf("/Sessions/Playing/Stopped", "/Videos/ActiveEncodings"),
-            requests.paths().takeLast(2),
+            listOf("/Sessions/Playing", "/Sessions/Playing/Progress", "/Sessions/Playing/Stopped", "/Videos/ActiveEncodings"),
+            requests.paths(),
         )
-        // Conflation: every progress carries at most the latest observed state.
-        val progressRequests = requests.filter { it.path!!.startsWith("/Sessions/Playing/Progress") }
-        assertTrue(progressRequests.isNotEmpty())
-        assertTrue(progressRequests.all { it.body.readUtf8().contains("\"PositionTicks\":300") })
-        // No progress may appear after the terminal stop.
-        val stopIndex = requests.indexOfFirst { it.path!!.startsWith("/Sessions/Playing/Stopped") }
-        assertTrue(requests.drop(stopIndex + 1).none { it.path!!.startsWith("/Sessions/Playing/Progress") })
+        assertTrue(requests[1].body.readUtf8().contains("\"PositionTicks\":300"))
+        assertTrue(requests[2].body.readUtf8().contains("\"PositionTicks\":400"))
         val cleanup = requests.last()
         assertEquals("DELETE", cleanup.method)
         assertTrue(cleanup.path!!.contains("PlaySessionId=session-1") && cleanup.path!!.contains("DeviceId=device-1"))

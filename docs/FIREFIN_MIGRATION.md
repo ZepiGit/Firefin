@@ -155,24 +155,18 @@ production signing flag; exact APK verifier; separate manual main-only protected
 release; legacy validation-only pipeline without publishing; REST/media client
 split and per-playback reporter (landed by `56134a362`; historical note).
 
-Observations from the documentation review (code not changed by that task; each
-needs a developer decision and a recheck):
+Observations from the documentation review — HISTORICAL, each since fixed and
+independently re-reviewed (fixed in commits up to `16b6911e5`):
 
-- `JellyfinClient.VERSION` is `0.1.0`. It is sent in the `Authorization`
-  header and shown in Settings > About, while the APK is `0.2.0-firefin`.
-- `ServerTransport.mediaHttp` is built from the same mutable `OkHttpClient.Builder`
-  after the REST interceptor was added to it, so it appears to run the REST
-  interceptor too. That would force `Accept: application/json` on media and
-  image requests and make the `*/*` branch unreachable. Needs a test.
-- The image loader uses the media client (no call/read timeout, 10 s connect
-  only). A stalled artwork body can hold one of the two fetch permits
-  indefinitely.
-- The `mediaHttp` redirect loop and header policy have no unit test; the HLS
-  header-auth test exercises the REST client (`transport.http`).
-- `HomeActivity` calls `loadHome()` in `onCreate` and again in `onResume`, so
-  the first start issues two concurrent loads; `homeLoaded` is written but never
-  read.
-- The player does not side-load external subtitle files although the device
+- FIXED: `JellyfinClient.VERSION` now uses `BuildConfig.VERSION_NAME`
+  (`0.2.0-firefin`), consistent in header and About screen.
+- FIXED: `mediaHttp` is built from a separate `baseBuilder()`; the REST
+  interceptor is not shared. Redirect behavior is unit-tested in
+  `TransportRegressionTest` (hop limit, cross-origin refusal, non-GET refusal).
+- FIXED: the image loader now has its own 15 s call/read timeouts.
+- FIXED: `mediaHttp` redirect loop and header policy have unit tests.
+- FIXED: `HomeActivity` single-flight load guard (`loadingHome`/`homeLoaded`).
+- STILL OPEN: the player does not side-load external subtitle files although the device
   profile declares external SRT/VTT.
 - `Urls.stripCredentials` is unused by production code.
 - The login screen hint suggests an `http://` address; there is no cleartext
