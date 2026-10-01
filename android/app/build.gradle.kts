@@ -16,13 +16,18 @@ fun signingValue(environmentName: String, propertyName: String): String? =
     System.getenv(environmentName)?.takeIf { it.isNotBlank() }
         ?: (keystoreProperties[propertyName] as String?)?.takeIf { it.isNotBlank() }
 
-val releaseKeystorePath = signingValue("MOONFIN_KEYSTORE_FILE", "storeFile")
-val releaseStorePassword = signingValue("MOONFIN_KEYSTORE_PASSWORD", "storePassword")
-val releaseKeyAlias = signingValue("MOONFIN_KEY_ALIAS", "keyAlias")
-val releaseKeyPassword = signingValue("MOONFIN_KEY_PASSWORD", "keyPassword")
+val releaseKeystorePath = signingValue("FIREFIN_KEYSTORE_FILE", "storeFile")
+val releaseStorePassword = signingValue("FIREFIN_KEYSTORE_PASSWORD", "storePassword")
+val releaseKeyAlias = signingValue("FIREFIN_KEY_ALIAS", "keyAlias")
+val releaseKeyPassword = signingValue("FIREFIN_KEY_PASSWORD", "keyPassword")
+
+val releaseSigningConfigured = releaseKeystorePath != null &&
+    releaseStorePassword != null &&
+    releaseKeyAlias != null &&
+    releaseKeyPassword != null
 
 android {
-    namespace = "org.moonfin.androidtv"
+    namespace = "zepigit.firefin.app"
     compileSdk = 36
     buildToolsVersion = "36.0.0"
     ndkVersion = "27.0.12077973"
@@ -38,6 +43,7 @@ android {
     }
 
     defaultConfig {
+        // Historical Flutter validation app stays installable beside native Firefin.
         applicationId = "org.moonfin.firetv32"
         minSdk = 21
         targetSdk = flutter.targetSdkVersion
@@ -51,30 +57,26 @@ android {
 
     signingConfigs {
         create("release") {
-            if (
-                releaseKeystorePath == null ||
-                releaseStorePassword == null ||
-                releaseKeyAlias == null ||
-                releaseKeyPassword == null
-            ) {
-                throw GradleException(
-                    "Release signing is not configured. Set MOONFIN_KEYSTORE_FILE, " +
-                        "MOONFIN_KEYSTORE_PASSWORD, MOONFIN_KEY_ALIAS and " +
-                        "MOONFIN_KEY_PASSWORD, or create a private android/keystore.properties file.",
-                )
+            if (releaseSigningConfigured) {
+                storeFile = file(releaseKeystorePath!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+                enableV1Signing = true
+                enableV2Signing = true
             }
-            storeFile = file(releaseKeystorePath)
-            storePassword = releaseStorePassword
-            keyAlias = releaseKeyAlias
-            keyPassword = releaseKeyPassword
-            enableV1Signing = true
-            enableV2Signing = true
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = if (releaseSigningConfigured) {
+                signingConfigs.getByName("release")
+            } else {
+                // PR/debug/test builds must run without production signing secrets.
+                // Release artifacts published to users always carry the real key.
+                signingConfigs.getByName("debug")
+            }
         }
     }
 

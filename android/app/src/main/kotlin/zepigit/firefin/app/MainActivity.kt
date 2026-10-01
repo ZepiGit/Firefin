@@ -1,4 +1,4 @@
-package org.moonfin.androidtv
+package zepigit.firefin.app
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -21,12 +21,12 @@ class MainActivity : FlutterActivity() {
     private var dlnaController: DlnaController? = null
 
     companion object {
-        private const val PLATFORM_CHANNEL = "org.moonfin.androidtv/platform"
-        private const val PIP_CHANNEL = "org.moonfin.androidtv/pip"
-        private const val CAST_CHANNEL = "com.moonfin/native_cast"
-        private const val CAST_EVENTS_CHANNEL = "com.moonfin/native_cast_events"
-        private const val DLNA_CHANNEL = "com.moonfin/native_dlna"
-        private const val DLNA_EVENTS_CHANNEL = "com.moonfin/native_dlna_events"
+        private const val PLATFORM_CHANNEL = "zepigit.firefin.app/platform"
+        private const val PIP_CHANNEL = "zepigit.firefin.app/pip"
+        private const val CAST_CHANNEL = "zepigit.firefin.app/native_cast"
+        private const val CAST_EVENTS_CHANNEL = "zepigit.firefin.app/native_cast_events"
+        private const val DLNA_CHANNEL = "zepigit.firefin.app/native_dlna"
+        private const val DLNA_EVENTS_CHANNEL = "zepigit.firefin.app/native_dlna_events"
     }
 
     private val screenReceiver = object : BroadcastReceiver() {

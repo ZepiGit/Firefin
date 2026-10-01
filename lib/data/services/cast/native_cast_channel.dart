@@ -4,8 +4,8 @@ import 'cast_target.dart';
 import '../../../util/platform_detection.dart';
 
 class NativeCastChannel {
-  static const MethodChannel _channel = MethodChannel('com.moonfin/native_cast');
-  static const EventChannel _events = EventChannel('com.moonfin/native_cast_events');
+  static const MethodChannel _channel = MethodChannel('zepigit.firefin.app/native_cast');
+  static const EventChannel _events = EventChannel('zepigit.firefin.app/native_cast_events');
   static Stream<Map<String, dynamic>>? _cachedEventStream;
 
   const NativeCastChannel();

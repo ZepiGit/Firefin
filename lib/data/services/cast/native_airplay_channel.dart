@@ -2,8 +2,8 @@ import 'package:flutter/services.dart';
 import '../../../util/platform_detection.dart';
 
 class NativeAirPlayChannel {
-  static const _channel = MethodChannel('com.moonfin/native_cast');
-  static const _events = EventChannel('com.moonfin/native_airplay_events');
+  static const _channel = MethodChannel('zepigit.firefin.app/native_cast');
+  static const _events = EventChannel('zepigit.firefin.app/native_airplay_events');
   static Stream<Map<String, dynamic>>? _cachedEventStream;
 
   const NativeAirPlayChannel();

@@ -1,4 +1,4 @@
-package org.moonfin.androidtv
+package zepigit.firefin.app
 
 import android.content.Context
 import android.net.wifi.WifiManager

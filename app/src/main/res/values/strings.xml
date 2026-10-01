@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Firefin</string>
+    <string name="login_title">Firefin — mit Jellyfin-Server verbinden</string>
+    <string name="server_url_hint">Server-Adresse (z. B. http://192.168.1.10:8096)</string>
+    <string name="username_hint">Benutzername</string>
+    <string name="password_hint">Passwort</string>
+    <string name="login_button">Anmelden</string>
+    <string name="sort_button">Sortierung</string>
+    <string name="search_hint">Suchen…</string>
+    <string name="search">Suche</string>
+    <string name="remote_control">Fernbedienung</string>
+    <string name="settings">Einstellungen</string>
+    <string name="play">Abspielen</string>
+    <string name="resume">Fortsetzen</string>
+    <string name="favorite">Favorit</string>
+    <string name="mark_watched">Gesehen</string>
+    <string name="clear_image_cache">Bildcache leeren</string>
+    <string name="logout">Abmelden</string>
+    <string name="about">Über Firefin</string>
+    <string name="continue_watching">Weiterschauen</string>
+    <string name="next_up">Als Nächstes</string>
+    <string name="latest_media">Neu hinzugefügt</string>
+    <string name="error_generic">Ein Fehler ist aufgetreten</string>
+    <string name="empty_library">Diese Bibliothek ist leer</string>
+    <string name="empty_search">Keine Ergebnisse</string>
+    <string name="empty_remote">Keine steuerbaren Sitzungen</string>
+    <string name="empty_home">Keine Inhalte verfügbar</string>
+</resources>

@@ -1,0 +1,113 @@
+name: Firefin signed release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag (firefin-vVERSION)
+        required: true
+        type: string
+      commit:
+        description: Full reviewed commit SHA to publish
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firefin-production-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: ${{ github.ref == 'refs/heads/main' }}
+    environment: firefin-release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    permissions:
+      contents: write
+      actions: read
+    env:
+      RELEASE_TAG: ${{ inputs.tag }}
+      RELEASE_COMMIT: ${{ inputs.commit }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require immutable tag, approved candidate and protected environment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$RELEASE_TAG" =~ ^firefin-v[0-9][0-9A-Za-z.+-]*$ ]]
+          test "$(git rev-parse HEAD)" = "$RELEASE_COMMIT"
+          test "$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")" = "$RELEASE_COMMIT"
+          git merge-base --is-ancestor "$RELEASE_COMMIT" origin/main
+          gh api "repos/$GITHUB_REPOSITORY/environments/firefin-release" --jq '.protection_rules | any(.type == "required_reviewers")' | grep -qx true
+          gh api "repos/$GITHUB_REPOSITORY/actions/workflows/android.yml/runs?head_sha=$RELEASE_COMMIT&status=success" --jq '.workflow_runs | any(.head_sha == env.RELEASE_COMMIT and .conclusion == "success")' | grep -qx true
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          values = dict(line.split('=', 1) for line in Path('version.properties').read_text().splitlines() if '=' in line)
+          assert os.environ['RELEASE_TAG'] == 'firefin-v' + values['versionName']
+          PY
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/wrapper-validation@v4
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Install pinned SDK packages
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Build with required production key and verify its identity
+        env:
+          FIREFIN_KEYSTORE_BASE64: ${{ secrets.FIREFIN_KEYSTORE_BASE64 }}
+          FIREFIN_KEYSTORE_PASSWORD: ${{ secrets.FIREFIN_KEYSTORE_PASSWORD }}
+          FIREFIN_KEY_ALIAS: ${{ secrets.FIREFIN_KEY_ALIAS }}
+          FIREFIN_KEY_PASSWORD: ${{ secrets.FIREFIN_KEY_PASSWORD }}
+          FIREFIN_CERTIFICATE_SHA256: ${{ vars.FIREFIN_CERTIFICATE_SHA256 }}
+        run: |
+          set -euo pipefail
+          : "${FIREFIN_KEYSTORE_BASE64:?Production signing key missing}"
+          : "${FIREFIN_KEYSTORE_PASSWORD:?Signing password missing}"
+          : "${FIREFIN_KEY_ALIAS:?Signing alias missing}"
+          : "${FIREFIN_KEY_PASSWORD:?Key password missing}"
+          : "${FIREFIN_CERTIFICATE_SHA256:?Pinned certificate missing}"
+          export FIREFIN_KEYSTORE_FILE="$RUNNER_TEMP/firefin-release.jks"
+          trap 'rm -f "$FIREFIN_KEYSTORE_FILE"' EXIT
+          umask 077
+          printf '%s' "$FIREFIN_KEYSTORE_BASE64" | base64 --decode > "$FIREFIN_KEYSTORE_FILE"
+          ./gradlew --no-daemon -Pfirefin.productionSigning=true :app:testDebugUnitTest :app:lintDebug :app:lintRelease :app:assembleRelease
+          mkdir -p artifacts
+          VERSION="${RELEASE_TAG#firefin-v}"
+          cp app/build/outputs/apk/release/app-release.apk "artifacts/Firefin_${VERSION}.apk"
+          python3 scripts/verify-native-apk.py "artifacts/Firefin_${VERSION}.apk" --build-tools "$ANDROID_HOME/build-tools/35.0.0" --signed --certificate-sha256 "$FIREFIN_CERTIFICATE_SHA256" --output artifacts/verification.json
+          git archive --format=zip --output="artifacts/Firefin_${VERSION}_source.zip" HEAD
+          (cd artifacts && sha256sum Firefin_* > SHA256SUMS.txt)
+          printf 'Commit: %s\nTag: %s\n' "$RELEASE_COMMIT" "$RELEASE_TAG" > artifacts/BUILD_INFO.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: firefin-signed-${{ inputs.commit }}
+          path: artifacts/
+          if-no-files-found: error
+      - name: Recheck immutable tag immediately before publishing
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" --jq '.object.sha')" = "$RELEASE_COMMIT"
+      - name: Publish without replacing an existing release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          EXISTING="$(gh api "repos/$GITHUB_REPOSITORY/releases" --paginate --jq '.[].tag_name')"
+          if grep -Fxq "$RELEASE_TAG" <<< "$EXISTING"; then
+            printf 'Release already exists; refusing to overwrite.\n' >&2
+            exit 1
+          fi
+          gh release create "$RELEASE_TAG" artifacts/* --verify-tag --target "$RELEASE_COMMIT" --title "Firefin ${RELEASE_TAG#firefin-v}" --generate-notes

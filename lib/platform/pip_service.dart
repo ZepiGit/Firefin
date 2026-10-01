@@ -19,7 +19,7 @@ class IosSharedContextBridgeConfig {
 }
 
 class PipService {
-  static const _androidChannel = MethodChannel('org.moonfin.androidtv/pip');
+  static const _androidChannel = MethodChannel('zepigit.firefin.app/pip');
   static const _iosChannel = MethodChannel('org.moonfin.ios/pip');
   static const _iosSharedContextBridge = IosSharedContextBridgeConfig(
     frameEventChannel: 'org.moonfin.ios/pip_shared_frames',

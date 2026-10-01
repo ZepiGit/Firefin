@@ -1,0 +1,75 @@
+name: Native Android CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: [main, 'firefin/**']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: Native unit tests, strict lint and APK checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.2'
+          cache: false
+      - name: Validate workflow syntax
+        run: |
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
+          actionlint -color
+      - uses: gradle/actions/wrapper-validation@v4
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+      - name: Install pinned SDK packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
+          if [[ ! -x "$SDKMANAGER" ]]; then SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | head -1)"; fi
+          test -x "$SDKMANAGER"
+          set +o pipefail
+          yes | "$SDKMANAGER" 'platforms;android-35' 'build-tools;35.0.0'
+          sdk_status=${PIPESTATUS[1]}
+          set -o pipefail
+          test "$sdk_status" -eq 0
+      - name: Test, lint both variants and build debug and unsigned release
+        run: ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug :app:lintRelease :app:assembleDebug :app:assembleRelease
+      - name: Verify both APKs
+        run: |
+          python3 scripts/verify-native-apk.py app/build/outputs/apk/debug/app-debug.apk --build-tools "$ANDROID_HOME/build-tools/35.0.0" --signed --output app/build/debug-verification.json
+          python3 scripts/verify-native-apk.py app/build/outputs/apk/release/app-release-unsigned.apk --build-tools "$ANDROID_HOME/build-tools/35.0.0" --release --expect-version-name "$(awk -F= '/^versionName=/{print $2}' version.properties)" --expect-version-code "$(awk -F= '/^versionCode=/{print $2}' version.properties)" --output app/build/release-verification.json
+      - name: Reject tracked machine-local configuration
+        run: test -z "$(git ls-files -- local.properties android/local.properties)"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: firefin-candidate-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk
+            app/build/outputs/apk/release/app-release-unsigned.apk
+            app/build/*-verification.json
+      - name: Upload test and lint evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: firefin-reports-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            app/build/test-results/
+            app/build/reports/

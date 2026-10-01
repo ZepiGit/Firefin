@@ -18,6 +18,10 @@ import 'ui/widgets/mini_audio_player.dart';
 import 'ui/widgets/offline_banner.dart';
 import 'util/platform_detection.dart';
 
+// Active product display name; the legacy package name stays 'moonfin' by
+// documented exception (see docs/FIREFIN_MIGRATION.md).
+const String kAppName = 'Firefin';
+
 class MoonfinApp extends StatelessWidget {
   const MoonfinApp({super.key});
 
@@ -25,7 +29,7 @@ class MoonfinApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ProviderScope(
       child: MaterialApp.router(
-        title: 'Moonfin',
+        title: kAppName,
         theme: AppTheme.darkTheme,
         routerConfig: appRouter,
         debugShowCheckedModeBanner: false,

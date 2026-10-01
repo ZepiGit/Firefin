@@ -45,7 +45,7 @@ if [ -z "$APP_VERSION" ] || [ -z "$APP_BUILD_NUMBER" ]; then
   exit 1
 fi
 
-APK_OUTPUT="$REPO_ROOT/${APP_NAME}_${APP_VERSION}-r2.apk"
+APK_OUTPUT="$REPO_ROOT/${APP_NAME}_${APP_VERSION}-build${APP_BUILD_NUMBER}.apk"
 
 echo "${APP_NAME} version: ${APP_VERSION} (${APP_BUILD_NUMBER})"
 
