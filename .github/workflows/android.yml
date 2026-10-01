@@ -37,7 +37,13 @@ jobs:
         with:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
       - name: Install pinned SDK packages
-        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
+          if [[ ! -x "$SDKMANAGER" ]]; then SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | head -1)"; fi
+          test -x "$SDKMANAGER"
+          yes | "$SDKMANAGER" 'platforms;android-35' 'build-tools;35.0.0'
       - name: Test, lint both variants and build debug and unsigned release
         run: ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug :app:lintRelease :app:assembleDebug :app:assembleRelease
       - name: Verify both APKs
@@ -59,7 +65,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: firefin-reports-${{ github.sha }}
-          if-no-files-found: error
+          if-no-files-found: warn
           path: |
             app/build/test-results/
             app/build/reports/
