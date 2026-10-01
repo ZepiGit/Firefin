@@ -177,6 +177,36 @@ states, off-thread stop reporting, generation-guarded sorting, remote
 deviceId self-filter and PlayPause command. Runtime-only checks (real AFTT)
 remain open. Re-check of F1/F2/F3 suggested after fixes.
 
+## Review cycle FF-P5-CORE-01 (firefin-core) → partially fixed, remainder tracked
+
+Findings F1–F10 against SHAs 284e7202f/eb315af55 (+ re-check of dfae8305f):
+
+**Fixed in the follow-up commit:**
+- F1 (P1): `CodecProfiles.Type` used invalid enum values `VideoCodec`/
+  `VideoAudioCodec` → corrected to Jellyfin's `Video`/`VideoAudio`; test now
+  asserts the valid enum set (the old test pinned the wrong value).
+- F4 (P1): BACK-UP was consumed when the controller was hidden → key routing
+  now consumes only keys it actually handles; BACK always reaches the
+  framework.
+- F3 (P1, partial): `runBlocking` removed, activity scopes cancelled, stop
+  reports sent off-thread; progress reports after a terminal stop are dropped
+  (SessionReporter guard). Ordered per-generation event serialization with
+  cancellable HTTP remains open (P2-grade follow-up).
+- F2 (P1, contract): progressive TS transcodes are unseekable → implemented
+  the explicit restart contract: seek rebuilds the transcode URL with
+  `StartTimeTicks` and rebases the offset (`Urls.withStartTimeTicks`),
+  progress reports `offset + player position` (single application of resume).
+
+**Open (documented, not fixed yet):** F5 (report on player-state listeners,
+buffering vs. pause, MediaSourceId/PlayMethod reporting), F6 (disk-cache
+decode bypasses sampling limits), F7 (uniform HTTP error handling incl. 401
+surfacing), F8 (media source selection by Support* flags), F9 (transport/
+redirect token policy incl. cross-origin 307 on login; OkHttp strips
+Authorization cross-origin, query tokens are not), F10 (playback request
+lifecycle bound to activity), plus HLS negotiation decision (current profile
+negotiates progressive TS with an explicit restart contract instead).
+These are tracked for the next slices before a release candidate.
+
 ## Native CI (Phase 7) ✅ first green run
 
 `.github/workflows/android.yml` — PR/push/dispatch + `v*` tag release path:

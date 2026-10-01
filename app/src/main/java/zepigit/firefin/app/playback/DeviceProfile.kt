@@ -51,7 +51,8 @@ object DeviceProfile {
         })
         put("CodecProfiles", org.json.JSONArray().apply {
             put(JSONObject().apply {
-                put("Type", "VideoCodec")
+                // Jellyfin CodecType enum: Video | VideoAudio | Audio.
+                put("Type", "Video")
                 put("Codec", "h264")
                 put("Conditions", org.json.JSONArray().apply {
                     put(condition("LessThanEqual", "Width", MAX_WIDTH.toString()))
@@ -60,7 +61,7 @@ object DeviceProfile {
                 })
             })
             put(JSONObject().apply {
-                put("Type", "VideoAudioCodec")
+                put("Type", "VideoAudio")
                 put("Codec", "aac,ac3,mp3")
                 put("Conditions", org.json.JSONArray().apply {
                     put(condition("LessThanEqual", "AudioChannels", MAX_AUDIO_CHANNELS.toString()))

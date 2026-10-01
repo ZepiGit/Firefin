@@ -37,8 +37,12 @@ class PlaybackEngine(context: Context, okHttpClient: okhttp3.OkHttpClient) {
             setHandleAudioBecomingNoisy(true)
         }
 
+    var currentUrl: String? = null
+        private set
+
     fun prepare(url: String, startMs: Long) {
-        val isHls = url.contains(".m3u8") || url.contains("/hls/") || url.contains("Transcoding")
+        currentUrl = url
+        val isHls = url.contains(".m3u8") || url.contains("/hls/")
         val mediaItem = MediaItem.Builder()
             .setUri(url)
             .setMimeType(if (isHls) MimeTypes.APPLICATION_M3U8 else null)

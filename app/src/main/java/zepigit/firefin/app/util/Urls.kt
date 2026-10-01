@@ -37,6 +37,13 @@ object Urls {
     fun directStreamUrl(baseUrl: String, itemId: String, mediaSourceId: String, accessToken: String): String =
         "$baseUrl/Videos/$itemId/stream?static=true&MediaSourceId=$mediaSourceId&api_key=$accessToken"
 
+    /** Replaces or appends StartTimeTicks on a transcoding URL when restarting a transcode. */
+    fun withStartTimeTicks(url: String, ticks: Long): String {
+        val cleaned = url.replaceFirst("""[?&]StartTimeTicks=\d+""".toRegex(), "")
+        val separator = if (cleaned.contains("?")) "&" else "?"
+        return cleaned + separator + "StartTimeTicks=" + ticks
+    }
+
     /**
      * Transcoding paths returned by PlaybackInfo are root-relative; they may or
      * may not already contain the base URL's subpath. Join at the origin when

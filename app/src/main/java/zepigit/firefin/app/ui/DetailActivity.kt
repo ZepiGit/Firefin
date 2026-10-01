@@ -148,6 +148,7 @@ class DetailActivity : AppCompatActivity() {
                     mediaSourceId = source.mediaSourceId,
                     startMs = Ticks.toMs(startTicks),
                     name = loaded.name,
+                    isTranscode = source.isTranscode,
                 )
             } catch (e: Exception) {
                 Toast.makeText(this@DetailActivity, e.message ?: "Playback-Fehler", Toast.LENGTH_LONG).show()

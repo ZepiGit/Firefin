@@ -27,9 +27,11 @@ class DeviceProfileTest {
     @Test
     fun `h264 codec conditions bound width, height and bitrate`() {
         val codecProfiles = profile.getJSONArray("CodecProfiles")
-        val video = (0 until codecProfiles.length())
-            .map { codecProfiles.getJSONObject(it) }
-            .first { it.getString("Type") == "VideoCodec" }
+        val types = (0 until codecProfiles.length()).map { codecProfiles.getJSONObject(it).getString("Type") }
+        // Jellyfin CodecType enum: only Video | VideoAudio | Audio are valid.
+        assertTrue(types.all { it in setOf("Video", "VideoAudio", "Audio") })
+        assertTrue("Video" in types && "VideoAudio" in types)
+        val video = codecProfiles.getJSONObject(types.indexOf("Video"))
         assertEquals("h264", video.getString("Codec"))
         val conditions = video.getJSONArray("Conditions")
         val byProp = (0 until conditions.length()).associate {
