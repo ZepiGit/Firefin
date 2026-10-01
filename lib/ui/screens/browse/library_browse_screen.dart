@@ -14,6 +14,7 @@ import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
 import '../../../ui/mixins/focus_state_mixin.dart';
 import '../../../util/platform_detection.dart';
+import '../../../util/tv_image_size_policy.dart';
 import '../../navigation/destinations.dart';
 import '../../widgets/media_card.dart';
 import '../../widgets/rating_display.dart';
@@ -193,7 +194,16 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
 
   String? _imageUrl(AggregatedItem item) {
     final api = _vm.imageApi;
-    const maxImageWidth = 480;
+    // Poster class 320; thumb/banner/landscape class 640 (parity with Search/Favorites).
+    final int posterW = TvImageSizePolicy.isLeanTv
+        ? TvImageSizePolicy.posterServerMaxWidth
+        : 480;
+    final int landscapeW = TvImageSizePolicy.isLeanTv
+        ? TvImageSizePolicy.landscapeServerMaxWidth
+        : 480;
+    final bool landscapeRole =
+        _vm.imageType == ImageType.thumb || _vm.imageType == ImageType.banner;
+    final maxImageWidth = landscapeRole ? landscapeW : posterW;
 
     final itemThumbTag = _tagForType(item, 'Thumb');
     final itemBannerTag = _tagForType(item, 'Banner');
@@ -336,24 +346,25 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
     }
 
     if (prefersThumbArtwork && !_vm.isGenreBrowse) {
+      // Landscape artwork even when library imageType is poster.
       if (itemThumbTag != null) {
         return api.getThumbImageUrl(
           item.id,
-          maxWidth: maxImageWidth,
+          maxWidth: landscapeW,
           tag: itemThumbTag,
         );
       }
       if (item.backdropImageTags.isNotEmpty) {
         return api.getBackdropImageUrl(
           item.id,
-          maxWidth: maxImageWidth,
+          maxWidth: landscapeW,
           tag: item.backdropImageTags.first,
         );
       }
       if (parentThumbItemId != null && parentThumbTag != null) {
         return api.getThumbImageUrl(
           parentThumbItemId,
-          maxWidth: maxImageWidth,
+          maxWidth: landscapeW,
           tag: parentThumbTag,
         );
       }
@@ -415,7 +426,7 @@ class _LibraryBrowseScreenState extends State<LibraryBrowseScreen> {
                   alignment: Alignment.topCenter,
                   memCacheWidth:
                       PlatformDetection.isAndroid && PlatformDetection.isTV
-                      ? 1280
+                      ? TvImageSizePolicy.backdropServerMaxWidth
                       : null,
                   fadeInDuration:
                       PlatformDetection.isAndroid && PlatformDetection.isTV

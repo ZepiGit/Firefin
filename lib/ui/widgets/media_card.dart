@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../preference/preference_constants.dart';
 import '../../util/legacy_firetv_network_image.dart';
+import '../../util/tv_image_size_policy.dart';
 import '../mixins/focus_state_mixin.dart';
 
 class MediaCard extends StatefulWidget {
@@ -262,11 +263,35 @@ class _CardImage extends StatelessWidget {
                 Container(
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   child: imageUrl != null
-                      ? Image(
-                          image: LegacyFireTvNetworkImage(imageUrl!),
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) =>
-                              _PlaceholderIcon(itemType: itemType),
+                      ? LayoutBuilder(
+                          builder: (context, constraints) {
+                            // Device-pixel decode targets. Cover posters:
+                            // width-only; landscape: height-only. Bucketed so
+                            // ImageCache keys do not fragment on AFTT.
+                            final dpr = MediaQuery.devicePixelRatioOf(context);
+                            final logicalW = constraints.maxWidth.isFinite
+                                ? constraints.maxWidth
+                                : 160.0;
+                            final logicalH = constraints.maxHeight.isFinite
+                                ? constraints.maxHeight
+                                : logicalW / aspectRatio;
+                            final targets = TvImageSizePolicy.decodeTargets(
+                              logicalWidth: logicalW,
+                              logicalHeight: logicalH,
+                              devicePixelRatio: dpr,
+                              aspectRatio: aspectRatio,
+                            );
+                            return Image(
+                              image: LegacyFireTvNetworkImage(
+                                imageUrl!,
+                                cacheWidth: targets.cacheWidth,
+                                cacheHeight: targets.cacheHeight,
+                              ),
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) =>
+                                  _PlaceholderIcon(itemType: itemType),
+                            );
+                          },
                         )
                       : _PlaceholderIcon(itemType: itemType),
                 ),

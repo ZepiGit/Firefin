@@ -5,130 +5,81 @@
 [![Platform](https://img.shields.io/badge/platform-Fire%20OS%205-orange)](COMPATIBILITY.md)
 [![Architecture](https://img.shields.io/badge/architecture-ARMv7-lightgrey)](COMPATIBILITY.md)
 
-An unofficial Moonfin Core 1.1.0 compatibility backport for 32-bit Fire TV
-devices running Fire OS 5. The project gives still-capable legacy streaming
-sticks a focused Jellyfin client with remote-friendly navigation and
-conservative performance defaults.
+Unofficial Moonfin Core **1.1.0** backport for **32-bit Fire TV** on **Fire OS 5**
+(Android 5.1 / **API 22**). A focused Jellyfin client with remote-friendly
+navigation and conservative performance defaults — not a general Android tablet
+app.
 
-The primary targets are the **Fire TV Stick 2nd Generation** and **Fire TV
-Stick Basic Edition** (`AFTT`, commonly sold as `LY73PR`). First-generation
-Fire TV hardware is experimental.
+**Primary target:** Fire TV Stick 2nd Generation / Basic Edition (`AFTT`,
+`LY73PR`). 1st-gen Fire TV is experimental. Newer 64-bit sticks are out of scope.
 
-> This is an independent community project. It is not affiliated with,
-> endorsed by, or supported by Moonfin, Amazon, Jellyfin, or Emby.
+> Independent community project. Not affiliated with Moonfin, Amazon, Jellyfin,
+> or Emby.
 
-## Why this project exists
-
-Current Android media clients increasingly require newer Android versions and
-64-bit hardware. Fire OS 5 is based on Android 5.1, and its older WebView,
-graphics stack, TLS implementation, and D-pad behavior expose compatibility
-problems that do not occur on modern Android TV devices.
-
-Moonfin FireTV32 preserves the modern Moonfin interface while adapting the app
-for this legacy platform. The goal is not to turn the device into a general
-Android tablet; it is to provide a reliable, living-room-first client for a
-self-hosted media server.
-
-## What it can do
-
-- Browse Jellyfin libraries, collections, movies, series, seasons, and episodes
-- Display posters, covers, thumbnails, and lightweight static backdrops
-- Resume, restart, pause, seek, and stop playback with the Fire TV remote
-- Select audio tracks and subtitles from the on-screen player controls
-- Request server transcoding when a stream exceeds the legacy device profile
-- Integrate Seerr as the media-request entry point when configured
-- Retain Moonfin account, library, search, favorites, downloads, and
-  customization surfaces where supported by the server and device
-- Build and install as a separate package (`org.moonfin.firetv32`) without
-  replacing an official Moonfin installation
-
-Moonfin still contains broader upstream functionality, including Emby support,
-but this backport is optimized and device-tested primarily with Jellyfin.
-
-## Fire TV performance profile
-
-Legacy hardware needs a different balance than current phones and televisions.
-This build therefore uses the following defaults:
-
-- Media Bar, inline trailer playback, preview audio, and cinema mode disabled
-- Posters, covers, thumbnails, and static focus previews enabled
-- Reduced artwork resolution and bounded image transport for Fire OS 5
-- Animated card enlargement disabled by default
-- Legacy-device video profile capped at 1280 x 720 and 4 Mbit/s
-- Bitmap and ASS subtitles routed through server transcoding when required
-- High-contrast cyan focus indicators for television settings
-- Percentage sliders controlled only with Left/Right; Up/Down remains navigation
-- Deterministic D-pad navigation between Play/Pause, seek, subtitles, and audio
-
-These settings reduce background decoding and GPU pressure without removing the
-artwork needed for a usable television interface.
-
-## Current release
+## Current line: r20 → r21
 
 | Field | Value |
 |---|---|
-| Release | `1.1.0-firetv32-r20` |
-| Version code | `3000027` |
+| Release | `1.1.0-firetv32-r21` |
+| Version code | `3000028` |
 | Package | `org.moonfin.firetv32` |
-| Minimum Android API | 21 (Android 5.0) |
-| Architecture | `armeabi-v7a` only |
-| Upstream base | Moonfin Core 1.1.0 |
-| License | GNU GPL v2 |
+| Min SDK / arch | API 21 · `armeabi-v7a` only |
+| Upstream | Moonfin Core 1.1.0 · GPL-2.0 |
 
-The release page contains the signed APK, the corresponding source archive,
-SHA-256 checksums, and a device test report:
+**r21** builds on the r20 AFTT profile (playback, D-pad, 720p/4 Mbit/s ceiling)
+with performance waves and follow-up fixes:
 
-**[Download the latest release](https://github.com/ZepiGit/Moonfin-FireTV32/releases/latest)**
+| Wave | Focus |
+|---|---|
+| **r21 base** | Decode-size images, tighter TV image cache (~40 / 32 MiB), HTTP concurrency 2, performance defaults r4 |
+| **A** | Lean AFTT runtime — blur 0, no Home `BackdropFilter`, Media Bar / previews / card expansion forced off at read time (not written back) |
+| **B** | TV image policy — width-only decode, size buckets, poster **320** / landscape **640** / backdrop **960** |
+| **C0** | Home scroll offset isolated via `ValueNotifier` so rows/cards do not rebuild every scroll tick |
+| **Fixes** | Sync exports use stored prefs (`getStored`) so lean ceilings never push to other devices; fixed poster class 320; library thumbs/banners 640; pinned InfoArea as builder `child` |
+
+**[Download latest release](https://github.com/ZepiGit/Moonfin-FireTV32/releases/latest)**
+(APK, source archive, SHA-256, device notes).
+
+## Features (short)
+
+- Browse Jellyfin libraries, movies, series, seasons, episodes
+- Posters, covers, thumbnails, static backdrops (reduced resolution on AFTT)
+- Remote playback: resume, seek, audio / subtitles; server transcode when needed
+- Seerr entry when configured; separate package (`org.moonfin.firetv32`)
+- High-contrast cyan focus; Left/Right-only percentage sliders
+
+Optimized and device-tested primarily with **Jellyfin** (Emby remains upstream).
+
+## Fire TV performance profile
+
+- Media Bar, inline trailers, preview audio, cinema mode, card enlargement: **off**
+- Static posters / covers / backdrops: **on** at reduced size (see waves B above)
+- Transcode ceiling: **1280×720**, **4 Mbit/s**; bitmap/ASS subs via server when required
+- Deterministic D-pad: Play/Pause → seek → Subtitles/Audio
 
 ## Install
 
-Enable **ADB debugging** and **Apps from Unknown Sources** on the Fire TV. Then
-connect from a computer with Android Platform Tools:
+Enable **ADB debugging** and **Apps from Unknown Sources**, then:
 
 ```text
 adb connect FIRE_TV_IP:5555
-adb install Moonfin_FireTV32_Unofficial_1.1.0-r20.apk
+adb install Moonfin_FireTV32_Unofficial_1.1.0-r21.apk
 ```
 
-If an older community build was signed with another certificate, Android cannot
-update it in place. Removing the old package also removes its local app data:
+Different signing certificate → uninstall first (also clears local data):
 
 ```text
 adb uninstall org.moonfin.firetv32
-adb install Moonfin_FireTV32_Unofficial_1.1.0-r20.apk
+adb install Moonfin_FireTV32_Unofficial_1.1.0-r21.apk
 ```
-
-Start the correct package explicitly if more than one Moonfin variant is
-installed:
 
 ```text
 adb shell am start -W -n org.moonfin.firetv32/org.moonfin.androidtv.MainActivity
 ```
 
-Verify the APK before installation:
+Verify SHA-256 against the release `SHA256SUMS.txt` before install.
 
-```text
-certutil -hashfile Moonfin_FireTV32_Unofficial_1.1.0-r20.apk SHA256
-```
-
-Compare the result with the published `SHA256SUMS.txt` release asset.
-
-## Documentation
-
-| Document | Contents |
-|---|---|
-| [FireTV32 release guide](FIRETV32-README.md) | Technical release overview and fixes |
-| [Building](BUILDING.md) | Reproducible Android build and signing workflow |
-| [Compatibility](COMPATIBILITY.md) | Supported hardware and test status |
-| [Release notes](RELEASE_NOTES_1.1.0-r20.md) | Changes and known limitations in r20 |
-| [Changelog](CHANGELOG.md) | Development history |
-| [Security](SECURITY.md) | Signing-key and vulnerability guidance |
-| [Third-party notices](THIRD_PARTY_NOTICES.md) | Upstream attribution and dependencies |
-
-## Build from source
-
-The repository includes the Flutter application and the Fire OS compatibility
-packages used by the release. A typical ARMv7 release build is:
+## Build hints
 
 ```text
 flutter pub get
@@ -137,54 +88,36 @@ flutter analyze
 flutter build apk --release --target-platform android-arm --split-per-abi
 ```
 
-See [BUILDING.md](BUILDING.md) for the required toolchain, version values,
-release-signing environment variables, and verification commands.
+Toolchain, signing env vars, and validation: **[BUILDING.md](BUILDING.md)**.
+Never commit keystores, passwords, or server tokens.
 
-## Testing and diagnostics
+## Docs
 
-The r20 build was exercised on a Fire TV Stick Basic Edition / 2nd Generation
-class device (`AFTT`, Fire OS 5.2.9.5, Android 5.1.1). The test scope included
-app start, library browsing, item selection, Jellyfin playback, transport
-controls, seeking, subtitle/audio dialogs, settings focus, and crash/ANR review.
+| Document | Contents |
+|---|---|
+| [FireTV32 guide](FIRETV32-README.md) | Technical release overview |
+| [Building](BUILDING.md) | Toolchain, signing, APK checks |
+| [Compatibility](COMPATIBILITY.md) | Hardware matrix and test status |
+| [Release notes r21](RELEASE_NOTES_1.1.0-r21.md) | r21 highlights and limits |
+| [Changelog](CHANGELOG.md) | Development history |
+| [Security](SECURITY.md) · [Third-party](THIRD_PARTY_NOTICES.md) | Keys and attribution |
 
-When reporting a problem, include:
+## Known limits
 
-- Fire TV model and Fire OS version
-- Jellyfin or Emby server version
-- Exact reproduction steps
-- Whether the server selected Direct Play or Transcoding
-- A sanitized ADB log without server URLs, access tokens, usernames, or passwords
-
-Useful diagnostics:
-
-```text
-adb logcat -c
-adb shell am start -W -n org.moonfin.firetv32/org.moonfin.androidtv.MainActivity
-adb logcat -d > moonfin-firetv32-log.txt
-```
-
-## Project scope and limitations
-
-- This is a community compatibility build, not an official Moonfin release.
-- Only 32-bit ARM (`armeabi-v7a`) is packaged.
-- DRM streaming services are outside the project's scope.
-- Performance depends on artwork size, server transcoding speed, Wi-Fi quality,
-  codec support, subtitle format, and the condition of the Fire TV device.
-- Fire TV Stick 1st Generation support is experimental and not release-gated.
-- No signing key or password is included in the repository or source archive.
+- Community compatibility build — not an official Moonfin release
+- **No lag / FPS claim** for r21 waves until measured on a physical AFTT device
+- Device verification on AFTT so far covers the **r20** baseline; r21 is code-complete pending on-device smoke
+- ARMv7 only; DRM streaming out of scope; 1st-gen Fire TV experimental
+- Real-world speed depends on artwork, Wi-Fi, transcoder, codecs, and device condition
+- No signing keys or secrets in this repository
 
 ## Contributing
 
-Bug reports and focused pull requests are welcome. Please keep Fire OS 5 and
-remote-only navigation in mind, preserve the `org.moonfin.firetv32` package
-identity, and never commit real server credentials, logs containing access
-tokens, or signing material.
+Bug reports and focused PRs welcome. Keep Fire OS 5 and remote-only navigation
+in mind; preserve `org.moonfin.firetv32`; never commit credentials, token-bearing
+logs, or signing material.
 
-## Upstream and license
+## License
 
-This project is derived from
-[Moonfin Core](https://github.com/Moonfin-Client/Moonfin-Core) and retains its
-GNU General Public License version 2 terms. Source code and modifications are
-distributed under [GPL-2.0](LICENSE). See
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for attribution and bundled
-components.
+Derived from [Moonfin Core](https://github.com/Moonfin-Client/Moonfin-Core)
+under [GPL-2.0](LICENSE). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

@@ -7,12 +7,13 @@ import 'package:server_core/server_core.dart';
 
 import '../../data/models/aggregated_item.dart';
 import '../../util/platform_detection.dart';
+import '../../util/tv_image_size_policy.dart';
 
 enum BlurContext { details, browsing, none }
 
 class BackgroundService {
   static int get backdropMaxWidth =>
-      PlatformDetection.isAndroid && PlatformDetection.isTV ? 1280 : 1920;
+      TvImageSizePolicy.backdropMaxWidth(requested: 1920);
   static const slideshowDuration = Duration(seconds: 30);
   static const transitionDuration = Duration(milliseconds: 800);
 

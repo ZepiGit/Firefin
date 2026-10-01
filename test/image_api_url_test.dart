@@ -3,6 +3,7 @@ import 'package:server_core/server_core.dart';
 import 'package:server_emby/server_emby.dart';
 import 'package:server_jellyfin/src/api/jellyfin_image_api.dart';
 import 'package:server_jellyfin/server_jellyfin.dart';
+import 'package:moonfin/util/tv_image_size_policy.dart';
 
 void main() {
   const deviceInfo = DeviceInfo(
@@ -59,6 +60,33 @@ void main() {
       expect(client.baseUrl, 'https://example.test/emby');
       client.baseUrl = 'https://other.test///';
       expect(client.baseUrl, 'https://other.test');
+    });
+  });
+
+  group('FireTV32 artwork width conventions (r21 + Welle B policy)', () {
+    test('Jellyfin primary maxWidth 320 encodes in query for TV posters', () {
+      final api = JellyfinImageApi('https://example.test/jellyfin');
+      final uri = Uri.parse(
+        api.getPrimaryImageUrl('item-id', maxWidth: 320),
+      );
+      expect(uri.queryParameters['maxWidth'], '320');
+    });
+
+    test('Jellyfin backdrop maxWidth 960 encodes for AFTT static art', () {
+      final api = JellyfinImageApi('https://example.test/jellyfin');
+      final uri = Uri.parse(
+        api.getBackdropImageUrl('item-id', maxWidth: 960),
+      );
+      expect(uri.queryParameters['maxWidth'], '960');
+    });
+
+    test('TvImageSizePolicy server classes stay 320 / 960 (not 320 everywhere)', () {
+      expect(TvImageSizePolicy.posterServerMaxWidth, 320);
+      expect(TvImageSizePolicy.backdropServerMaxWidth, 960);
+      expect(TvImageSizePolicy.landscapeServerMaxWidth, isNot(320));
+      expect(TvImageSizePolicy.landscapeServerMaxWidth, lessThan(
+        TvImageSizePolicy.backdropServerMaxWidth,
+      ));
     });
   });
 }

@@ -40,6 +40,7 @@ import '../../widgets/remote_play_to_session_dialog.dart';
 import '../../../playback/offline_playback_launcher.dart';
 import '../../../util/download_utils.dart';
 import '../../../util/platform_detection.dart';
+import '../../../util/tv_image_size_policy.dart';
 
 const _textShadows = [Shadow(blurRadius: 4, color: Colors.black54)];
 const _kCompactBreakpoint = 600.0;
@@ -1300,6 +1301,9 @@ class _Backdrop extends StatelessWidget {
     final image = CachedNetworkImage(
       imageUrl: imageUrl,
       fit: BoxFit.cover,
+      memCacheWidth: TvImageSizePolicy.isLeanTv
+          ? TvImageSizePolicy.backdropServerMaxWidth
+          : null,
       fadeInDuration: Duration.zero,
       errorWidget: (_, __, ___) => const SizedBox.shrink(),
     );
@@ -1690,12 +1694,20 @@ class _PosterImage extends StatelessWidget {
             child: CachedNetworkImage(
               imageUrl: imageApi.getPrimaryImageUrl(
                 item.id,
-                maxHeight: isMobile ? 360 : 500,
+                maxWidth: TvImageSizePolicy.isLeanTv
+                    ? TvImageSizePolicy.posterServerMaxWidth
+                    : null,
+                maxHeight: TvImageSizePolicy.isLeanTv
+                    ? null
+                    : (isMobile ? 360 : 500),
                 tag: item.primaryImageTag,
               ),
               width: w,
               height: h,
               fit: BoxFit.cover,
+              memCacheWidth: TvImageSizePolicy.isLeanTv
+                  ? TvImageSizePolicy.posterServerMaxWidth
+                  : null,
               errorWidget: (_, __, ___) => SizedBox(width: w, height: h),
             ),
           ),

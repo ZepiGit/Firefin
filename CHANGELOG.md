@@ -1,5 +1,45 @@
 # Changelog
 
+## 1.1.0-firetv32-r21
+
+### Base (decode / cache / defaults)
+
+- Decode-size aware `LegacyFireTvNetworkImage` with optional device-pixel
+  `cacheWidth`/`cacheHeight` passed to `instantiateImageCodec`.
+- Reduced TV `ImageCache` to ~40 entries / 32 MiB.
+- Capped legacy Fire TV image Dio/HttpClient `maxConnectionsPerHost` at 2.
+- `firetv32_performance_defaults_r4` re-forces Media Bar, trailer/episode/
+  preview audio, and card focus expansion OFF without wiping unrelated prefs.
+- Version bump to `1.1.0+3000028` / `1.1.0-firetv32-r21`.
+
+### Wave A — lean AFTT runtime
+
+- Lean-TV preference ceiling at read time: blur 0, Media Bar / previews / card
+  expansion off; values are not written back to storage.
+- Home pinned info overlay: no `BackdropFilter` on lean TV (opaque scrim only).
+- Appearance settings: focus-expansion and blur controls locked on lean TV;
+  backdrop toggle remains user-editable.
+
+### Wave B — TV image policy
+
+- Central `TvImageSizePolicy`: poster maxWidth **320**, landscape/thumb **640**,
+  backdrop **960**; decode buckets 160–960; BoxFit.cover uses width-only
+  (portrait) or height-only (landscape).
+- MediaCard, Home, Search, Detail, Library, Favorites, All Genres, Media Bar,
+  and BackgroundService aligned to policy classes (not “320 everywhere”).
+
+### C0 — home scroll isolation
+
+- Home `_scrollOffset` moved to `ValueNotifier`; list rows/cards no longer
+  rebuild on every scroll tick. Opacity consumers use `ValueListenableBuilder`.
+
+### Fixes (post A/B/C0)
+
+- Plugin sync reads `getStored` so lean ceilings never push to other devices.
+- Lean poster server class fixed at 320 (no variable URL fragmentation).
+- Library thumbs/banners use landscape 640; pinned InfoArea passed as
+  `ValueListenableBuilder.child`.
+
 ## 1.1.0-firetv32-r20
 
 - Stabilized Fire OS 5 playback by using synchronous media-player commands and

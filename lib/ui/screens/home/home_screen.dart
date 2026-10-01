@@ -17,6 +17,7 @@ import '../../../data/services/media_server_client_factory.dart';
 import '../../../preference/preference_constants.dart';
 import '../../../preference/user_preferences.dart';
 import '../../../util/platform_detection.dart';
+import '../../../util/tv_image_size_policy.dart';
 import '../../navigation/app_router.dart';
 import '../../navigation/destinations.dart';
 import '../../../data/models/media_bar_state.dart';
@@ -260,6 +261,9 @@ class _Backdrop extends StatelessWidget {
     final image = CachedNetworkImage(
       imageUrl: imageUrl,
       fit: BoxFit.cover,
+      memCacheWidth: TvImageSizePolicy.isLeanTv
+          ? TvImageSizePolicy.backdropServerMaxWidth
+          : null,
       fadeInDuration: Duration.zero,
       errorWidget: (_, __, ___) => const SizedBox.shrink(),
     );
@@ -326,7 +330,7 @@ class _ContentRowsState extends State<_ContentRows>
   VideoController? _previewController;
   int _previewRequestId = 0;
   bool _previewReady = false;
-  double _scrollOffset = 0;
+  final ValueNotifier<double> _scrollOffset = ValueNotifier<double>(0);
   double _previewStartScrollOffset = 0;
   bool _isScrolledToTop = true;
   bool _infoRevealed = false;
@@ -351,6 +355,7 @@ class _ContentRowsState extends State<_ContentRows>
     WidgetsBinding.instance.removeObserver(this);
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
+    _scrollOffset.dispose();
     _disposeSharedPreview();
     super.dispose();
   }
@@ -726,11 +731,13 @@ class _ContentRowsState extends State<_ContentRows>
   void _onScroll() {
     _lastScrollTime = DateTime.now();
     final offset = _scrollController.offset;
-    final previousOffset = _scrollOffset;
+    final previousOffset = _scrollOffset.value;
     final scrollingUp = offset < previousOffset;
     final atTop = offset <= 0;
     if (atTop != _isScrolledToTop) {
       _isScrolledToTop = atTop;
+      // Parent HomeScreen setStates on this callback so MediaBar pause
+      // (carouselPaused) updates without a per-tick ContentRows rebuild.
       widget.onScrolledToTopChanged?.call(atTop);
     }
 
@@ -745,15 +752,29 @@ class _ContentRowsState extends State<_ContentRows>
     if (_infoRevealed && _isMediaBarIncluded()) {
       final collapseOffset = _pinnedInfoCollapseOffset();
       if (scrollingUp && offset < collapseOffset) {
-        setState(() {
-          _infoRevealed = false;
-          _scrollOffset = offset;
-        });
+        _scrollOffset.value = offset;
+        setState(() => _infoRevealed = false);
         return;
       }
     }
 
-    setState(() => _scrollOffset = offset);
+    // C0: continuous parallax/pin offset — notify only offset consumers.
+    _scrollOffset.value = offset;
+  }
+
+  /// Pin-transition opacities from scroll offset (list header + pinned overlay).
+  ({double listOpacity, double pinnedInfoOpacity, double pinnedPanelOpacity})
+  _pinOpacitiesForOffset(double scrollOffset, double pinStart) {
+    final pinProgress = ((scrollOffset - pinStart) / _pinTransitionDistance)
+        .clamp(0.0, 1.0);
+    final transitionT = Curves.easeInOut.transform(pinProgress);
+    return (
+      listOpacity: 1.0 - transitionT,
+      pinnedInfoOpacity: transitionT,
+      pinnedPanelOpacity: Curves.easeOutCubic.transform(
+        (pinProgress * 1.6).clamp(0.0, 1.0),
+      ),
+    );
   }
 
   @override
@@ -788,14 +809,6 @@ class _ContentRowsState extends State<_ContentRows>
     final pinStart = (pinThreshold - (_pinTransitionDistance / 2)).clamp(
       0.0,
       double.infinity,
-    );
-    final pinProgress = ((_scrollOffset - pinStart) / _pinTransitionDistance)
-        .clamp(0.0, 1.0);
-    final transitionT = Curves.easeInOut.transform(pinProgress);
-    final listOpacity = 1.0 - transitionT;
-    final pinnedInfoOpacity = transitionT;
-    final pinnedPanelOpacity = Curves.easeOutCubic.transform(
-      (pinProgress * 1.6).clamp(0.0, 1.0),
     );
     final headerCount = (includeMediaBar ? 1 : 0) + 1;
 
@@ -856,18 +869,28 @@ class _ContentRowsState extends State<_ContentRows>
                 final safeTop = MediaQuery.of(context).padding.top;
                 final topPad = safeTop + navbarHeight + 8;
                 final bottomPad = includeMediaBar ? 20.0 : 8.0;
-                return IgnorePointer(
-                  child: Opacity(
-                    opacity: listOpacity,
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        navbarLeftInset,
-                        topPad,
-                        16,
-                        bottomPad,
+                return ValueListenableBuilder<double>(
+                  valueListenable: _scrollOffset,
+                  builder: (context, scrollOffset, child) {
+                    final opacities = _pinOpacitiesForOffset(
+                      scrollOffset,
+                      pinStart,
+                    );
+                    return IgnorePointer(
+                      child: Opacity(
+                        opacity: opacities.listOpacity,
+                        child: child,
                       ),
-                      child: InfoArea(item: widget.selectedItem),
+                    );
+                  },
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      navbarLeftInset,
+                      topPad,
+                      16,
+                      bottomPad,
                     ),
+                    child: InfoArea(item: widget.selectedItem),
                   ),
                 );
               }
@@ -974,45 +997,62 @@ class _ContentRowsState extends State<_ContentRows>
           ),
         ),
         if (_infoRevealed &&
-            pinnedPanelOpacity > 0 &&
             prefs.get(UserPreferences.homeRowInfoOverlay))
           Positioned(
             top: 0,
             left: 0,
             right: 0,
-            child: IgnorePointer(
-              child: Opacity(
-                opacity: pinnedPanelOpacity,
-                child: ClipRect(
-                  child: BackdropFilter(
-                    filter: ui.ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.black.withValues(alpha: 0.85),
-                            Colors.black.withValues(alpha: 0.7),
-                            Colors.black.withValues(alpha: 0.0),
-                          ],
-                          stops: const [0.0, 0.85, 1.0],
-                        ),
-                      ),
-                      padding: EdgeInsets.fromLTRB(
-                        navbarLeftInset,
-                        MediaQuery.of(context).padding.top + navbarHeight + 8,
-                        16,
-                        8,
-                      ),
-                      child: Opacity(
-                        opacity: pinnedInfoOpacity,
-                        child: InfoArea(item: widget.selectedItem),
-                      ),
+            child: ValueListenableBuilder<double>(
+              valueListenable: _scrollOffset,
+              // InfoArea depends only on selectedItem — keep it out of scroll ticks.
+              builder: (context, scrollOffset, infoChild) {
+                final opacities = _pinOpacitiesForOffset(scrollOffset, pinStart);
+                if (opacities.pinnedPanelOpacity <= 0) {
+                  return const SizedBox.shrink();
+                }
+                final topPad =
+                    MediaQuery.paddingOf(context).top + navbarHeight + 8;
+                final panel = Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withValues(alpha: 0.85),
+                        Colors.black.withValues(alpha: 0.7),
+                        Colors.black.withValues(alpha: 0.0),
+                      ],
+                      stops: const [0.0, 0.85, 1.0],
                     ),
                   ),
-                ),
-              ),
+                  padding: EdgeInsets.fromLTRB(
+                    navbarLeftInset,
+                    topPad,
+                    16,
+                    8,
+                  ),
+                  child: Opacity(
+                    opacity: opacities.pinnedInfoOpacity,
+                    child: infoChild,
+                  ),
+                );
+                // AFTT: never run BackdropFilter (σ≈30) on Home-Info.
+                // Opaque gradient scrim is enough; lean prefs also force
+                // browsing blur amount to 0 for the full-screen backdrop.
+                final filtered = UserPreferences.appliesLeanTvRuntime
+                    ? panel
+                    : BackdropFilter(
+                        filter: ui.ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                        child: panel,
+                      );
+                return IgnorePointer(
+                  child: Opacity(
+                    opacity: opacities.pinnedPanelOpacity,
+                    child: ClipRect(child: filtered),
+                  ),
+                );
+              },
+              child: InfoArea(item: widget.selectedItem),
             ),
           ),
       ],
@@ -1119,25 +1159,37 @@ class _ContentRowsState extends State<_ContentRows>
     double height,
     bool useSeriesThumbs,
   ) {
-    final maxH = (height * 2).toInt();
+    // Poster class: TV uses server maxWidth 320 (not maxHeight everywhere).
+    final maxW = TvImageSizePolicy.posterMaxWidth(requested: (height * 2 * 2 / 3).toInt());
+    final maxH = TvImageSizePolicy.posterMaxHeight(requested: (height * 2).toInt());
     if (useSeriesThumbs && item.type == 'Episode' && item.seriesId != null) {
       return imageApi.getPrimaryImageUrl(
         item.seriesId!,
-        maxHeight: maxH,
+        maxWidth: TvImageSizePolicy.isLeanTv ? maxW : null,
+        maxHeight: TvImageSizePolicy.isLeanTv ? null : maxH,
         tag: item.seriesPrimaryImageTag,
       );
     }
     if (item.primaryImageTag != null) {
       return imageApi.getPrimaryImageUrl(
         item.id,
-        maxHeight: maxH,
+        maxWidth: TvImageSizePolicy.isLeanTv ? maxW : null,
+        maxHeight: TvImageSizePolicy.isLeanTv ? null : maxH,
         tag: item.primaryImageTag,
       );
     }
     if (item.type == 'Episode' && item.seriesId != null) {
-      return imageApi.getPrimaryImageUrl(item.seriesId!, maxHeight: maxH);
+      return imageApi.getPrimaryImageUrl(
+        item.seriesId!,
+        maxWidth: TvImageSizePolicy.isLeanTv ? maxW : null,
+        maxHeight: TvImageSizePolicy.isLeanTv ? null : maxH,
+      );
     }
-    return imageApi.getPrimaryImageUrl(item.id, maxHeight: maxH);
+    return imageApi.getPrimaryImageUrl(
+      item.id,
+      maxWidth: TvImageSizePolicy.isLeanTv ? maxW : null,
+      maxHeight: TvImageSizePolicy.isLeanTv ? null : maxH,
+    );
   }
 
   static String? _resolveLandscapeImageUrl(
@@ -1145,7 +1197,9 @@ class _ContentRowsState extends State<_ContentRows>
     ImageApi imageApi,
     double height,
   ) {
-    final maxW = (height * 16 / 9 * 2).toInt();
+    final maxW = TvImageSizePolicy.landscapeMaxWidth(
+      requested: (height * 16 / 9 * 2).toInt(),
+    );
     if (item.backdropImageTags.isNotEmpty) {
       return imageApi.getBackdropImageUrl(
         item.id,
@@ -1259,7 +1313,9 @@ class _ContentRowsState extends State<_ContentRows>
     }
 
     if (imageType == ImageType.banner) {
-      final maxW = (height * 16 / 9 * 2).toInt();
+      final maxW = TvImageSizePolicy.landscapeMaxWidth(
+        requested: (height * 16 / 9 * 2).toInt(),
+      );
       if (itemBannerTag != null) {
         return imageApi.getBannerImageUrl(
           item.id,
@@ -1285,7 +1341,9 @@ class _ContentRowsState extends State<_ContentRows>
     }
 
     if (imageType == ImageType.thumb) {
-      final maxW = (height * 16 / 9 * 2).toInt();
+      final maxW = TvImageSizePolicy.landscapeMaxWidth(
+        requested: (height * 16 / 9 * 2).toInt(),
+      );
       if (itemThumbTag != null) {
         return imageApi.getThumbImageUrl(
           item.id,
@@ -1327,8 +1385,13 @@ class _ContentRowsState extends State<_ContentRows>
     double height,
     ImageType imageType,
   ) {
-    final maxW = (height * 16 / 9 * 2).toInt();
-    final maxH = (height * 2).toInt();
+    final maxW = TvImageSizePolicy.landscapeMaxWidth(
+      requested: (height * 16 / 9 * 2).toInt(),
+    );
+    final maxH = TvImageSizePolicy.posterMaxHeight(requested: (height * 2).toInt());
+    final posterW = TvImageSizePolicy.posterMaxWidth(
+      requested: (height * 2 * 2 / 3).toInt(),
+    );
     final seriesId = item.seriesId;
     final seriesPrimaryTag = item.seriesPrimaryImageTag;
     final parentThumbItemId = item.rawData['ParentThumbItemId'] as String?;
@@ -1340,11 +1403,16 @@ class _ContentRowsState extends State<_ContentRows>
       if (seriesId != null) {
         return imageApi.getPrimaryImageUrl(
           seriesId,
-          maxHeight: maxH,
+          maxWidth: TvImageSizePolicy.isLeanTv ? posterW : null,
+          maxHeight: TvImageSizePolicy.isLeanTv ? null : maxH,
           tag: seriesPrimaryTag,
         );
       }
-      return imageApi.getPrimaryImageUrl(item.id, maxHeight: maxH);
+      return imageApi.getPrimaryImageUrl(
+        item.id,
+        maxWidth: TvImageSizePolicy.isLeanTv ? posterW : null,
+        maxHeight: TvImageSizePolicy.isLeanTv ? null : maxH,
+      );
     }
 
     if (imageType == ImageType.thumb) {

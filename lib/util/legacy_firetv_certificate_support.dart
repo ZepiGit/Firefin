@@ -21,7 +21,7 @@ void installLegacyFireTvCertificateSupport() {
   imageHttpClient.badCertificateCallback = (_, _, _) => true;
   imageHttpClient.connectionTimeout = const Duration(seconds: 20);
   imageHttpClient.idleTimeout = const Duration(seconds: 60);
-  imageHttpClient.maxConnectionsPerHost = 4;
+  imageHttpClient.maxConnectionsPerHost = 2;
   CachedNetworkImageProvider.defaultCacheManager =
       _LegacyFireTvImageCacheManager(imageHttpClient);
 }
