@@ -102,7 +102,7 @@ class PlayerActivity : AppCompatActivity() {
 
     /** Player-local position plus the transcode offset (TS streams start at 0). */
     private fun actualPositionMs(p: androidx.media3.common.Player): Long =
-        p.currentPosition + transcodeOffsetMs
+        PlaybackTimeline.absolute(p.currentPosition, transcodeOffsetMs)
 
     private fun seekTo(targetPlayerMs: Long) {
         val player = engine?.player ?: return
@@ -113,7 +113,11 @@ class PlayerActivity : AppCompatActivity() {
         // TS-over-HTTP transcodes are a live pipe: restart the transcode at the
         // target offset instead of seeking inside the stream. The new stream
         // starts at 0, so the offset is rebased to the target position.
-        val targetAbsolute = (transcodeOffsetMs + targetPlayerMs).coerceAtLeast(0)
+        val targetAbsolute = PlaybackTimeline.targetAbsolute(
+            currentAbsoluteMs = transcodeOffsetMs + targetPlayerMs,
+            seekDeltaMs = 0,
+            durationMs = if (player.duration > 0) player.duration + transcodeOffsetMs else 0,
+        )
         val url = engine?.currentUrl ?: return
         val rebuilt = Urls.withStartTimeTicks(url, Ticks.fromMs(targetAbsolute))
         transcodeOffsetMs = targetAbsolute

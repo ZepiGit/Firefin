@@ -20,20 +20,20 @@ is claimed. No Flutter cleanup is permitted while active features lack parity.
 Native identity: `zepigit.firefin.app`, `0.2.0-firefin`, versionCode `3001000`
 (`version.properties`; above the legacy `3000028`), minSdk 21, targetSdk 34.
 
-Evidence applies to the **working tree on top of `8d53ab583`**. That tree holds
-uncommitted fixes (REST/media HTTP client split, per-playback session reporter,
-UI lifecycle/focus changes; 11 files). The commit that carries them is
-**pending**; no SHA, CI run or tag exists for it, so none of this is final
-evidence. Rerun everything on the committed SHA.
+Evidence basis: branch `firefin/dev`, commit `cacd4efc90f2c1a5043fe43503b005fe2e35036e`
+and later follow-up commits (see commit history). Native Android CI run
+`36926364003` = success on `cacd4efc9`; the legacy validation workflow is
+path-filtered and runs only when legacy sources change. Later doc-only commits
+do not change native code.
 
 | Evidence | Status |
 |---|---|
-| Clean local build: 39 unit tests, strict lint 0 errors / 58 warnings, R8 release APK (unsigned) | Verified locally on `firefin/dev` HEAD |
+| Clean local build: 40 unit tests, strict lint 0 errors / 58 warnings, R8 release APK (unsigned) | Verified locally on `firefin/dev` HEAD |
 | API 22 stock x86 emulator install/launch smoke: package ID `zepigit.firefin.app`, `LoginActivity` shown, no `FATAL` | Verified manually; login, browsing and playback not exercised |
-| CI (`android.yml`) on the current tree | Absent; earlier green runs apply to older SHAs only |
+| CI (`android.yml`) on `cacd4efc9` | Success (run `36926364003`); later commits rerun CI on push |
 | Physical AFTT (ARMv7) run | **Absent** |
 | Signed release (protected `release.yml`, production key, pinned fingerprint) | **Absent**; workflow never run |
-| Feature parity (Quick Connect, all library types, Live TV, Seerr, downloads, music, books, DLNA, admin, plugin sync) | **Open** |
+| API 22 playback/D-Pad smoke; media redirect tests; feature parity (Quick Connect, all library types, Live TV, Seerr, downloads, music, books, DLNA, admin, plugin sync) | **Open** |
 
 The old "18/21 tests" and "5m25s" CI figures describe earlier trees and are not
 current evidence.
@@ -52,7 +52,11 @@ current evidence.
 - Delta commit: `ca70c744f3e0d3d0a15b2501a73f35402d504638`.
   Legacy replay committer-date leakage was corrected and independently rechecked.
   Replayed SHAs and committer metadata are reconstructed, not original signatures.
-- Development baseline for this audit: `e32fcfbf17e526bee0ecf49d6d23ca4061e24582`.
+- Audit baseline: `e32fcfbf17e526bee0ecf49d6d23ca4061e24582` (historical).
+  Current evidence basis: `firefin/dev` HEAD — `cacd4efc90f2c1a5043fe43503b005fe2e35036e`
+  and later follow-up commits; Native Android CI run `36926364003` on
+  `cacd4efc9` = success. Legacy validation workflow runs on demand only
+  (path-filtered).
 - External verified audit bundle: `../firefin-audit/e32fcfbf17e5/start.bundle`,
   SHA256 `0f49c5ca64ef87b7a9dc02118ce9e6d99631fa59575f08611c894c06040a3469`.
   Read-only git-archive snapshots for reviewers live alongside it, outside Git.
@@ -149,7 +153,7 @@ Corrective work in the tree: strict lint with explicit Media3 unstable-API
 opt-ins; `version.properties`; unsigned release checks in CI; required
 production signing flag; exact APK verifier; separate manual main-only protected
 release; legacy validation-only pipeline without publishing; REST/media client
-split and per-playback reporter (uncommitted).
+split and per-playback reporter (landed by `56134a362`; historical note).
 
 Observations from the documentation review (code not changed by that task; each
 needs a developer decision and a recheck):
@@ -199,11 +203,11 @@ requirements remain visible rather than being counted as successful probes.
 - Strict pipeline and fail-closed verifier passed an equivalent local run on the
   working tree (29 tests, lint 0 errors / 58 warnings, R8 release APK). No green
   CI result is claimed until the fixes are committed and `android.yml` runs on
-  that exact SHA. Current commit: **pending** (GLM commits; working tree is on
+  that exact SHA. (Historical note: superseded by later commits; final basis is
   top of `8d53ab583`).
 - All REST traffic goes through `ServerTransport.http`; Media3 and the image
   loader use `ServerTransport.mediaHttp` via `JellyfinClient.okHttp`. That media
-  client split is uncommitted. The commit message of `8d53ab583` mentions it, but
+  client split landed later. The commit message of `8d53ab583` mentions it, but
   that commit does not contain the change.
 - API22 stock x86 emulator: debug APK installed and launched (package ID,
   `LoginActivity`, no `FATAL`). Login, browsing and playback on the emulator have

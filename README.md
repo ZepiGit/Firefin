@@ -28,13 +28,15 @@ The native version code is deliberately above the legacy `3000028` build line.
 
 ## Verification status
 
-Evidence is tied to the current `firefin/dev` HEAD (see
-[docs/FIREFIN_MIGRATION.md](docs/FIREFIN_MIGRATION.md) for the exact SHA and
-CI run IDs). Nothing below is a claim about a published release.
+Evidence basis: branch `firefin/dev`, base commit `cacd4efc90f2c1a5043fe43503b005fe2e35036e`,
+GitHub Actions run `36926364003` (Native Android CI: success). Later commits
+document follow-up fixes; their runs are listed in
+[docs/FIREFIN_MIGRATION.md](docs/FIREFIN_MIGRATION.md). Nothing below is a
+claim about a published release.
 
 Verified locally (one clean build of the current working tree):
 
-- 39 JVM unit tests pass (`:app:testDebugUnitTest`), including regression
+- 40 JVM unit tests pass (`:app:testDebugUnitTest`), including regression
   tests for transport isolation, session-report ordering and the playback
   timeline contract.
 - Strict lint (`abortOnError = true`): 0 errors, 58 warnings.

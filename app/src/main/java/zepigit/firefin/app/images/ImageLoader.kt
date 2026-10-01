@@ -62,7 +62,9 @@ class ImageLoader(context: Context, http: okhttp3.OkHttpClient) {
         val file = diskFile(url)
         if (!file.exists()) return null
         if (file.length() > MAX_IMAGE_BYTES) { file.delete(); return null }
-        val bytes = readBounded(file.inputStream(), MAX_IMAGE_BYTES) ?: run { file.delete(); return null }
+        // trimDiskCache/clearCache may delete the file between exists() and open.
+        val bytes = runCatching { readBounded(file.inputStream(), MAX_IMAGE_BYTES) }.getOrNull()
+            ?: run { file.delete(); return null }
         return decode(bytes, targetWidth)?.also { memCache.put(url, it) } ?: run { file.delete(); null }
     }
 
@@ -104,6 +106,10 @@ class ImageLoader(context: Context, http: okhttp3.OkHttpClient) {
         if (bounds.outWidth <= 0) return null
         var sample = 1
         while (bounds.outWidth / (sample * 2) >= targetWidth) sample *= 2
+        // Byte caps bound the compressed input, not the decoded pixels; a
+        // degenerate high image could still OOM a 1 GiB device without a budget.
+        val pixels = (bounds.outWidth.toLong() * bounds.outHeight) / (sample.toLong() * sample)
+        if (pixels > MAX_DECODE_PIXELS) return null
         return BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply {
             inSampleSize = sample
             inPreferredConfig = Bitmap.Config.RGB_565
@@ -116,5 +122,8 @@ class ImageLoader(context: Context, http: okhttp3.OkHttpClient) {
         while (total > diskCacheCapBytes && files.isNotEmpty()) { val old = files.first(); total -= old.length(); old.delete(); files = files.drop(1) }
     }
 
-    private companion object { const val MAX_IMAGE_BYTES = 12 * 1024 * 1024 }
+    private companion object {
+        const val MAX_IMAGE_BYTES = 12 * 1024 * 1024
+        const val MAX_DECODE_PIXELS = 4_000_000L
+    }
 }

@@ -17,9 +17,10 @@ import zepigit.firefin.app.util.SessionReporter
 /**
  * Contract tests for the per-playback session reporter: ordered events with
  * conflated progress, terminal stop plus one-shot cleanup, all bound to an
- * immutable credential snapshot. Every test drains the recorded requests only
- * after the reporter reached its terminal state, so no assertion depends on
- * scheduler timing.
+ * immutable credential snapshot. Tests drain recorded requests only after the
+ * reporter reached its terminal state; conflation asserts the contract
+ * (at-most-latest, none after terminal stop) rather than exact send counts,
+ * so remaining scheduler freedom between wakeups cannot break them.
  */
 class SessionReporterContractTest {
 

@@ -88,6 +88,30 @@ class TransportRegressionTest {
         } }
     }
 
+    @Test fun `media client follows at most three same-origin GET redirects and refuses others`() = runBlocking {
+        MockWebServer().use { origin -> MockWebServer().use { other: MockWebServer ->
+            origin.start(); other.start()
+            val transport = ServerTransport(ServerCredentials(origin.url("/").toString(), "u", "t"), "d")
+            // 4 hops: the last redirect must not be followed (no 200 is ever served).
+            repeat(4) { origin.enqueue(MockResponse().setResponseCode(302).setHeader("Location", origin.url("/hop"))) }
+            assertThrows(java.io.IOException::class.java) {
+                transport.mediaHttp.newCall(okhttp3.Request.Builder().url(origin.url("playlist.m3u8")).build()).execute()
+            }
+            // Cross-origin redirect is refused before sending.
+            origin.enqueue(MockResponse().setResponseCode(302).setHeader("Location", other.url("/stolen")))
+            assertThrows(java.io.IOException::class.java) {
+                transport.mediaHttp.newCall(okhttp3.Request.Builder().url(origin.url("playlist.m3u8")).build()).execute()
+            }
+            assertEquals(0, other.requestCount)
+            // Non-GET redirects are never replayed.
+            origin.enqueue(MockResponse().setResponseCode(307).setHeader("Location", other.url("/stolen")))
+            assertThrows(java.io.IOException::class.java) {
+                transport.mediaHttp.newCall(okhttp3.Request.Builder().url(origin.url("submit")).post(okhttp3.RequestBody.create(null, "x")).build()).execute()
+            }
+            assertEquals(0, other.requestCount)
+        } }
+    }
+
     @Test fun `cancelling request cancels its actual okhttp call`() = runBlocking {
         val server = MockWebServer()
         server.start()
