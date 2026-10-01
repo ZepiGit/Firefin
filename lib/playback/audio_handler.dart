@@ -178,7 +178,7 @@ Future<void> initAudioService({
   await AudioService.init<MoonfinAudioHandler>(
     builder: () => MoonfinAudioHandler(manager, clientFactory),
     config: AudioServiceConfig(
-      androidNotificationChannelId: 'com.moonfin.app.audio',
+      androidNotificationChannelId: 'zepigit.firefin.app.audio',
       androidNotificationChannelName: 'Music Playback',
       androidNotificationOngoing: false,
       androidStopForegroundOnPause: false,
