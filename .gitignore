@@ -110,3 +110,9 @@ app.*.map.json
 # Local backup artifacts never belong in the repo
 firefin-pre-repair-*.bundle
 *.bundle
+
+# ZCode workspace config (local only)
+.zcode/
+
+# Backup artifacts
+*.bundle
