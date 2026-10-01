@@ -38,8 +38,7 @@ class SettingsActivity : AppCompatActivity() {
         }
         findViewById<Button>(R.id.logoutButton).setOnClickListener {
             session.clear()
-            startActivity(Intent(this, LoginActivity::class.java))
-            finish()
+            LoginActivity.startFresh(this)
         }
     }
 }

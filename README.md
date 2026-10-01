@@ -1,123 +1,61 @@
-# Moonfin FireTV32
+# Firefin
 
 [![License: GPL v2](https://img.shields.io/badge/license-GPL--2.0-blue.svg)](LICENSE)
-[![Release](https://img.shields.io/github/v/release/ZepiGit/Moonfin-FireTV32?display_name=tag)](https://github.com/ZepiGit/Moonfin-FireTV32/releases/latest)
 [![Platform](https://img.shields.io/badge/platform-Fire%20OS%205-orange)](COMPATIBILITY.md)
 [![Architecture](https://img.shields.io/badge/architecture-ARMv7-lightgrey)](COMPATIBILITY.md)
 
-Unofficial Moonfin Core **1.1.0** backport for **32-bit Fire TV** on **Fire OS 5**
-(Android 5.1 / **API 22**). A focused Jellyfin client with remote-friendly
-navigation and conservative performance defaults — not a general Android tablet
-app.
+**Firefin** is an independent native Kotlin Jellyfin client for legacy Fire TV
+devices, originally derived from Moonfin Core. Not affiliated with or supported
+by Moonfin, Jellyfin, Emby, or Amazon.
 
 **Primary target:** Fire TV Stick 2nd Generation / Basic Edition (`AFTT`,
-`LY73PR`). 1st-gen Fire TV is experimental. Newer 64-bit sticks are out of scope.
+`LY73PR`), Fire OS 5.2.8.0 (Android 5.1 / **API 22**), ARMv7, 1 GB RAM.
 
-> Independent community project. Not affiliated with Moonfin, Amazon, Jellyfin,
-> or Emby.
+> **Migration status:** the repository is being converted from the Moonfin
+> FireTV32 Flutter backport into a native Kotlin application. The native app
+> (`app/`) already builds and covers core flows (login, home, libraries,
+> details, playback, search, settings, remote session control) with the same
+> conservative Fire-TV limits (720p / 4 Mbit/s incl. audio, H.264 direct play,
+> 320/640/960 artwork classes). Larger feature areas of the legacy Flutter app
+> (Live TV, Seerr, downloads, music, books, DLNA) are **not yet ported** —
+> this branch is not yet advertised as feature-equal. Progress is tracked in
+> [docs/FIREFIN_MIGRATION.md](docs/FIREFIN_MIGRATION.md).
 
-## Current line: r20 → r21
+| Field | Native app (in development) | Legacy app (until removal) |
+|---|---|---|
+| Package | `zepigit.firefin.app` | `org.moonfin.firetv32` |
+| Display name | Firefin | Firefin (was "Moonfin Fire TV") |
+| Min SDK | 21 (runtime verified against API 22) | 21 |
+| UI | Native Android views/XML, Media3 player | Flutter + media_kit |
 
-| Field | Value |
-|---|---|
-| Release | `1.1.0-firetv32-r21` |
-| Version code | `3000028` |
-| Package | `org.moonfin.firetv32` |
-| Min SDK / arch | API 21 · `armeabi-v7a` only |
-| Upstream | Moonfin Core 1.1.0 · GPL-2.0 |
+## Install note (important)
 
-**r21** builds on the r20 AFTT profile (playback, D-pad, 720p/4 Mbit/s ceiling)
-with performance waves and follow-up fixes:
+The native Firefin app uses a **new application ID**. It is a different
+Android app, not an in-place update of the old one:
 
-| Wave | Focus |
-|---|---|
-| **r21 base** | Decode-size images, tighter TV image cache (~40 / 32 MiB), HTTP concurrency 2, performance defaults r4 |
-| **A** | Lean AFTT runtime — blur 0, no Home `BackdropFilter`, Media Bar / previews / card expansion forced off at read time (not written back) |
-| **B** | TV image policy — width-only decode, size buckets, poster **320** / landscape **640** / backdrop **960** |
-| **C0** | Home scroll offset isolated via `ValueNotifier` so rows/cards do not rebuild every scroll tick |
-| **Fixes** | Sync exports use stored prefs (`getStored`) so lean ceilings never push to other devices; fixed poster class 320; library thumbs/banners 640; pinned InfoArea as builder `child` |
+- The old Moonfin FireTV32 app (`org.moonfin.firetv32`) can stay installed
+  side by side; it is not uninstalled or wiped automatically.
+- Firefin starts with a fresh login; tokens and settings from the old app are
+  **not** migrated automatically.
 
-**[Download latest release](https://github.com/ZepiGit/Moonfin-FireTV32/releases/latest)**
-(APK, source archive, SHA-256, device notes).
+## Build (native app)
 
-## Features (short)
+Requires JDK 17 and the Android SDK (see [BUILDING.md](BUILDING.md)):
 
-- Browse Jellyfin libraries, movies, series, seasons, episodes
-- Posters, covers, thumbnails, static backdrops (reduced resolution on AFTT)
-- Remote playback: resume, seek, audio / subtitles; server transcode when needed
-- Seerr entry when configured; separate package (`org.moonfin.firetv32`)
-- High-contrast cyan focus; Left/Right-only percentage sliders
-
-Optimized and device-tested primarily with **Jellyfin** (Emby remains upstream).
-
-## Fire TV performance profile
-
-- Media Bar, inline trailers, preview audio, cinema mode, card enlargement: **off**
-- Static posters / covers / backdrops: **on** at reduced size (see waves B above)
-- Transcode ceiling: **1280×720**, **4 Mbit/s**; bitmap/ASS subs via server when required
-- Deterministic D-pad: Play/Pause → seek → Subtitles/Audio
-
-## Install
-
-Enable **ADB debugging** and **Apps from Unknown Sources**, then:
-
-```text
-adb connect FIRE_TV_IP:5555
-adb install Moonfin_FireTV32_Unofficial_1.1.0-r21.apk
+```bash
+./gradlew --no-daemon :app:testDebugUnitTest :app:assembleDebug
+./gradlew --no-daemon :app:lintDebug :app:assembleRelease
 ```
 
-Different signing certificate → uninstall first (also clears local data):
+Release builds require the `FIREFIN_*` signing secrets (or fall back to debug
+signing for local/CI test builds — never publish those).
 
-```text
-adb uninstall org.moonfin.firetv32
-adb install Moonfin_FireTV32_Unofficial_1.1.0-r21.apk
-```
+## Origin and licensing
 
-```text
-adb shell am start -W -n org.moonfin.firetv32/org.moonfin.androidtv.MainActivity
-```
+Firefin descends from the Moonfin FireTV32 backport of
+[Moonfin-Client/Moonfin-Core](https://github.com/Moonfin-Client/Moonfin-Core)
+(GPL-2.0). The repaired git history preserves the upstream commits and their
+authors; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md),
+[LICENSE](LICENSE) and [docs/FIREFIN_MIGRATION.md](docs/FIREFIN_MIGRATION.md).
 
-Verify SHA-256 against the release `SHA256SUMS.txt` before install.
-
-## Build hints
-
-```text
-flutter pub get
-flutter test
-flutter analyze
-flutter build apk --release --target-platform android-arm --split-per-abi
-```
-
-Toolchain, signing env vars, and validation: **[BUILDING.md](BUILDING.md)**.
-Never commit keystores, passwords, or server tokens.
-
-## Docs
-
-| Document | Contents |
-|---|---|
-| [FireTV32 guide](FIRETV32-README.md) | Technical release overview |
-| [Building](BUILDING.md) | Toolchain, signing, APK checks |
-| [Compatibility](COMPATIBILITY.md) | Hardware matrix and test status |
-| [Release notes r21](RELEASE_NOTES_1.1.0-r21.md) | r21 highlights and limits |
-| [Changelog](CHANGELOG.md) | Development history |
-| [Security](SECURITY.md) · [Third-party](THIRD_PARTY_NOTICES.md) | Keys and attribution |
-
-## Known limits
-
-- Community compatibility build — not an official Moonfin release
-- **No lag / FPS claim** for r21 waves until measured on a physical AFTT device
-- Device verification on AFTT so far covers the **r20** baseline; r21 is code-complete pending on-device smoke
-- ARMv7 only; DRM streaming out of scope; 1st-gen Fire TV experimental
-- Real-world speed depends on artwork, Wi-Fi, transcoder, codecs, and device condition
-- No signing keys or secrets in this repository
-
-## Contributing
-
-Bug reports and focused PRs welcome. Keep Fire OS 5 and remote-only navigation
-in mind; preserve `org.moonfin.firetv32`; never commit credentials, token-bearing
-logs, or signing material.
-
-## License
-
-Derived from [Moonfin Core](https://github.com/Moonfin-Client/Moonfin-Core)
-under [GPL-2.0](LICENSE). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Bugs and support belong to Firefin, not to Moonfin.

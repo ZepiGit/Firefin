@@ -214,6 +214,7 @@ class JellyfinClient(private val session: SessionStore) {
             val nowPlaying = o.optJSONObject("NowPlayingItem")?.optString("Name") ?: ""
             RemoteSession(
                 id = o.optString("Id"),
+                deviceId = o.optString("DeviceId"),
                 deviceName = o.optString("DeviceName", ""),
                 userName = o.optJSONObject("UserName")?.optString("$", "") ?: o.optString("UserName", ""),
                 nowPlaying = nowPlaying,

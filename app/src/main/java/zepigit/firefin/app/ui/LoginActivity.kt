@@ -1,5 +1,6 @@
 package zepigit.firefin.app.ui
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
@@ -63,5 +64,15 @@ class LoginActivity : AppCompatActivity() {
     private fun goHome() {
         startActivity(Intent(this, HomeActivity::class.java))
         finish()
+    }
+
+    companion object {
+        /** Starts login clearing the whole task (used after logout — no stale Home underneath). */
+        fun startFresh(context: Context) {
+            context.startActivity(
+                Intent(context, LoginActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK),
+            )
+        }
     }
 }

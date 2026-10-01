@@ -17,6 +17,6 @@ object ServiceLocator {
     fun init(context: Context) {
         session = SessionStore(context.applicationContext)
         client = JellyfinClient(session)
-        images = ImageLoader(context.applicationContext)
+        images = ImageLoader(context.applicationContext, client.okHttp)
     }
 }

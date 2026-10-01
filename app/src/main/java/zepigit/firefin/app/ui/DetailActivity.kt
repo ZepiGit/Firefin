@@ -27,11 +27,13 @@ class DetailActivity : AppCompatActivity() {
 
     private val scope = CoroutineScope(Dispatchers.Main + Job())
     private var item: MediaItem? = null
+    private var itemId = ""
+    private var firstLoad = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_detail)
-        val itemId = intent.getStringExtra(EXTRA_ID) ?: return finish()
+        itemId = intent.getStringExtra(EXTRA_ID) ?: return finish()
         val backdrop = findViewById<ImageView>(R.id.backdrop)
         val name = findViewById<TextView>(R.id.name)
         val meta = findViewById<TextView>(R.id.meta)
@@ -41,6 +43,25 @@ class DetailActivity : AppCompatActivity() {
         val watched = findViewById<Button>(R.id.watchedButton)
         val children = findViewById<RecyclerView>(R.id.children)
 
+        loadItem()
+    }
+
+    /** Re-queries user data on return from the player so resume/watch state stays current. */
+    override fun onResume() {
+        super.onResume()
+        if (!firstLoad) loadItem()
+    }
+
+    private fun loadItem() {
+        firstLoad = false
+        val backdrop = findViewById<ImageView>(R.id.backdrop)
+        val name = findViewById<TextView>(R.id.name)
+        val meta = findViewById<TextView>(R.id.meta)
+        val overview = findViewById<TextView>(R.id.overview)
+        val play = findViewById<Button>(R.id.playButton)
+        val favorite = findViewById<Button>(R.id.favoriteButton)
+        val watched = findViewById<Button>(R.id.watchedButton)
+        val children = findViewById<RecyclerView>(R.id.children)
         scope.launch {
             try {
                 val loaded = ServiceLocator.client.item(itemId)
@@ -62,6 +83,13 @@ class DetailActivity : AppCompatActivity() {
                     }
                 }
                 overview.text = loaded.overview
+                // Only leaf items can play; series get the episode strip, other
+                // containers (Season, BoxSet, MusicAlbum, Folder) get no play button.
+                if (loaded.isPlayable || loaded.isSeries) {
+                    play.visibility = View.VISIBLE
+                } else {
+                    play.visibility = View.GONE
+                }
                 play.text = if (loaded.resumeTicks > 0) getString(R.string.resume) else getString(R.string.play)
                 favorite.text = if (loaded.favorite) "★ " + getString(R.string.favorite) else getString(R.string.favorite)
                 watched.text = if (loaded.played) "✓ " + getString(R.string.mark_watched) else getString(R.string.mark_watched)
@@ -83,12 +111,12 @@ class DetailActivity : AppCompatActivity() {
                 val backdropUrl = Urls.imageUrl(
                     ServiceLocator.client.baseUrl,
                     loaded.id,
-                    "Backdrop",
+                    if (loaded.backdropTag != null) "Backdrop" else "Primary",
                     ArtworkPolicy.BACKDROP_WIDTH,
                     loaded.backdropTag,
                     ServiceLocator.session.accessToken,
                 )
-                ServiceLocator.images.load(backdropUrl, ArtworkPolicy.BACKDROP_WIDTH, backdrop)
+                ServiceLocator.images.load(backdropUrl, ArtworkPolicy.decodeBucket(ArtworkPolicy.BACKDROP_WIDTH), backdrop)
                 if (loaded.isSeries) {
                     children.layoutManager = LinearLayoutManager(
                         this@DetailActivity,

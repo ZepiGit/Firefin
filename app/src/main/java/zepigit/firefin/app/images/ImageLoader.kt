@@ -20,7 +20,7 @@ import java.util.concurrent.Semaphore
  * legacy FireTV32 image-host concurrency limit). Decode targets the
  * ArtworkPolicy bucket so bitmaps stay small.
  */
-class ImageLoader(context: Context) {
+class ImageLoader(context: Context, private val http: okhttp3.OkHttpClient) {
 
     private val scope = CoroutineScope(Dispatchers.Main + Job())
     private val fetchPermits = Semaphore(2)
@@ -46,7 +46,12 @@ class ImageLoader(context: Context) {
             val bitmap = withContext(Dispatchers.IO) {
                 loadFromDisk(url) ?: fetchAndDecode(url, targetWidth)
             }
-            if (view.getTag(R.id.image_loader_url) == url && bitmap != null) {
+            if (bitmap == null) {
+                // Allow a retry on rebind instead of keeping a dead tag forever.
+                if (view.getTag(R.id.image_loader_url) == url) view.setTag(R.id.image_loader_url, null)
+                return@launch
+            }
+            if (view.getTag(R.id.image_loader_url) == url) {
                 view.setImageBitmap(bitmap)
             }
         }
@@ -78,7 +83,7 @@ class ImageLoader(context: Context) {
         fetchPermits.acquire()
         try {
             val request = okhttp3.Request.Builder().url(url).build()
-            okhttp3.OkHttpClient().newCall(request).execute().use { response ->
+            http.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return@use null
                 val bytes = response.body?.bytes() ?: return@use null
                 val bitmap = decode(bytes, targetWidth) ?: return@use null
@@ -103,6 +108,8 @@ class ImageLoader(context: Context) {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
         if (bounds.outWidth <= 0) return null
+        // Sample by width against the ArtworkPolicy bucket ladder; the sampled
+        // bitmap never exceeds the bucket width (single-axis footprint).
         var sample = 1
         while (bounds.outWidth / (sample * 2) >= targetWidth) sample *= 2
         val options = BitmapFactory.Options().apply {

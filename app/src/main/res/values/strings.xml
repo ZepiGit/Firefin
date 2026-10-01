@@ -21,4 +21,8 @@
     <string name="continue_watching">Weiterschauen</string>
     <string name="next_up">Als Nächstes</string>
     <string name="latest_media">Neu hinzugefügt</string>
+    <string name="error_generic">Ein Fehler ist aufgetreten</string>
+    <string name="empty_library">Diese Bibliothek ist leer</string>
+    <string name="empty_search">Keine Ergebnisse</string>
+    <string name="empty_remote">Keine steuerbaren Sitzungen</string>
 </resources>

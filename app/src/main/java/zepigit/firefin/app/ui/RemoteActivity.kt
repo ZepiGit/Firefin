@@ -45,14 +45,17 @@ class RemoteActivity : AppCompatActivity() {
 
     private fun refresh() {
         scope.launch {
+            findViewById<android.widget.ProgressBar>(R.id.progress).visibility = View.VISIBLE
             try {
                 val sessions = ServiceLocator.client.sessions()
-                    .filter { it.controllable && it.id != ServiceLocator.session.deviceId }
+                    .filter { it.controllable && it.deviceId != ServiceLocator.session.deviceId }
                 adapter.submit(sessions)
                 findViewById<TextView>(R.id.empty).visibility =
                     if (sessions.isEmpty()) View.VISIBLE else View.GONE
             } catch (e: Exception) {
                 Toast.makeText(this@RemoteActivity, e.message ?: "Fehler", Toast.LENGTH_LONG).show()
+            } finally {
+                findViewById<android.widget.ProgressBar>(R.id.progress).visibility = View.GONE
             }
         }
     }
@@ -88,7 +91,7 @@ private class SessionsAdapter(
                 append("▶ ").append(session.nowPlaying)
             }
         }
-        holder.playPause.setOnClickListener { onCommand(session, if (session.nowPlaying.isEmpty()) "Play" else "Pause") }
+        holder.playPause.setOnClickListener { onCommand(session, "PlayPause") }
         holder.stop.setOnClickListener { onCommand(session, "Stop") }
     }
 

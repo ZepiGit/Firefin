@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import zepigit.firefin.app.R
 import zepigit.firefin.app.ServiceLocator
@@ -31,12 +32,13 @@ class LibraryActivity : AppCompatActivity() {
     private var total = -1
     private var loading = false
     private var sortByIndex = 0
+    private var generation = 0
 
     private val sortOptions = listOf(
         "SortName" to "Ascending",
         "DateCreated" to "Descending",
         "ProductionYear" to "Descending",
-        "Random" to "Ascending",
+        "CommunityRating" to "Descending",
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -61,6 +63,7 @@ class LibraryActivity : AppCompatActivity() {
         })
         findViewById<Button>(R.id.sortButton).setOnClickListener {
             sortByIndex = (sortByIndex + 1) % sortOptions.size
+            generation++
             adapter.submit(emptyList())
             total = -1
             loadMore()
@@ -68,10 +71,16 @@ class LibraryActivity : AppCompatActivity() {
         loadMore()
     }
 
+    override fun onDestroy() {
+        scope.cancel()
+        super.onDestroy()
+    }
+
     private fun loadMore() {
         if (loading) return
         loading = true
         progress.visibility = View.VISIBLE
+        val gen = generation
         val start = adapter.itemCount
         val (by, order) = sortOptions[sortByIndex]
         scope.launch {
@@ -82,23 +91,25 @@ class LibraryActivity : AppCompatActivity() {
                     sortBy = by,
                     sortOrder = order,
                 )
+                if (gen != generation) return@launch
                 total = totalCount
                 titleView.text = (intent.getStringExtra(EXTRA_TITLE) ?: "") +
                     " (${total} · ${by.removePrefix("Sort").removePrefix("Date")})"
-                adapter.append(items)
+                adapter.appendItems(items)
             } catch (e: Exception) {
                 Toast.makeText(this@LibraryActivity, e.message ?: "Fehler", Toast.LENGTH_LONG).show()
             } finally {
-                loading = false
-                progress.visibility = View.GONE
+                if (gen == generation) {
+                    loading = false
+                    progress.visibility = View.GONE
+                }
             }
         }
     }
 
     private fun MediaCardAdapter.append(items: List<MediaItem>) = appendItems(items)
 
-    companion object {
-        private const val EXTRA_LIBRARY = "library.id"
+    companion object {        private const val EXTRA_LIBRARY = "library.id"
         private const val EXTRA_TITLE = "library.title"
         private const val GRID_SPAN = 6
 

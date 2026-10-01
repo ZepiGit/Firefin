@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.View
 import android.widget.Button
 import android.widget.ProgressBar
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -12,6 +13,7 @@ import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import zepigit.firefin.app.R
 import zepigit.firefin.app.ServiceLocator
@@ -21,7 +23,8 @@ import zepigit.firefin.app.data.UserView
 /**
  * Home: resume, next up and per-library latest rows in one vertical
  * RecyclerView with stable ids; the scroll position is restored after the
- * rows are (re)loaded.
+ * rows are (re)loaded. Resume/Next-up rows use landscape artwork; per-library
+ * latest rows use posters.
  */
 class HomeActivity : AppCompatActivity() {
 
@@ -29,12 +32,13 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var rowsView: RecyclerView
     private lateinit var rowsAdapter: HomeRowsAdapter
     private lateinit var progress: ProgressBar
+    private lateinit var emptyView: TextView
     private var pendingScroll: Int? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (!ServiceLocator.session.isLoggedIn) {
-            startActivity(Intent(this, LoginActivity::class.java))
+            LoginActivity.startFresh(this)
             finish()
             return
         }
@@ -42,6 +46,7 @@ class HomeActivity : AppCompatActivity() {
 
         rowsView = findViewById(R.id.rows)
         progress = findViewById(R.id.progress)
+        emptyView = findViewById(R.id.empty)
         rowsAdapter = HomeRowsAdapter(
             onItem = { item -> DetailActivity.start(this, item.id) },
             onRowTitle = { view -> LibraryActivity.start(this, view.id, view.name) },
@@ -73,13 +78,18 @@ class HomeActivity : AppCompatActivity() {
         pendingScroll = state.getInt(KEY_SCROLL, -1).takeIf { it >= 0 }
     }
 
+    override fun onDestroy() {
+        scope.cancel()
+        super.onDestroy()
+    }
+
     private fun loadHome() {
         progress.visibility = View.VISIBLE
         scope.launch {
             try {
                 val rows = mutableListOf<HomeRow>()
-                rows.add(HomeRow(getString(R.string.continue_watching), ServiceLocator.client.resume()))
-                rows.add(HomeRow(getString(R.string.next_up), ServiceLocator.client.nextUp()))
+                rows.add(HomeRow(getString(R.string.continue_watching), ServiceLocator.client.resume(), landscape = true))
+                rows.add(HomeRow(getString(R.string.next_up), ServiceLocator.client.nextUp(), landscape = true))
                 val views = ServiceLocator.client.views()
                 val mediaViews = views.filter {
                     it.collectionType in setOf("movies", "tvshows", "mixed", "")
@@ -89,17 +99,20 @@ class HomeActivity : AppCompatActivity() {
                         HomeRow(
                             getString(R.string.latest_media) + " · " + view.name,
                             ServiceLocator.client.latest(view.id),
-                            parentViewId = view.id,
+                            libraryId = view.id,
+                            libraryName = view.name,
                         ),
                     )
                 }
                 rowsAdapter.submitRows(rows)
+                emptyView.visibility = if (rowsAdapter.itemCount == 0) View.VISIBLE else View.GONE
                 pendingScroll?.let {
                     (rowsView.layoutManager as LinearLayoutManager).scrollToPosition(it)
                     pendingScroll = null
                 }
             } catch (e: Exception) {
-                Toast.makeText(this@HomeActivity, e.message ?: "Fehler", Toast.LENGTH_LONG).show()
+                emptyView.text = e.message ?: getString(R.string.error_generic)
+                emptyView.visibility = View.VISIBLE
             } finally {
                 progress.visibility = View.GONE
             }

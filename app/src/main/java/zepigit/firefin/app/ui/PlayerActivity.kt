@@ -6,10 +6,12 @@ import android.os.Bundle
 import android.view.KeyEvent
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.media3.common.C
 import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -17,11 +19,17 @@ import zepigit.firefin.app.R
 import zepigit.firefin.app.ServiceLocator
 import zepigit.firefin.app.playback.PlaybackEngine
 import zepigit.firefin.app.util.Ticks
+import zepigit.firefin.app.util.SessionReporter
 
 /**
- * Fullscreen player rendered by media3 PlayerView (SurfaceView-based). D-Pad:
- * center = play/pause, left/right = seek, menu = controller. Progress reported
- * every 10 s, on pause and on stop (session cleanup); no automatic retries.
+ * Fullscreen player rendered by media3 PlayerView (SurfaceView-based).
+ *
+ * Deterministic D-Pad contract (legacy FireTV32 parity): while the controller
+ * is hidden, LEFT/RIGHT seek directly and CENTER/UP/DOWN reveal the
+ * controller; while it is visible, keys go to the controller (focus
+ * navigation, CENTER clicks the focused control) and MENU toggles it. Center
+ * = play/pause, left/right = seek. Progress is reported every 10 s and on
+ * pause; stop position is reported best-effort after release. No auto retries.
  */
 class PlayerActivity : AppCompatActivity() {
 
@@ -47,6 +55,11 @@ class PlayerActivity : AppCompatActivity() {
             playerView.player = e.player
             e.prepare(url, startMs)
         }
+        engine?.player?.addListener(object : androidx.media3.common.Player.Listener {
+            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                Toast.makeText(this@PlayerActivity, error.errorCodeName, Toast.LENGTH_LONG).show()
+            }
+        })
 
         scope.launch {
             runCatching { ServiceLocator.client.reportPlaying(itemId, playSessionId) }
@@ -85,41 +98,58 @@ class PlayerActivity : AppCompatActivity() {
         reporting = false
         val p = engine?.player
         if (p != null) {
-            // Report the stop position before release so the session is closed
-            // with the final position instead of being abandoned.
-            runCatching {
-                kotlinx.coroutines.runBlocking {
-                    ServiceLocator.client.reportStopped(
-                        itemId,
-                        playSessionId,
-                        Ticks.fromMs(p.currentPosition),
-                    )
-                }
-            }
+            val positionTicks = Ticks.fromMs(p.currentPosition)
             p.release()
+            SessionReporter.reportStopped(ServiceLocator.client, itemId, playSessionId, positionTicks)
         }
         engine = null
+        scope.cancel()
         super.onDestroy()
     }
 
-    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        val player = engine?.player ?: return super.onKeyDown(keyCode, event)
-        findViewById<PlayerView>(R.id.playerView).showController()
-        return when (keyCode) {
-            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
-                if (player.isPlaying) player.pause() else player.play()
+    /**
+     * Key routing happens in dispatchKeyEvent so the PlayerView cannot consume
+     * keys first while the controller is hidden.
+     */
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        val playerView = findViewById<PlayerView>(R.id.playerView)
+        val controllerVisible = playerView.isControllerFullyVisible
+        if (controllerVisible) {
+            if (event.action == KeyEvent.ACTION_DOWN && event.keyCode == KeyEvent.KEYCODE_MENU) {
+                playerView.hideController()
+                return true
+            }
+            return super.dispatchKeyEvent(event)
+        }
+        if (event.action != KeyEvent.ACTION_DOWN) return true
+        val player = engine?.player
+        return when (event.keyCode) {
+            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
+            KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN,
+            -> {
+                playerView.showController()
+                true
+            }
+            KeyEvent.KEYCODE_MENU -> {
+                playerView.showController()
                 true
             }
             KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_MEDIA_REWIND -> {
-                player.seekTo((player.currentPosition - SEEK_MS).coerceAtLeast(0))
+                player?.seekTo((player.currentPosition - SEEK_MS).coerceAtLeast(0))
                 true
             }
             KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
-                player.seekTo(player.currentPosition + SEEK_MS)
+                player?.seekTo(player.currentPosition + SEEK_MS)
                 true
             }
-            else -> super.onKeyDown(keyCode, event)
+            else -> super.dispatchKeyEvent(event)
         }
+    }
+
+    /** Deterministic track selection dialog (audio/subtitle) driven by ExoPlayer track state. */
+    private fun showTrackDialog(trackType: Int, title: String) {
+        val player = engine?.player ?: return
+        androidx.media3.ui.TrackSelectionDialogBuilder(this, title, player, trackType).build().show()
     }
 
     companion object {

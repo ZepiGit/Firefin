@@ -15,11 +15,15 @@ import zepigit.firefin.app.data.UserView
 import zepigit.firefin.app.images.ArtworkPolicy
 import zepigit.firefin.app.util.Urls
 
-/** Horizontal media card with stable item ids and poster-size artwork. */
+/** Horizontal media card row with stable ids and policy-driven artwork classes. */
 class MediaCardAdapter(
     private val posterStyle: Boolean = true,
     private val onClick: (MediaItem) -> Unit,
 ) : RecyclerView.Adapter<MediaCardAdapter.Holder>() {
+
+    init {
+        setHasStableIds(true)
+    }
 
     private val items = mutableListOf<MediaItem>()
 
@@ -37,9 +41,6 @@ class MediaCardAdapter(
 
     override fun getItemCount(): Int = items.size
     override fun getItemId(position: Int): Long = items[position].id.hashCode().toLong()
-    override fun setHasStableIds(hasStableIds: Boolean) {
-        super.setHasStableIds(true)
-    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
         val view = LayoutInflater.from(parent.context)
@@ -49,14 +50,16 @@ class MediaCardAdapter(
 
     override fun onBindViewHolder(holder: Holder, position: Int) {
         val item = items[position]
-        holder.name.text = if (item.isEpisode && item.seriesName.isNotEmpty()) {
-            "${item.seriesName} · ${item.name}"
-        } else {
-            item.name
+        holder.name.text = when {
+            item.isEpisode && item.seriesName.isNotEmpty() ->
+                "S%d:E%d · %s".format(item.parentIndexNumber, item.indexNumber, item.name)
+            else -> item.name
         }
-        val width = if (posterStyle) ArtworkPolicy.POSTER_WIDTH else ArtworkPolicy.LANDSCAPE_WIDTH
-        val imageType = if (posterStyle && item.posterTag != null) "Primary" else "Thumb"
-        val tag = if (posterStyle) item.posterTag else (item.thumbTag ?: item.posterTag)
+        val (imageType, width, tag, maxHeight) = if (posterStyle && item.posterTag != null) {
+            ArtworkParams("Primary", ArtworkPolicy.POSTER_WIDTH, item.posterTag, ArtworkPolicy.POSTER_MAX_HEIGHT)
+        } else {
+            ArtworkParams("Thumb", ArtworkPolicy.LANDSCAPE_WIDTH, item.thumbTag ?: item.backdropTag, null)
+        }
         val url = Urls.imageUrl(
             ServiceLocator.client.baseUrl,
             item.id,
@@ -64,10 +67,18 @@ class MediaCardAdapter(
             width,
             tag,
             ServiceLocator.session.accessToken,
+            maxHeight,
         )
-        ServiceLocator.images.load(url, width, holder.image)
+        ServiceLocator.images.load(url, ArtworkPolicy.decodeBucket(width), holder.image)
         holder.card.setOnClickListener { onClick(item) }
     }
+
+    private data class ArtworkParams(
+        val imageType: String,
+        val width: Int,
+        val tag: String?,
+        val maxHeight: Int?,
+    )
 
     class Holder(view: View) : RecyclerView.ViewHolder(view) {
         val card: FrameLayout = view.findViewById(R.id.card)
@@ -79,7 +90,9 @@ class MediaCardAdapter(
 data class HomeRow(
     val title: String,
     val items: List<MediaItem>,
-    val parentViewId: String? = null,
+    val libraryId: String? = null,
+    val libraryName: String? = null,
+    val landscape: Boolean = false,
 )
 
 /** Vertical list of home rows; row titles open the underlying library. */
@@ -88,14 +101,15 @@ class HomeRowsAdapter(
     private val onRowTitle: (UserView) -> Unit,
 ) : RecyclerView.Adapter<HomeRowsAdapter.RowHolder>() {
 
+    init {
+        setHasStableIds(true)
+    }
+
     private val rows = mutableListOf<HomeRow>()
-    private val viewIds = mutableMapOf<Int, String>()
 
     fun submitRows(newRows: List<HomeRow>) {
         rows.clear()
         rows.addAll(newRows.filter { it.items.isNotEmpty() })
-        viewIds.clear()
-        rows.forEachIndexed { index, row -> row.parentViewId?.let { viewIds[index] = it } }
         notifyDataSetChanged()
     }
 
@@ -110,14 +124,19 @@ class HomeRowsAdapter(
     override fun onBindViewHolder(holder: RowHolder, position: Int) {
         val row = rows[position]
         holder.title.text = row.title
-        holder.title.setOnClickListener {
-            viewIds[position]?.let { id ->
-                onRowTitle(UserView(id, row.title, ""))
+        if (row.libraryId != null) {
+            holder.title.setOnClickListener {
+                onRowTitle(UserView(row.libraryId, row.libraryName ?: row.title, ""))
             }
+        } else {
+            // Resume/Next-up rows have no single library behind them.
+            holder.title.setOnClickListener(null)
+            holder.title.isClickable = false
+            holder.title.isFocusable = false
         }
         if (holder.items.adapter == null) {
             holder.items.layoutManager = LinearLayoutManager(holder.items.context, LinearLayoutManager.HORIZONTAL, false)
-            holder.items.adapter = MediaCardAdapter(onClick = onItem)
+            holder.items.adapter = MediaCardAdapter(posterStyle = !row.landscape, onClick = onItem)
         }
         (holder.items.adapter as MediaCardAdapter).submit(row.items)
     }

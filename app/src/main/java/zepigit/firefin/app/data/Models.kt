@@ -69,6 +69,7 @@ data class PlaybackSource(
 
 data class RemoteSession(
     val id: String,
+    val deviceId: String,
     val deviceName: String,
     val userName: String,
     val nowPlaying: String,

@@ -30,6 +30,7 @@ class SearchActivity : AppCompatActivity() {
         val box = findViewById<EditText>(R.id.searchBox)
         val results = findViewById<RecyclerView>(R.id.results)
         val empty = findViewById<TextView>(R.id.empty)
+        val progress = findViewById<android.widget.ProgressBar>(R.id.progress)
         val adapter = MediaCardAdapter(onClick = { DetailActivity.start(this, it.id) })
         results.layoutManager = GridLayoutManager(this, GRID_SPAN)
         results.adapter = adapter
@@ -48,6 +49,7 @@ class SearchActivity : AppCompatActivity() {
                 queryJob = scope.launch {
                     delay(400)
                     currentQuery = q
+                    progress.visibility = View.VISIBLE
                     try {
                         val (items, _) = withContext(Dispatchers.IO) {
                             ServiceLocator.client.items(
@@ -60,6 +62,8 @@ class SearchActivity : AppCompatActivity() {
                         empty.visibility = if (items.isEmpty()) View.VISIBLE else View.GONE
                     } catch (e: Exception) {
                         Toast.makeText(this@SearchActivity, e.message ?: "Fehler", Toast.LENGTH_LONG).show()
+                    } finally {
+                        if (currentQuery == q) progress.visibility = View.GONE
                     }
                 }
             }
