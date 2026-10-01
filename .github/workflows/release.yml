@@ -94,6 +94,12 @@ jobs:
           name: firefin-signed-${{ inputs.commit }}
           path: artifacts/
           if-no-files-found: error
+      - name: Recheck immutable tag immediately before publishing
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" --jq '.object.sha')" = "$RELEASE_COMMIT"
       - name: Publish without replacing an existing release
         env:
           GH_TOKEN: ${{ github.token }}

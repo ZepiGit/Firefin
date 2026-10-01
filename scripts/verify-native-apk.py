@@ -8,13 +8,18 @@ def run(cmd):
     return p.stdout
 
 def main():
-    a=argparse.ArgumentParser(); a.add_argument('apk',type=Path); a.add_argument('--build-tools',required=True,type=Path); a.add_argument('--signed',action='store_true'); a.add_argument('--certificate-sha256'); a.add_argument('--output',type=Path); x=a.parse_args()
+    a=argparse.ArgumentParser(); a.add_argument('apk',type=Path); a.add_argument('--build-tools',required=True,type=Path); a.add_argument('--signed',action='store_true'); a.add_argument('--release',action='store_true'); a.add_argument('--expect-version-name'); a.add_argument('--expect-version-code',type=int); a.add_argument('--certificate-sha256'); a.add_argument('--output',type=Path); x=a.parse_args()
     bt=x.build_tools; apk=x.apk
     b=run([str(bt/('aapt2.exe' if os.name=='nt' else 'aapt2')),'dump','badging',str(apk)])
     assert "package: name='zepigit.firefin.app'" in b
     assert "minSdkVersion:'21'" in b
     assert "application-label:'Firefin'" in b
-    assert 'leanback-launchable-activity:' in b and 'banner=' in b
+    if x.expect_version_name: assert f"versionName='{x.expect_version_name}'" in b
+    if x.expect_version_code is not None: assert f"versionCode='{x.expect_version_code}'" in b
+    if x.release: assert "application-debuggable" not in b
+    banner = re.search(r"application:.*banner='([^']*)'", b)
+    assert banner and banner.group(1), 'Missing non-empty application banner'
+    assert 'leanback-launchable-activity:' in b
     run([str(bt/('zipalign.exe' if os.name=='nt' else 'zipalign')),'-c','-v','4',str(apk)])
     with zipfile.ZipFile(apk) as z:
         names=z.namelist()

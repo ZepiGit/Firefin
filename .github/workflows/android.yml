@@ -43,7 +43,7 @@ jobs:
       - name: Verify both APKs
         run: |
           python3 scripts/verify-native-apk.py app/build/outputs/apk/debug/app-debug.apk --build-tools "$ANDROID_HOME/build-tools/35.0.0" --signed --output app/build/debug-verification.json
-          python3 scripts/verify-native-apk.py app/build/outputs/apk/release/app-release-unsigned.apk --build-tools "$ANDROID_HOME/build-tools/35.0.0" --output app/build/release-verification.json
+          python3 scripts/verify-native-apk.py app/build/outputs/apk/release/app-release-unsigned.apk --build-tools "$ANDROID_HOME/build-tools/35.0.0" --release --expect-version-name "$(awk -F= '/^versionName=/{print $2}' version.properties)" --expect-version-code "$(awk -F= '/^versionCode=/{print $2}' version.properties)" --output app/build/release-verification.json
       - name: Reject tracked machine-local configuration
         run: test -z "$(git ls-files -- local.properties android/local.properties)"
       - uses: actions/upload-artifact@v4
