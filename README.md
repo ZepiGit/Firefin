@@ -60,21 +60,6 @@ The interface is currently German only.
   </tr>
 </table>
 
-### South Park on Firefin
-
-These captures come from the running Firefin app on the API-22 x86 emulator. They show a South Park search result, the series with its seasons, an episode detail screen and the player controls. The interface is German in this build.
-
-<table>
-  <tr>
-    <td width="50%"><img src="docs/screenshots-southpark-search.png" alt="South Park search in German Firefin UI with the first library result focused" /></td>
-    <td width="50%"><img src="docs/southpark-season-two.png" alt="South Park season three and episode list in Firefin" /></td>
-  </tr>
-  <tr>
-    <td width="50%"><img src="docs/southpark-episode.png" alt="South Park episode details in Firefin with playback actions" /></td>
-    <td width="50%"><img src="docs/firefin-seerr-current.png" alt="Current Firefin Seerr discovery screen with Trending and request navigation" /></td>
-  </tr>
-</table>
-
 ## Works with
 
 | Service | Compatibility |
