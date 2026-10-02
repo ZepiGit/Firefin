@@ -16,7 +16,7 @@ is claimed. No Flutter cleanup is permitted while active features lack parity.
 
 ## Current verification snapshot
 
-Native identity: `zepigit.firefin.app`, `0.2.0-firefin`, versionCode `3001000`
+Native identity: `zepigit.firefin.app`, `0.2.1-firefin`, versionCode `3001001`
 (`version.properties`; above the legacy `3000028`), minSdk 21, targetSdk 34.
 
 Implementation evidence basis: tested commit `c9da933aa2a331c760325b97e777b51be7d4980f`.
@@ -143,7 +143,7 @@ alone is not proof of Fire-TV reachability. The feature matrix records gates and
 - Production signing key, pinned signing certificate (`FIREFIN_CERTIFICATE_SHA256`)
   and the protected `firefin-release` environment with required reviewers must
   exist before a release can succeed; no debug-key release. The release workflow
-  needs a lightweight tag `firefin-v0.2.0-firefin` on a reviewed `main` commit
+  needs a lightweight tag `firefin-v0.2.1-firefin` on a reviewed `main` commit
   with a successful `android.yml` run for that SHA.
 - API22 stock emulator and actual AFTT are separate evidence. The emulator
   install/launch smoke exists; the AFTT run does not. Hardware release approval

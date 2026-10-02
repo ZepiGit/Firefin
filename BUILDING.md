@@ -19,7 +19,7 @@ is documented per commit; CI runs are listed in docs/FIREFIN_MIGRATION.md.
 | Android SDK | `platforms;android-35`, `build-tools;35.0.0` |
 | App SDK levels | minSdk 21, targetSdk 34, compileSdk 35 |
 | Application ID | `zepigit.firefin.app` |
-| Version | `versionName=0.2.0-firefin`, `versionCode=3001000` (from `version.properties`) |
+| Version | `versionName=0.2.1-firefin`, `versionCode=3001001` (from `version.properties`) |
 
 `version.properties` is the single source of version identity. Keep the native
 version code above the legacy `3000028`.
@@ -117,7 +117,7 @@ Inputs:
 
 | Input | Requirement |
 |---|---|
-| `tag` | Existing tag `firefin-v<versionName>`, e.g. `firefin-v0.2.0-firefin`; must equal `firefin-v` plus `versionName` in `version.properties` |
+| `tag` | Existing tag `firefin-v<versionName>`, e.g. `firefin-v0.2.1-firefin`; must equal `firefin-v` plus `versionName` in `version.properties` |
 | `commit` | Full 40-character reviewed commit SHA; must be the tag's commit |
 
 Gates, all enforced by the workflow:
