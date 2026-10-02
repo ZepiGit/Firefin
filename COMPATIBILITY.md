@@ -17,10 +17,10 @@ optional; Leanback launcher and TV banner are present.
 
 | Evidence | Result |
 |---|---|
-| Tested implementation snapshot `c9da933aa2a331c760325b97e777b51be7d4980f` | 60 unit tests pass; strict debug/release lint 0 errors; Debug/Release APKs build; release unsigned by design |
+| Tested implementation snapshot `c9da933aa2a331c760325b97e777b51be7d4980f` | 60 unit tests pass; strict debug/release lint 0 errors; Debug/Release APKs build; the CI release build is unsigned by design, signed APKs come only from the protected release workflow |
 | API 22 stock x86 emulator | Login, Moonfin-like Home/Library/Detail/Search/Settings, Seerr discovery/search/detail/season confirmation, TMDB artwork, baseline 480p playback, resume, D-pad controller, audio dialog and cleanup exercised |
 | Physical AFTT (ARMv7) | **Absent.** No hardware decoder/memory/thermal result |
-| Signed release APK | **Absent.** Production keystore and protected environment unavailable |
+| Signed release APK | Release `0.2.3-firefin` was built, signed and verified against the pinned production certificate by the protected release workflow (run 37055114680). It has not been run on AFTT hardware |
 | Final commit CI | Consult the exact commit's GitHub Actions record; local results are not CI evidence |
 
 The emulator is x86; it does not validate ARMv7 codecs, the 1 GB memory limit

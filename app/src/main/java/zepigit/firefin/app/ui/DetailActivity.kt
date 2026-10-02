@@ -99,7 +99,7 @@ class DetailActivity : AppCompatActivity() {
                     }
                     if (loaded.resumeTicks > 0) {
                         if (isNotEmpty()) append(" · ")
-                        append("Rest: ").append(Ticks.format(loaded.runTimeTicks - loaded.resumeTicks))
+                        append(getString(R.string.detail_remaining, Ticks.format(loaded.runTimeTicks - loaded.resumeTicks)))
                     }
                 }
                 overview.text = loaded.overview
@@ -121,14 +121,14 @@ class DetailActivity : AppCompatActivity() {
                     scope.launch {
                         try { ServiceLocator.client.setFavorite(loaded.id, !loaded.favorite); refreshUserData() }
                         catch (e: CancellationException) { throw e }
-                        catch (e: Exception) { Toast.makeText(this@DetailActivity, e.message ?: "Fehler", Toast.LENGTH_LONG).show() }
+                        catch (e: Exception) { Toast.makeText(this@DetailActivity, errorMessage(e), Toast.LENGTH_LONG).show() }
                     }
                 }
                 watched.setOnClickListener {
                     scope.launch {
                         try { ServiceLocator.client.setPlayed(loaded.id, !loaded.played); refreshUserData() }
                         catch (e: CancellationException) { throw e }
-                        catch (e: Exception) { Toast.makeText(this@DetailActivity, e.message ?: "Fehler", Toast.LENGTH_LONG).show() }
+                        catch (e: Exception) { Toast.makeText(this@DetailActivity, errorMessage(e), Toast.LENGTH_LONG).show() }
                     }
                 }
                 val backdropUrl = Urls.imageUrl(
@@ -147,7 +147,9 @@ class DetailActivity : AppCompatActivity() {
                         LinearLayoutManager.HORIZONTAL,
                         false,
                     )
-                    findViewById<TextView>(R.id.childrenTitle).text = if (loaded.isSeries) "Staffeln" else if (loaded.type == "Season") "Episoden" else "Inhalte"
+                    findViewById<TextView>(R.id.childrenTitle).setText(
+                        if (loaded.isSeries) R.string.children_seasons else if (loaded.type == "Season") R.string.children_episodes else R.string.children_items,
+                    )
                     children.adapter = MediaCardAdapter(posterStyle = loaded.type != "Season", onClick = { child ->
                         DetailActivity.start(this@DetailActivity, child.id)
                     })
@@ -160,7 +162,7 @@ class DetailActivity : AppCompatActivity() {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                findViewById<TextView>(R.id.overview).text = e.message ?: "Fehler beim Laden."
+                findViewById<TextView>(R.id.overview).text = errorMessage(e, R.string.load_error)
                 findViewById<Button>(R.id.retryButton).apply { visibility = View.VISIBLE; requestFocus() }
             } finally {
                 findViewById<android.widget.ProgressBar>(R.id.progress).visibility = View.GONE
@@ -195,7 +197,7 @@ class DetailActivity : AppCompatActivity() {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                Toast.makeText(this@DetailActivity, e.message ?: "Playback-Fehler", Toast.LENGTH_LONG).show()
+                Toast.makeText(this@DetailActivity, errorMessage(e), Toast.LENGTH_LONG).show()
             } finally {
                 startingPlayback = false
             }

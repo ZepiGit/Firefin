@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Firefin</string>
+
+    <!-- Navigation and shared actions -->
+    <string name="home">Start</string>
+    <string name="search">Suche</string>
+    <string name="libraries">Bibliotheken</string>
+    <string name="favorites">Favoriten</string>
+    <string name="random_playback">Zufällige Wiedergabe</string>
+    <string name="media_requests">Medienwünsche</string>
+    <string name="settings">Einstellungen</string>
+    <string name="remote_control">Fernbedienung</string>
+    <string name="cancel">Abbrechen</string>
+    <string name="ok">OK</string>
+    <string name="continue_button">Weiter</string>
+    <string name="reload">Erneut laden</string>
+    <string name="refresh">Aktualisieren</string>
+    <string name="connect">Verbinden</string>
+
+    <!-- Sign-in -->
+    <string name="login_title">Mit deinem Jellyfin-Server verbinden</string>
+    <string name="server_url_hint">Server-Adresse (z. B. http://192.168.1.10:8096)</string>
+    <string name="username_hint">Benutzername</string>
+    <string name="password_hint">Passwort</string>
+    <string name="login_button">Anmelden</string>
+    <string name="login_error_credentials">Anmeldung fehlgeschlagen: Benutzer oder Passwort falsch.</string>
+    <string name="login_error_server">Server nicht erreichbar oder Fehler: %1$s</string>
+    <string name="login_error_connection">Verbindung fehlgeschlagen: %1$s</string>
+
+    <!-- Home, libraries and search -->
+    <string name="home_preview_default">Deine Mediathek</string>
+    <string name="continue_watching">Weiterschauen</string>
+    <string name="next_up">Als Nächstes</string>
+    <string name="latest_media">Neu hinzugefügt</string>
+    <string name="sort_button">Sortierung</string>
+    <string name="search_hint">Suchen…</string>
+    <string name="search_in_library">In deiner Mediathek</string>
+    <string name="search_in_seerr">Über Seerr anfragen</string>
+    <string name="error_generic">Ein Fehler ist aufgetreten</string>
+    <string name="empty_library">Diese Bibliothek ist leer</string>
+    <string name="empty_search">Keine Ergebnisse</string>
+    <string name="empty_remote">Keine steuerbaren Sitzungen</string>
+    <string name="empty_home">Keine Inhalte verfügbar</string>
+
+    <!-- Details -->
+    <string name="detail_breadcrumb">FIREFIN / MEDIATHEK</string>
+    <string name="play">Abspielen</string>
+    <string name="play_with_icon">▶ Abspielen</string>
+    <string name="resume">Fortsetzen</string>
+    <string name="restart">Von Anfang an</string>
+    <string name="favorite">Favorit</string>
+    <string name="mark_watched">Gesehen</string>
+    <string name="detail_remaining">Rest: %1$s</string>
+    <string name="children_seasons">Staffeln</string>
+    <string name="children_episodes">Episoden</string>
+    <string name="children_items">Inhalte</string>
+    <string name="load_error">Fehler beim Laden.</string>
+
+    <!-- Player -->
+    <string name="track_audio">Tonspur</string>
+    <string name="track_subtitles">Untertitel</string>
+    <string name="track_video">Video</string>
+    <string name="subtitles_off">Aus</string>
+    <string name="track_switch_aborted">Spurwechsel abgebrochen: Sitzung konnte nicht beendet werden.</string>
+    <string name="track_switch_failed">Spurwechsel fehlgeschlagen</string>
+
+    <!-- Remote control -->
+    <string name="remote_device_fallback">Gerät</string>
+    <string name="remote_play_pause">Play/Pause</string>
+    <string name="remote_stop">Stop</string>
+
+    <!-- Settings -->
+    <string name="clear_image_cache">Bildcache leeren</string>
+    <string name="logout">Abmelden</string>
+    <string name="about">Über Firefin</string>
+    <string name="about_text">Firefin %1$s\nUnabhängiger nativer Kotlin-Jellyfin-Client für ältere Fire-TV-Geräte, ursprünglich von Moonfin Core abgeleitet. Steht in keiner Verbindung zu Moonfin und wird nicht von Moonfin unterstützt.</string>
+    <string name="setting_quality">Wiedergabequalität</string>
+    <string name="quality_dialog_title">Qualität (Gerät: höchstens 1080p / 4 Mbit/s)</string>
+    <string-array name="quality_options">
+        <item>1080p · 4 Mbit/s</item>
+        <item>720p · 4 Mbit/s</item>
+        <item>720p · 2 Mbit/s</item>
+        <item>480p · 1 Mbit/s</item>
+    </string-array>
+    <string name="setting_backdrops">Hintergrundbilder ein/aus</string>
+    <string name="backdrops_on">Hintergrundbilder an</string>
+    <string name="backdrops_off">Hintergrundbilder aus</string>
+    <string name="setting_audio_language">Bevorzugte Tonsprache</string>
+    <string name="audio_language_title">Tonsprache</string>
+    <string-array name="audio_language_options">
+        <item>Automatisch</item>
+        <item>Deutsch</item>
+        <item>Englisch</item>
+    </string-array>
+    <string name="setting_subtitle_language">Bevorzugte Untertitelsprache</string>
+    <string name="subtitle_language_title">Untertitel</string>
+    <string-array name="subtitle_language_options">
+        <item>Aus</item>
+        <item>Deutsch</item>
+        <item>Englisch</item>
+    </string-array>
+    <string name="cache_cleared">Bildcache geleert (%1$d KiB)</string>
+
+    <!-- Seerr discovery and requests -->
+    <string name="seerr_header">Seerr · Entdecken und anfragen</string>
+    <string name="seerr_discover">Entdecken</string>
+    <string name="seerr_trending">Trending</string>
+    <string name="seerr_movies">Filme</string>
+    <string name="seerr_series">Serien</string>
+    <string name="seerr_my_requests">Meine Anfragen</string>
+    <string name="seerr_search_hint">Filme und Serien entdecken …</string>
+    <string name="seerr_checking">Moonbase wird geprüft …</string>
+    <string name="seerr_previous">Vorherige Seite</string>
+    <string name="seerr_next_page">Nächste Seite</string>
+    <string name="seerr_login_needed">Moonbase erkannt. Seerr benötigt eine Anmeldung.</string>
+    <string name="seerr_connect_title">Seerr über Moonbase verbinden</string>
+    <string name="seerr_password_hint">Passwort (wird nicht gespeichert)</string>
+    <string name="seerr_request_number">Anfrage #%1$d</string>
+    <string name="seerr_search_status">Suche: %1$s</string>
+    <string name="seerr_page_status">%1$s · Seite %2$d / %3$d</string>
+    <string name="seerr_page_status_empty">%1$s · Seite %2$d / %3$d · Keine Ergebnisse</string>
+    <string name="seerr_load_failed">Seerr konnte nicht geladen werden.</string>
+    <string name="seerr_connect_first">Bitte zuerst im Seerr-Bereich verbinden.</string>
+    <string name="seerr_type_movie">Film</string>
+    <string name="seerr_type_series">Serie</string>
+    <string name="seerr_request_checking">Anfragestatus unklar</string>
+    <string name="seerr_no_permission">Keine Anfrageberechtigung</string>
+    <string name="seerr_request_title_hd">Titel anfragen (HD)</string>
+    <string name="seerr_update_status">Status aktualisieren</string>
+    <string name="seerr_check_status">Status prüfen</string>
+    <string name="seerr_unclear_notice">Das Ergebnis der letzten Anfrage ist noch unklar. Keine erneute Anfrage senden. Prüfe den Status oder hebe die Sperre bewusst auf.\n\n%1$s</string>
+    <string name="seerr_remove_lock">Sperre aufheben</string>
+    <string name="seerr_unlock_title">Unklare Anfrage entsperren?</string>
+    <string name="seerr_unlock_message">Die Anfrage könnte bereits auf dem Server angelegt sein. Prüfe zuerst Meine Anfragen. Entsperren sendet nichts; eine neue Anfrage benötigt erneut deine Bestätigung.</string>
+    <string name="seerr_unlock_confirm">Bewusst entsperren</string>
+    <string name="seerr_choose_seasons">Staffeln auswählen</string>
+    <string name="seerr_season_default">Staffel %1$d</string>
+    <plurals name="seerr_season_episodes">
+        <item quantity="one">%1$s · %2$d Folge</item>
+        <item quantity="other">%1$s · %2$d Folgen</item>
+    </plurals>
+    <string name="seerr_confirm_title">Anfrage bestätigen</string>
+    <string name="seerr_confirm_message_movie">%1$s\nHD\n\nDiese Anfrage wird an deinen Seerr-Server gesendet.</string>
+    <string name="seerr_confirm_message_series">%1$s\nHD · Staffeln %2$s\n\nDiese Anfrage wird an deinen Seerr-Server gesendet.</string>
+    <string name="seerr_request_now">Jetzt anfragen</string>
+    <string name="seerr_result_created">Anfrage angelegt.</string>
+    <string name="seerr_result_nothing_new">Keine neuen Staffeln anforderbar.</string>
+    <string name="seerr_result_already">Bereits angefragt.</string>
+    <string name="seerr_result_unknown">Ergebnis unklar. Keine erneute Anfrage senden; Status prüfen.</string>
+
+    <!-- Seerr media status -->
+    <string name="seerr_status_requested">Angefragt</string>
+    <string name="seerr_status_processing">In Bearbeitung</string>
+    <string name="seerr_status_partial">Teilweise verfügbar</string>
+    <string name="seerr_status_available">Verfügbar</string>
+    <string name="seerr_status_blocked">Gesperrt</string>
+    <string name="seerr_status_deleted">Gelöscht</string>
+    <string name="seerr_status_unavailable">Noch nicht verfügbar</string>
+
+    <!-- Seerr request status -->
+    <string name="seerr_request_pending">Ausstehend</string>
+    <string name="seerr_request_approved">Genehmigt</string>
+    <string name="seerr_request_declined">Abgelehnt</string>
+    <string name="seerr_request_failed">Fehlgeschlagen</string>
+    <string name="seerr_request_completed">Abgeschlossen</string>
+    <string name="seerr_request_unknown">Unbekannt</string>
+
+    <!-- Seerr and Moonbase errors -->
+    <string name="seerr_error_401">Seerr-Sitzung abgelaufen. Bitte erneut verbinden.</string>
+    <string name="seerr_error_403">Keine Berechtigung oder Anfrage-Limit erreicht.</string>
+    <string name="seerr_error_409">Dieser Titel wurde bereits angefragt.</string>
+    <string name="seerr_error_502">Seerr ist über Moonbase momentan nicht erreichbar.</string>
+    <string name="seerr_error_503">Seerr ist auf diesem Server deaktiviert.</string>
+    <string name="seerr_error_other">Seerr-Anfrage fehlgeschlagen (HTTP %1$d).</string>
+    <string name="moonbase_unavailable">Moonbase ist auf diesem Server nicht verfügbar.</string>
+    <string name="moonbase_not_installed">Moonbase nicht installiert.</string>
+    <string name="moonbase_response_too_large">Moonbase-Antwort ist zu groß.</string>
+    <string name="moonbase_invalid_encoding">Moonbase-Antwort ist keine gültige Base64-Antwort.</string>
+    <string name="moonbase_invalid_json">Moonbase hat keine gültige JSON-Antwort geliefert.</string>
+    <string name="seerr_invalid_title">Ungültiger Seerr-Titel.</string>
+    <string name="seerr_login_failed">Seerr-Anmeldung fehlgeschlagen.</string>
+</resources>

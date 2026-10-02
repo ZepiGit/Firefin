@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="@color/background" android:padding="28dp">
     <LinearLayout android:layout_width="match_parent" android:layout_height="52dp" android:gravity="center_vertical">
-        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Seerr · Entdecken und anfragen" android:textSize="24sp" android:textStyle="bold" />
-        <Button android:id="@+id/seerrCategory" android:layout_width="wrap_content" android:layout_height="44dp" android:text="Trending" />
-        <Button android:id="@+id/seerrRequests" android:layout_width="wrap_content" android:layout_height="44dp" android:layout_marginStart="10dp" android:text="Meine Anfragen" />
-        <Button android:id="@+id/seerrConnect" android:layout_width="wrap_content" android:layout_height="44dp" android:layout_marginStart="10dp" android:text="Verbinden" />
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/seerr_header" android:textSize="24sp" android:textStyle="bold" />
+        <Button android:id="@+id/seerrCategory" android:layout_width="wrap_content" android:layout_height="44dp" android:text="@string/seerr_trending" />
+        <Button android:id="@+id/seerrRequests" android:layout_width="wrap_content" android:layout_height="44dp" android:layout_marginStart="10dp" android:text="@string/seerr_my_requests" />
+        <Button android:id="@+id/seerrConnect" android:layout_width="wrap_content" android:layout_height="44dp" android:layout_marginStart="10dp" android:text="@string/connect" />
     </LinearLayout>
-    <EditText android:id="@+id/seerrSearch" android:layout_width="match_parent" android:layout_height="44dp" android:layout_marginTop="12dp" android:background="@drawable/input_background" android:padding="12dp" android:hint="Filme und Serien entdecken …" android:singleLine="true" android:inputType="text" android:imeOptions="actionSearch" android:textSize="14sp" />
-    <TextView android:id="@+id/seerrStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="Moonbase wird geprüft …" android:textColor="@color/text_secondary" />
+    <EditText android:id="@+id/seerrSearch" android:layout_width="match_parent" android:layout_height="44dp" android:layout_marginTop="12dp" android:background="@drawable/input_background" android:padding="12dp" android:hint="@string/seerr_search_hint" android:singleLine="true" android:inputType="text" android:imeOptions="actionSearch" android:textSize="14sp" />
+    <TextView android:id="@+id/seerrStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="@string/seerr_checking" android:textColor="@color/text_secondary" />
     <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:layout_marginTop="8dp">
         <androidx.recyclerview.widget.RecyclerView android:id="@+id/seerrGrid" android:layout_width="match_parent" android:layout_height="match_parent" android:clipToPadding="false" android:padding="6dp" />
         <ProgressBar android:id="@+id/seerrProgress" android:layout_width="36dp" android:layout_height="36dp" android:layout_gravity="center" android:visibility="gone" />
     </FrameLayout>
     <LinearLayout android:layout_width="match_parent" android:layout_height="44dp" android:gravity="end">
-        <Button android:id="@+id/seerrPrevious" android:layout_width="wrap_content" android:layout_height="44dp" android:text="Zurück" android:enabled="false" />
-        <Button android:id="@+id/seerrNext" android:layout_width="wrap_content" android:layout_height="44dp" android:layout_marginStart="10dp" android:text="Nächste Seite" android:enabled="false" />
+        <Button android:id="@+id/seerrPrevious" android:layout_width="wrap_content" android:layout_height="44dp" android:text="@string/seerr_previous" android:enabled="false" />
+        <Button android:id="@+id/seerrNext" android:layout_width="wrap_content" android:layout_height="44dp" android:layout_marginStart="10dp" android:text="@string/seerr_next_page" android:enabled="false" />
     </LinearLayout>
 </LinearLayout>

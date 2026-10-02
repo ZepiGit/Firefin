@@ -53,9 +53,9 @@ class LoginActivity : AppCompatActivity() {
                     throw e
                 } catch (e: Exception) {
                     error.text = when {
-                        e.message?.contains("401") == true -> "Anmeldung fehlgeschlagen: Benutzer oder Passwort falsch."
-                        e.message?.contains("HTTP") == true -> "Server nicht erreichbar oder Fehler: ${e.message}"
-                        else -> "Verbindung fehlgeschlagen: ${e.message}"
+                        e.message?.contains("401") == true -> getString(R.string.login_error_credentials)
+                        e.message?.contains("HTTP") == true -> getString(R.string.login_error_server, e.message)
+                        else -> getString(R.string.login_error_connection, e.message)
                     }
                     error.visibility = View.VISIBLE
                     progress.visibility = View.GONE

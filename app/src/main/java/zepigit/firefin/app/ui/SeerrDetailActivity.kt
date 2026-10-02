@@ -55,7 +55,7 @@ class SeerrDetailActivity : AppCompatActivity() {
             try {
                 if (!client.connect()) {
                     findViewById<Button>(R.id.playButton).visibility = View.GONE
-                    findViewById<TextView>(R.id.overview).text = "Bitte zuerst im Seerr-Bereich verbinden."
+                    findViewById<TextView>(R.id.overview).setText(R.string.seerr_connect_first)
                     return@launch
                 }
                 render(client.detail(type, mediaId))
@@ -68,7 +68,8 @@ class SeerrDetailActivity : AppCompatActivity() {
     private fun render(loaded: SeerrMedia) {
         media = loaded
         findViewById<TextView>(R.id.name).text = loaded.title
-        findViewById<TextView>(R.id.meta).text = "${if (loaded.year > 0) "${loaded.year} · " else ""}${if (type == "tv") "Serie" else "Film"} · ${loaded.statusLabel}"
+        val typeLabel = getString(if (type == "tv") R.string.seerr_type_series else R.string.seerr_type_movie)
+        findViewById<TextView>(R.id.meta).text = "${if (loaded.year > 0) "${loaded.year} · " else ""}$typeLabel · ${getString(loaded.statusLabelRes)}"
         findViewById<TextView>(R.id.overview).text = loaded.overview
         TmdbArtwork.url(loaded.backdrop ?: loaded.poster, backdrop = loaded.backdrop != null)?.let {
             ServiceLocator.discoveryImages.load(it, 960, findViewById(R.id.backdrop))
@@ -76,27 +77,27 @@ class SeerrDetailActivity : AppCompatActivity() {
         val unresolved = preferences.contains(key)
         val button = findViewById<Button>(R.id.playButton)
         button.visibility = View.VISIBLE
-        button.text = when {
-            unresolved -> "Anfrage wird geprüft"
-            !client.user.canRequest(type) -> "Keine Anfrageberechtigung"
-            !loaded.requestable -> loaded.statusLabel
-            else -> "Titel anfragen (HD)"
-        }
+        button.setText(when {
+            unresolved -> R.string.seerr_request_checking
+            !client.user.canRequest(type) -> R.string.seerr_no_permission
+            !loaded.requestable -> loaded.statusLabelRes
+            else -> R.string.seerr_request_title_hd
+        })
         button.isEnabled = client.user.canRequest(type) && loaded.requestable && !unresolved
         button.setOnClickListener { chooseRequest(loaded) }
-        findViewById<Button>(R.id.retryButton).apply { visibility = View.VISIBLE; text = "Status aktualisieren"; setOnClickListener { load() } }
+        findViewById<Button>(R.id.retryButton).apply { visibility = View.VISIBLE; setText(R.string.seerr_update_status); setOnClickListener { load() } }
         if (unresolved) {
-            findViewById<TextView>(R.id.overview).text = "Das Ergebnis der letzten Anfrage ist noch unklar. Keine erneute Anfrage senden. Prüfe den Status oder hebe die Sperre bewusst auf.\n\n${loaded.overview}"
-            findViewById<Button>(R.id.retryButton).text = "Status prüfen"
+            findViewById<TextView>(R.id.overview).text = getString(R.string.seerr_unclear_notice, loaded.overview)
+            findViewById<Button>(R.id.retryButton).setText(R.string.seerr_check_status)
             findViewById<Button>(R.id.retryButton).setOnClickListener { load() }
             findViewById<Button>(R.id.restartButton).apply {
                 visibility = View.VISIBLE
-                text = "Sperre aufheben"
+                setText(R.string.seerr_remove_lock)
                 setOnClickListener {
-                    AlertDialog.Builder(this@SeerrDetailActivity).setTitle("Unklare Anfrage entsperren?")
-                        .setMessage("Die Anfrage könnte bereits auf dem Server angelegt sein. Prüfe zuerst Meine Anfragen. Entsperren sendet nichts; eine neue Anfrage benötigt erneut deine Bestätigung.")
-                        .setPositiveButton("Bewusst entsperren") { _, _ -> preferences.edit().remove(key).apply(); render(loaded) }
-                        .setNegativeButton("Abbrechen", null).show()
+                    AlertDialog.Builder(this@SeerrDetailActivity).setTitle(R.string.seerr_unlock_title)
+                        .setMessage(R.string.seerr_unlock_message)
+                        .setPositiveButton(R.string.seerr_unlock_confirm) { _, _ -> preferences.edit().remove(key).apply(); render(loaded) }
+                        .setNegativeButton(R.string.cancel, null).show()
                 }
             }
         } else {
@@ -110,20 +111,26 @@ class SeerrDetailActivity : AppCompatActivity() {
         if (type == "movie") confirm(loaded, emptyList()) else {
             val seasons = loaded.eligibleSeasons
             val selected = BooleanArray(seasons.size)
-            AlertDialog.Builder(this).setTitle("Staffeln auswählen")
-                .setMultiChoiceItems(seasons.map { "${it.name.ifBlank { "Staffel ${it.number}" }} · ${it.episodes} Folgen" }.toTypedArray(), selected) { _, index, checked -> selected[index] = checked }
-                .setPositiveButton("Weiter") { _, _ ->
+            val labels = seasons.map {
+                val name = it.name.ifBlank { getString(R.string.seerr_season_default, it.number) }
+                resources.getQuantityString(R.plurals.seerr_season_episodes, it.episodes, name, it.episodes)
+            }
+            AlertDialog.Builder(this).setTitle(R.string.seerr_choose_seasons)
+                .setMultiChoiceItems(labels.toTypedArray(), selected) { _, index, checked -> selected[index] = checked }
+                .setPositiveButton(R.string.continue_button) { _, _ ->
                     val numbers = seasons.filterIndexed { index, _ -> selected[index] }.map { it.number }
                     if (numbers.isNotEmpty()) confirm(loaded, numbers)
-                }.setNegativeButton("Abbrechen", null).show()
+                }.setNegativeButton(R.string.cancel, null).show()
         }
     }
 
     private fun confirm(loaded: SeerrMedia, seasons: List<Int>) {
-        AlertDialog.Builder(this).setTitle("Anfrage bestätigen")
-            .setMessage("${loaded.title}\nHD${if (seasons.isEmpty()) "" else " · Staffeln ${seasons.joinToString()}"}\n\nDiese Anfrage wird an deinen Seerr-Server gesendet.")
-            .setPositiveButton("Jetzt anfragen") { _, _ -> submit(loaded, seasons) }
-            .setNegativeButton("Abbrechen", null).show()
+        val message = if (seasons.isEmpty()) getString(R.string.seerr_confirm_message_movie, loaded.title)
+        else getString(R.string.seerr_confirm_message_series, loaded.title, seasons.joinToString())
+        AlertDialog.Builder(this).setTitle(R.string.seerr_confirm_title)
+            .setMessage(message)
+            .setPositiveButton(R.string.seerr_request_now) { _, _ -> submit(loaded, seasons) }
+            .setNegativeButton(R.string.cancel, null).show()
     }
 
     private fun submit(loaded: SeerrMedia, seasons: List<Int>) {
@@ -139,13 +146,13 @@ class SeerrDetailActivity : AppCompatActivity() {
                 }
                 if (result != SeerrClient.RequestResult.UNKNOWN) preferences.edit().remove(key).apply()
                 val message = when (result) {
-                    SeerrClient.RequestResult.CREATED -> "Anfrage angelegt."
-                    SeerrClient.RequestResult.NOTHING_NEW -> "Keine neuen Staffeln anforderbar."
-                    SeerrClient.RequestResult.ALREADY_REQUESTED -> "Bereits angefragt."
-                    SeerrClient.RequestResult.UNKNOWN -> "Ergebnis unklar. Keine erneute Anfrage senden; Status prüfen."
+                    SeerrClient.RequestResult.CREATED -> R.string.seerr_result_created
+                    SeerrClient.RequestResult.NOTHING_NEW -> R.string.seerr_result_nothing_new
+                    SeerrClient.RequestResult.ALREADY_REQUESTED -> R.string.seerr_result_already
+                    SeerrClient.RequestResult.UNKNOWN -> R.string.seerr_result_unknown
                 }
                 render(client.detail(type, mediaId))
-                AlertDialog.Builder(this@SeerrDetailActivity).setMessage(message).setPositiveButton("OK", null).show()
+                AlertDialog.Builder(this@SeerrDetailActivity).setMessage(message).setPositiveButton(R.string.ok, null).show()
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) {
                 error(e)
@@ -156,7 +163,7 @@ class SeerrDetailActivity : AppCompatActivity() {
     private fun error(error: Exception) {
         if (error is zepigit.firefin.app.data.SeerrException && error.status == 401) client.invalidate()
         if (error is SessionExpiredException) { ServiceLocator.session.clear(); LoginActivity.startFresh(this); return }
-        findViewById<TextView>(R.id.overview).text = error.message ?: "Seerr konnte nicht geladen werden."
+        findViewById<TextView>(R.id.overview).text = errorMessage(error, R.string.seerr_load_failed)
         findViewById<Button>(R.id.retryButton).apply { visibility = View.VISIBLE; requestFocus() }
     }
     override fun onDestroy() {

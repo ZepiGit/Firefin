@@ -78,7 +78,7 @@ class HomeActivity : AppCompatActivity() {
                     ServiceLocator.session.clear()
                     LoginActivity.startFresh(this@HomeActivity)
                 }
-                catch (e: Exception) { Toast.makeText(this@HomeActivity, e.message ?: getString(R.string.error_generic), Toast.LENGTH_LONG).show() }
+                catch (e: Exception) { Toast.makeText(this@HomeActivity, errorMessage(e), Toast.LENGTH_LONG).show() }
             }
         }
         findViewById<View>(R.id.mediaRequestsButton).setOnClickListener { startActivity(Intent(this, SeerrActivity::class.java)) }
@@ -88,13 +88,13 @@ class HomeActivity : AppCompatActivity() {
 
         findViewById<View>(R.id.libraryButton).setOnClickListener {
             if (libraries.isNotEmpty()) androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("Bibliotheken").setItems(libraries.map { it.name }.toTypedArray()) { _, index ->
+                .setTitle(R.string.libraries).setItems(libraries.map { it.name }.toTypedArray()) { _, index ->
                     val library = libraries[index]
                     LibraryActivity.start(this, library.id, library.name, library.collectionType)
                 }.show()
         }
         findViewById<View>(R.id.favoritesButton).setOnClickListener {
-            LibraryActivity.start(this, "", "Favoriten", favorites = true)
+            LibraryActivity.start(this, "", getString(R.string.favorites), favorites = true)
         }
         loadHome()
     }
@@ -104,7 +104,7 @@ class HomeActivity : AppCompatActivity() {
         previewJob = scope.launch {
             kotlinx.coroutines.delay(150)
             findViewById<TextView>(R.id.previewName).text = item.seriesName.takeIf { item.isEpisode && it.isNotBlank() } ?: item.name
-            findViewById<TextView>(R.id.previewMeta).text = listOfNotNull(item.year.takeIf { it > 0 }?.toString(), if (item.resumeTicks > 0) "Fortsetzen" else null).joinToString(" · ")
+            findViewById<TextView>(R.id.previewMeta).text = listOfNotNull(item.year.takeIf { it > 0 }?.toString(), if (item.resumeTicks > 0) getString(R.string.resume) else null).joinToString(" · ")
             findViewById<TextView>(R.id.previewOverview).text = item.overview
             val type = if (item.backdropTag != null) "Backdrop" else if (item.thumbTag != null) "Thumb" else "Primary"
             val tag = when (type) { "Backdrop" -> item.backdropTag; "Thumb" -> item.thumbTag; else -> item.posterTag }
@@ -191,7 +191,7 @@ class HomeActivity : AppCompatActivity() {
                 ServiceLocator.session.clear()
                 LoginActivity.startFresh(this@HomeActivity)
             } catch (e: Exception) {
-                emptyView.text = e.message ?: getString(R.string.error_generic)
+                emptyView.text = errorMessage(e)
                 emptyView.visibility = View.VISIBLE
             } finally {
                 loadingHome = false

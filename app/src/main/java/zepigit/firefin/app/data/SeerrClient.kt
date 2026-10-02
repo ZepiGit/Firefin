@@ -6,15 +6,27 @@ import okio.ByteString.Companion.decodeBase64
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.json.JSONObject
+import zepigit.firefin.app.R
 
-class SeerrException(val status: Int) : IOException(when (status) {
-    401 -> "Seerr-Sitzung abgelaufen. Bitte erneut verbinden."
-    403 -> "Keine Berechtigung oder Anfrage-Limit erreicht."
-    409 -> "Dieser Titel wurde bereits angefragt."
-    502 -> "Seerr ist über Moonbase momentan nicht erreichbar."
-    503 -> "Seerr ist auf diesem Server deaktiviert."
-    else -> "Seerr-Anfrage fehlgeschlagen (HTTP $status)."
-})
+class SeerrException(val status: Int) : LocalizedIOException(
+    when (status) {
+        401 -> R.string.seerr_error_401
+        403 -> R.string.seerr_error_403
+        409 -> R.string.seerr_error_409
+        502 -> R.string.seerr_error_502
+        503 -> R.string.seerr_error_503
+        else -> R.string.seerr_error_other
+    },
+    when (status) {
+        401 -> "Seerr session expired. Please reconnect."
+        403 -> "No permission or request limit reached."
+        409 -> "This title has already been requested."
+        502 -> "Seerr is currently unreachable through Moonbase."
+        503 -> "Seerr is disabled on this server."
+        else -> "Seerr request failed (HTTP $status)."
+    },
+    if (status in setOf(401, 403, 409, 502, 503)) emptyList() else listOf(status),
+)
 
 /** No password, cookie or Seerr API key is persisted. */
 class SeerrClient(private var transport: ServerTransport) {
@@ -57,8 +69,11 @@ class SeerrClient(private var transport: ServerTransport) {
 
     suspend fun connect(): Boolean = stateMutex.withLock {
         if (probeComplete) return@withLock authenticated
-        val ping = call("Moonfin/Ping", optional = true) ?: throw IOException("Moonbase ist auf diesem Server nicht verfügbar.")
-        if (!ping.optBoolean("installed", ping.optBoolean("Installed", true))) throw IOException("Moonbase nicht installiert.")
+        val ping = call("Moonfin/Ping", optional = true)
+            ?: throw LocalizedIOException(R.string.moonbase_unavailable, "Moonbase is not available on this server.")
+        if (!ping.optBoolean("installed", ping.optBoolean("Installed", true))) {
+            throw LocalizedIOException(R.string.moonbase_not_installed, "Moonbase is not installed.")
+        }
         val config = call("$prefix/Config", optional = true) ?: run {
             prefix = "Moonfin/Seerr"
             call("$prefix/Config")!!
@@ -92,7 +107,7 @@ class SeerrClient(private var transport: ServerTransport) {
             prefix = if (prefix == "Moonfin/Jellyseerr") "Moonfin/Seerr" else "Moonfin/Jellyseerr"
             call("$prefix/Login", "POST", body)!!
         }
-        if (!result.optBoolean("success", result.optBoolean("Success", false))) throw IOException("Seerr-Anmeldung fehlgeschlagen.")
+        if (!result.optBoolean("success", result.optBoolean("Success", false))) throw LocalizedIOException(R.string.seerr_login_failed, "Seerr sign-in failed.")
         if (!applyIdentity(result, allowBareId = false)) {
             val status = call("$prefix/Status")
             if (status == null || !applyIdentity(status, allowBareId = false)) refreshUser()
@@ -120,12 +135,12 @@ class SeerrClient(private var transport: ServerTransport) {
 
     suspend fun detail(type: String, id: Int): SeerrMedia {
         require(type in setOf("movie", "tv") && id > 0)
-        return SeerrMedia.from(api("$type/$id"), type) ?: throw IOException("Ungültiger Seerr-Titel.")
+        return SeerrMedia.from(api("$type/$id"), type) ?: throw LocalizedIOException(R.string.seerr_invalid_title, "Invalid Seerr title.")
     }
 
     enum class RequestResult { CREATED, NOTHING_NEW, ALREADY_REQUESTED, UNKNOWN }
     suspend fun request(media: SeerrMedia, seasons: List<Int>): RequestResult {
-        require(user.canRequest(media.type)) { "Keine Berechtigung für diese Medienart." }
+        require(user.canRequest(media.type)) { "No permission for this media type." }
         val payload = media.requestBody(seasons).toString()
         val response = try { transport.response("$prefix/Api/request", "POST", payload) }
         catch (_: IOException) { return RequestResult.UNKNOWN }
@@ -157,11 +172,14 @@ class SeerrClient(private var transport: ServerTransport) {
     private fun parseEnvelope(raw: String): JSONObject {
         val outer = JSONObject(raw)
         val envelope = outer.optString("FileContents").takeIf { it.isNotBlank() } ?: return outer
-        if (envelope.length > MAX_ENVELOPE_CHARS) throw IOException("Moonbase-Antwort ist zu groß.")
-        val decoded = envelope.decodeBase64()?.toByteArray() ?: throw IOException("Moonbase-Antwort ist keine gültige Base64-Antwort.")
-        if (decoded.size > MAX_ENVELOPE_BYTES) throw IOException("Moonbase-Antwort ist zu groß.")
+        if (envelope.length > MAX_ENVELOPE_CHARS) throw tooLarge()
+        val decoded = envelope.decodeBase64()?.toByteArray()
+            ?: throw LocalizedIOException(R.string.moonbase_invalid_encoding, "The Moonbase response is not valid Base64.")
+        if (decoded.size > MAX_ENVELOPE_BYTES) throw tooLarge()
         return JSONObject(String(decoded, Charsets.UTF_8))
     }
+
+    private fun tooLarge() = LocalizedIOException(R.string.moonbase_response_too_large, "The Moonbase response is too large.")
 
     private companion object {
         const val MAX_ENVELOPE_CHARS = 12 * 1024 * 1024
@@ -180,6 +198,8 @@ class SeerrClient(private var transport: ServerTransport) {
         if (result.status !in 200..299) throw SeerrException(result.status)
         return try {
             parseEnvelope(result.body)
-        } catch (e: IOException) { throw e } catch (_: Exception) { throw IOException("Moonbase hat keine gültige JSON-Antwort geliefert.") }
+        } catch (e: IOException) { throw e } catch (_: Exception) {
+            throw LocalizedIOException(R.string.moonbase_invalid_json, "Moonbase did not return a valid JSON response.")
+        }
     }
 }

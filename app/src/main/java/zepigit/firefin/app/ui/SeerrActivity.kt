@@ -60,9 +60,10 @@ class SeerrActivity : AppCompatActivity() {
         }
         findViewById<Button>(R.id.seerrConnect).setOnClickListener { if (connected) load() else connect() }
         findViewById<Button>(R.id.seerrCategory).setOnClickListener {
-            AlertDialog.Builder(this).setTitle("Entdecken").setItems(arrayOf("Trending", "Filme", "Serien")) { _, index ->
+            val labels = listOf(R.string.seerr_trending, R.string.seerr_movies, R.string.seerr_series)
+            AlertDialog.Builder(this).setTitle(R.string.seerr_discover).setItems(labels.map { getString(it) }.toTypedArray()) { _, index ->
                 category = listOf("trending", "movie", "tv")[index]
-                findViewById<Button>(R.id.seerrCategory).text = listOf("Trending", "Filme", "Serien")[index]
+                findViewById<Button>(R.id.seerrCategory).setText(labels[index])
                 showingRequests = false; page = 1; load()
             }.show()
         }
@@ -100,18 +101,18 @@ class SeerrActivity : AppCompatActivity() {
     }
 
     private fun loginDialog() {
-        status.text = "Moonbase erkannt. Seerr benötigt eine Anmeldung."
+        status.setText(R.string.seerr_login_needed)
         val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(28, 16, 28, 16) }
-        val username = EditText(this).apply { hint = "Benutzername"; setText(ServiceLocator.session.userName); isSingleLine = true }
+        val username = EditText(this).apply { setHint(R.string.username_hint); setText(ServiceLocator.session.userName); isSingleLine = true }
         val password = EditText(this).apply {
-            hint = "Passwort (wird nicht gespeichert)"
+            setHint(R.string.seerr_password_hint)
             isSingleLine = true
             inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
             transformationMethod = android.text.method.PasswordTransformationMethod.getInstance()
         }
         box.addView(username); box.addView(password)
-        val dialog = AlertDialog.Builder(this).setTitle("Seerr über Moonbase verbinden").setView(box)
-            .setPositiveButton("Anmelden", null).setNegativeButton("Abbrechen", null).create()
+        val dialog = AlertDialog.Builder(this).setTitle(R.string.seerr_connect_title).setView(box)
+            .setPositiveButton(R.string.login_button, null).setNegativeButton(R.string.cancel, null).create()
         dialog.setOnShowListener {
             fun login(quick: Boolean) {
                 val name = username.text.toString()
@@ -151,9 +152,9 @@ class SeerrActivity : AppCompatActivity() {
                         else runCatching { client.detail(entry.type, entry.mediaId) }
                             .getOrElse {
                                 if (it is CancellationException || it is SessionExpiredException) throw it
-                                SeerrMedia(entry.mediaId, entry.type, "Anfrage #${entry.id}", entry.statusLabel, null, null, 0, entry.status)
+                                SeerrMedia(entry.mediaId, entry.type, getString(R.string.seerr_request_number, entry.id), getString(entry.statusLabelRes), null, null, 0, entry.status)
                             }
-                            .let { it.copy(overview = "${entry.statusLabel}\n${it.overview}") }
+                            .let { it.copy(overview = "${getString(entry.statusLabelRes)}\n${it.overview}") }
                     }
                 } else {
                     val result = client.page(category, selectedPage, selectedQuery)
@@ -162,8 +163,16 @@ class SeerrActivity : AppCompatActivity() {
                 }
                 titles.clear(); result.forEach { titles[it.key] = it }
                 adapter.submit(result.map { it.card() })
-                status.text = "${if (requests) "Meine Anfragen" else if (selectedQuery.isNotBlank()) "Suche: $selectedQuery" else "Entdecken"} · Seite $selectedPage / $pages" + if (result.isEmpty()) " · Keine Ergebnisse" else ""
-                findViewById<Button>(R.id.seerrConnect).text = "Aktualisieren"
+                val heading = when {
+                    requests -> getString(R.string.seerr_my_requests)
+                    selectedQuery.isNotBlank() -> getString(R.string.seerr_search_status, selectedQuery)
+                    else -> getString(R.string.seerr_discover)
+                }
+                status.text = getString(
+                    if (result.isEmpty()) R.string.seerr_page_status_empty else R.string.seerr_page_status,
+                    heading, selectedPage, pages,
+                )
+                findViewById<Button>(R.id.seerrConnect).setText(R.string.refresh)
                 findViewById<Button>(R.id.seerrPrevious).isEnabled = selectedPage > 1
                 findViewById<Button>(R.id.seerrNext).isEnabled = selectedPage < pages
             } catch (e: CancellationException) { throw e }
@@ -178,8 +187,8 @@ class SeerrActivity : AppCompatActivity() {
             client.invalidate()
             connected = false
         }
-        status.text = error.message ?: "Seerr konnte nicht geladen werden."
-        findViewById<Button>(R.id.seerrConnect).text = if (connected) "Erneut laden" else "Verbinden"
+        status.text = errorMessage(error, R.string.seerr_load_failed)
+        findViewById<Button>(R.id.seerrConnect).setText(if (connected) R.string.reload else R.string.connect)
     }
     override fun onDestroy() { scope.cancel(); super.onDestroy() }
 }

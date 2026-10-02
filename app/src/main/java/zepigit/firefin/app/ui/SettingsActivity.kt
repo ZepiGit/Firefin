@@ -19,36 +19,34 @@ class SettingsActivity : AppCompatActivity() {
         val accountInfo = findViewById<TextView>(R.id.accountInfo)
         val aboutText = findViewById<TextView>(R.id.aboutText)
         accountInfo.text = "${session.userName} @ ${session.serverUrl}"
-        aboutText.text = "Firefin ${JellyfinClient.VERSION}\n" +
-            "Independent native Kotlin Jellyfin client for legacy Fire TV devices, " +
-            "originally derived from Moonfin Core. Not affiliated with or supported by Moonfin."
+        aboutText.text = getString(R.string.about_text, JellyfinClient.VERSION)
 
         val container = accountInfo.parent as android.widget.LinearLayout
         fun setting(label: String, action: () -> Unit) {
             val button = Button(this).apply { text = label; setOnClickListener { action() } }
             container.addView(button, 1, android.widget.LinearLayout.LayoutParams((320 * resources.displayMetrics.density).toInt(), (44 * resources.displayMetrics.density).toInt()).apply { topMargin = (12 * resources.displayMetrics.density).toInt() })
         }
-        setting("Wiedergabequalität") {
-            androidx.appcompat.app.AlertDialog.Builder(this).setTitle("Qualität (Gerät: höchstens 1080p / 4 Mbit/s)")
-                .setItems(arrayOf("1080p · 4 Mbit/s", "720p · 4 Mbit/s", "720p · 2 Mbit/s", "480p · 1 Mbit/s")) { _, index ->
+        setting(getString(R.string.setting_quality)) {
+            androidx.appcompat.app.AlertDialog.Builder(this).setTitle(R.string.quality_dialog_title)
+                .setItems(R.array.quality_options) { _, index ->
                     val stored = ServiceLocator.preferences.stored()
                     val heights = listOf(1080, 720, 720, 480)
                     val rates = listOf(4_000_000L, 4_000_000L, 2_000_000L, 1_000_000L)
                     ServiceLocator.preferences.save(stored.copy(preferredBitrate = rates[index], preferredHeight = heights[index]))
                 }.show()
         }
-        setting("Hintergrundbilder ein/aus") {
+        setting(getString(R.string.setting_backdrops)) {
             val stored = ServiceLocator.preferences.stored()
             ServiceLocator.preferences.save(stored.copy(backdropEnabled = !stored.backdropEnabled))
-            Toast.makeText(this, if (stored.backdropEnabled) "Hintergrundbilder aus" else "Hintergrundbilder an", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, if (stored.backdropEnabled) R.string.backdrops_off else R.string.backdrops_on, Toast.LENGTH_SHORT).show()
         }
-        setting("Bevorzugte Tonsprache") {
-            androidx.appcompat.app.AlertDialog.Builder(this).setTitle("Tonsprache").setItems(arrayOf("Automatisch", "Deutsch", "Englisch")) { _, index ->
+        setting(getString(R.string.setting_audio_language)) {
+            androidx.appcompat.app.AlertDialog.Builder(this).setTitle(R.string.audio_language_title).setItems(R.array.audio_language_options) { _, index ->
                 ServiceLocator.preferences.save(ServiceLocator.preferences.stored().copy(audioLanguage = listOf("", "de", "en")[index]))
             }.show()
         }
-        setting("Bevorzugte Untertitelsprache") {
-            androidx.appcompat.app.AlertDialog.Builder(this).setTitle("Untertitel").setItems(arrayOf("Aus", "Deutsch", "Englisch")) { _, index ->
+        setting(getString(R.string.setting_subtitle_language)) {
+            androidx.appcompat.app.AlertDialog.Builder(this).setTitle(R.string.subtitle_language_title).setItems(R.array.subtitle_language_options) { _, index ->
                 ServiceLocator.preferences.save(ServiceLocator.preferences.stored().copy(subtitleLanguage = listOf("", "de", "en")[index]))
             }.show()
         }
@@ -59,7 +57,7 @@ class SettingsActivity : AppCompatActivity() {
             val before = ServiceLocator.images.diskCacheBytes() + ServiceLocator.discoveryImages.diskCacheBytes()
             ServiceLocator.images.clearCache()
             ServiceLocator.discoveryImages.clearCache()
-            Toast.makeText(this, "Bildcache geleert (${before / 1024} KiB)", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.cache_cleared, before / 1024), Toast.LENGTH_SHORT).show()
         }
         findViewById<Button>(R.id.aboutButton).setOnClickListener {
             aboutText.visibility =
