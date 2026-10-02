@@ -3,7 +3,7 @@
 This document covers the native Kotlin app (`app/`). The legacy Flutter build
 is kept at the end as history; it is validation-only and is never published.
 
-Build status, in short: a clean local build of the current working tree passed
+Build status for implementation snapshot `c9da933aa2a331c760325b97e777b51be7d4980f`: local verification passed
 60 unit tests, strict lint (0 errors; current reports contain 118 warnings) and an R8 release build, and
 the debug APK installed and launched on an API 22 stock x86 emulator. There is
 no signed release and no AFTT hardware result. The commit carrying these fixes
@@ -88,7 +88,7 @@ adb logcat -d | grep -E "FATAL|AndroidRuntime"            # expect no output
 ```
 
 The earlier recorded smoke was only an install/launch/package-identity check
-and is historical. The current candidate has a passing
+and is historical. The named implementation snapshot has a passing
 `:app:connectedDebugAndroidTest` login-focus test and a separate API-22
  evidence record in `docs/FIREFIN_MIGRATION.md`: authorized login, Home/library/detail/search/
 settings, Seerr discovery/search/detail/season confirmation, TMDB artwork,
@@ -106,8 +106,8 @@ upload (`if-no-files-found: error`).
 
 Artifacts: `firefin-candidate-<sha>` (both APKs and verification JSON) and
 `firefin-reports-<sha>` (test and lint reports). The candidate APKs are
-validation artifacts, not releases. Native CI for commit `c9da933aa2a331c760325b97e777b51be7d4980f` is
-tracked separately from this local verification record.
+validation artifacts, not releases. Native CI results are recorded per commit in GitHub Actions. The local results
+above describe implementation snapshot `c9da933aa2a331c760325b97e777b51be7d4980f`, not a signed release.
 
 ## Protected release (`Firefin signed release`, `.github/workflows/release.yml`)
 

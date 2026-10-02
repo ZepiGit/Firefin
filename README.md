@@ -28,11 +28,12 @@ The native version code is deliberately above the legacy `3000028` build line.
 
 ## Verification status
 
-Evidence basis: the current candidate is being validated on the feature branch;
-it is not a published release. The complete migration ledger is in
+Evidence basis: the tested implementation snapshot is the parent commit
+identified in the migration ledger; later documentation and ancestry commits
+are tracked separately. This is not a published release. The complete migration ledger is in
 [docs/FIREFIN_MIGRATION.md](docs/FIREFIN_MIGRATION.md).
 
-Verified locally on the current candidate:
+Verified locally on the named implementation snapshot:
 
 - 60 JVM unit tests pass (`:app:testDebugUnitTest`), including transport, Seerr,
   preferences, playback timeline, source selection and session-report contracts.
@@ -56,11 +57,12 @@ Still externally blocked and not claimed complete:
   production playback.
 - Protected production keystore/secrets for a signed release and certificate
   verification.
-- Native CI for commit `c9da933aa2a331c760325b97e777b51be7d4980f` is tracked separately; the local gates above are complete.
+- Final-commit CI and integration status are recorded per SHA in GitHub Actions.
+  The local results above describe tested implementation snapshot `c9da933aa2a331c760325b97e777b51be7d4980f`.
 
 ### Current native screenshots
 
-These are real API-22 emulator captures from the current candidate, with no
+These are real API-22 emulator captures from the named implementation snapshot, with no
 credentials or tokens visible:
 
 ![Firefin Home](docs/screenshots-home.png)

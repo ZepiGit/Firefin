@@ -9,16 +9,17 @@ preserved unchanged as history.
 ### 0.2.0-firefin (versionCode 3001000), unreleased
 
 Not released: no signed APK exists and no AFTT hardware result is recorded.
-The committed candidate is `c9da933aa2a331c760325b97e777b51be7d4980f` on `feature/moonfin-ui-seerr`. Native CI
-for this SHA is being tracked separately from the local verification below.
+The tested implementation snapshot is `c9da933aa2a331c760325b97e777b51be7d4980f`.
+Later documentation-only and ancestry-merge commits do not change its app code.
+CI results are per-SHA records in GitHub Actions, not inferred from local tests.
 
-Verified locally on the committed candidate: 60 JVM unit tests, API22
+Verified locally on the implementation snapshot: 60 JVM unit tests, API22
 instrumentation login-focus test, strict debug/release lint (0 errors; current
 reports contain 118 warnings), R8 release APK (unsigned), and the manual API22
 x86 flow record in `docs/FIREFIN_MIGRATION.md`. No AFTT hardware or signed
 release is claimed.
 
-#### Current native candidate scope (commit `c9da933aa2a331c760325b97e777b51be7d4980f`)
+#### Native implementation scope (tested snapshot `c9da933aa2a331c760325b97e777b51be7d4980f`)
 
 - Transport: `ServerTransport` now exposes a REST client with bounded call and
   read timeouts and a separate media client without call/read timeouts, used
