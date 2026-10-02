@@ -6,7 +6,7 @@ preserved unchanged as history.
 
 ## Native Firefin
 
-### 0.2.2-firefin (versionCode 3001002), unreleased
+### 0.2.3-firefin (versionCode 3001003), unreleased
 
 Not released: no signed APK exists and no AFTT hardware result is recorded.
 The tested implementation snapshot is `c9da933aa2a331c760325b97e777b51be7d4980f`.
