@@ -6,7 +6,7 @@ preserved unchanged as history.
 
 ## Native Firefin
 
-### Unreleased
+### 0.2.4-firefin (versionCode 3001004)
 
 - The interface now defaults to English. The previous German texts are kept as a
   German translation (`values-de`) and are used on devices set to German.

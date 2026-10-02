@@ -17,7 +17,7 @@ cleanup is permitted while active features lack parity.
 
 ## Current verification snapshot
 
-Native identity: `zepigit.firefin.app`, `0.2.3-firefin`, versionCode `3001003`
+Native identity: `zepigit.firefin.app`, `0.2.4-firefin`, versionCode `3001004`
 (`version.properties`; above the legacy `3000028`), minSdk 21, targetSdk 34.
 
 Implementation evidence basis: tested commit `c9da933aa2a331c760325b97e777b51be7d4980f`.
