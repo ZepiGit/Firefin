@@ -12,7 +12,9 @@ import java.io.IOException
 import java.net.URLEncoder
 
 /** Jellyfin REST client using one origin-bound, cancellable ServerTransport. */
-class JellyfinClient(private val session: SessionStore) {
+class JellyfinClient(private val session: SessionStore, private val preferences: () -> zepigit.firefin.app.preferences.EffectiveDevicePreferences = {
+    zepigit.firefin.app.preferences.deriveEffective(zepigit.firefin.app.preferences.StoredPreferences(), DeviceProfile.MAX_WIDTH, DeviceProfile.MAX_HEIGHT, DeviceProfile.MAX_BITRATE)
+}) {
     private val transport = ServerTransport(
         ServerCredentials("https://invalid.firefin.invalid", "", ""),
         session.deviceId,
@@ -24,7 +26,7 @@ class JellyfinClient(private val session: SessionStore) {
     val baseUrl: String get() = session.serverUrl
 
     /** Immutable credential snapshot for one playback; see [ServerTransport.snapshot]. */
-    fun transportSnapshot(): ServerTransport = transport.snapshot()
+    fun transportSnapshot(): ServerTransport { syncTransport(); return transport.snapshot() }
 
     suspend fun login(serverInput: String, username: String, password: String): JSONObject = withContext(Dispatchers.IO) {
         val server = Urls.normalizeServer(serverInput)
@@ -63,13 +65,14 @@ class JellyfinClient(private val session: SessionStore) {
         parseArray(transportText(path))
     }
 
-    suspend fun items(parentId: String? = null, startIndex: Int = 0, limit: Int = 60, sortBy: String = "SortName", sortOrder: String = "Ascending", searchTerm: String? = null, includeTypes: String? = null): Pair<List<MediaItem>, Int> = withContext(Dispatchers.IO) {
+    suspend fun items(parentId: String? = null, startIndex: Int = 0, limit: Int = 60, sortBy: String = "SortName", sortOrder: String = "Ascending", searchTerm: String? = null, includeTypes: String? = null, recursive: Boolean = true, favorites: Boolean = false): Pair<List<MediaItem>, Int> = withContext(Dispatchers.IO) {
         val path = buildString {
-            append("Users/${session.userId}/Items?StartIndex=$startIndex&Limit=$limit&SortBy=${urlEncode(sortBy)}&SortOrder=${urlEncode(sortOrder)}&Recursive=true")
+            append("Users/${session.userId}/Items?StartIndex=$startIndex&Limit=$limit&SortBy=${urlEncode(sortBy)}&SortOrder=${urlEncode(sortOrder)}&Recursive=$recursive")
             append("&Fields=PrimaryImageAspectRatio,ProductionYear,Overview&EnableImageTypes=Primary,Backdrop,Thumb")
             if (!parentId.isNullOrBlank()) append("&ParentId=").append(urlEncode(parentId))
             if (!searchTerm.isNullOrBlank()) append("&searchTerm=").append(urlEncode(searchTerm))
             if (!includeTypes.isNullOrBlank()) append("&IncludeItemTypes=").append(urlEncode(includeTypes))
+            if (favorites) append("&Filters=IsFavorite")
         }
         val json = getJson(path)
         parseItems(json) to json.optInt("TotalRecordCount", 0)
@@ -77,32 +80,63 @@ class JellyfinClient(private val session: SessionStore) {
 
     suspend fun item(itemId: String): MediaItem = withContext(Dispatchers.IO) { MediaItem.from(getJson("Users/${session.userId}/Items/${urlEncode(itemId)}")) }
 
-    suspend fun children(seriesId: String): List<MediaItem> = withContext(Dispatchers.IO) {
-        val seasons = getJson("Shows/${urlEncode(seriesId)}/Seasons?UserId=${urlEncode(session.userId)}").optJSONArray("Items") ?: JSONArray()
-        buildList {
-            for (index in 0 until seasons.length()) {
-                val season = seasons.optJSONObject(index) ?: continue
-                val seasonId = season.optString("Id")
-                val episodes = getJson("Shows/${urlEncode(seriesId)}/Episodes?UserId=${urlEncode(session.userId)}&SeasonId=${urlEncode(seasonId)}&Fields=PrimaryImageAspectRatio,Overview").optJSONArray("Items") ?: JSONArray()
-                for (episode in 0 until episodes.length()) episodes.optJSONObject(episode)?.let { add(MediaItem.from(it)) }
-            }
-        }
+    suspend fun children(container: MediaItem): List<MediaItem> = withContext(Dispatchers.IO) {
+        if (container.isSeries) parseItems(getJson("Shows/${urlEncode(container.id)}/Seasons?UserId=${urlEncode(session.userId)}"))
+        else items(parentId = container.id, recursive = false, sortBy = "IndexNumber", limit = 60).first
     }
 
-    suspend fun playbackInfo(itemId: String): PlaybackSource = withContext(Dispatchers.IO) {
-        val body = JSONObject().put("DeviceProfile", DeviceProfile.build()).put("MaxStreamingBitrate", DeviceProfile.MAX_BITRATE).put("AutoOpenLiveStream", true)
-        val json = getJson("Items/${urlEncode(itemId)}/PlaybackInfo?UserId=${urlEncode(session.userId)}&AutoOpenLiveStream=true&MaxStreamingBitrate=${DeviceProfile.MAX_BITRATE}", "POST", body.toString())
+    suspend fun playbackInfo(itemId: String, audioIndex: Int? = null, subtitleIndex: Int? = null, pinnedTransport: ServerTransport? = null, mediaSourceId: String? = null): PlaybackSource = withContext(Dispatchers.IO) {
+        val bound = pinnedTransport ?: transportSnapshot()
+        val credentials = bound.credentials()
+        suspend fun request(path: String, method: String = "GET", body: String? = null) = JSONObject(bound.json(path, method, body))
+        val effective = preferences()
+        val body = JSONObject().put("DeviceProfile", DeviceProfile.build(effective.maxStreamingBitrate, effective.maxVideoWidth, effective.maxVideoHeight, baselineOnly = zepigit.firefin.app.BuildConfig.DEBUG && Build.FINGERPRINT.orEmpty().startsWith("generic")))
+            .put("MaxStreamingBitrate", effective.maxStreamingBitrate).put("AutoOpenLiveStream", false)
+        var selectedAudio = audioIndex
+        var selectedSubtitle = subtitleIndex
+        if (selectedAudio == null && effective.stored.audioLanguage.isNotBlank() || selectedSubtitle == null && effective.stored.subtitleLanguage.isNotBlank()) {
+            val metadata = request("Users/${urlEncode(credentials.userId)}/Items/${urlEncode(itemId)}")
+            val sources = metadata.optJSONArray("MediaSources")
+            val selected = sources?.let { array -> (0 until array.length()).mapNotNull { array.optJSONObject(it) }.firstOrNull { mediaSourceId == null || it.optString("Id") == mediaSourceId } }
+            val streams = selected?.optJSONArray("MediaStreams") ?: metadata.optJSONArray("MediaStreams") ?: JSONArray()
+            selected?.optString("Id")?.takeIf { it.isNotBlank() }?.let { body.put("MediaSourceId", it) }
+            val tracks = zepigit.firefin.app.playback.StreamSelection.tracks(streams)
+            if (selectedAudio == null) selectedAudio = zepigit.firefin.app.playback.StreamSelection.index(tracks, "Audio", effective.stored.audioLanguage)
+            if (selectedSubtitle == null) selectedSubtitle = zepigit.firefin.app.playback.StreamSelection.index(tracks, "Subtitle", effective.stored.subtitleLanguage)
+        }
+        selectedAudio?.let { body.put("AudioStreamIndex", it) }
+        if (effective.stored.subtitleLanguage.isBlank() && selectedSubtitle == null) selectedSubtitle = -1
+        selectedSubtitle?.let { body.put("SubtitleStreamIndex", it) }
+        mediaSourceId?.let { body.put("MediaSourceId", it) }
+        val json = request("Items/${urlEncode(itemId)}/PlaybackInfo?UserId=${urlEncode(credentials.userId)}&AutoOpenLiveStream=false&MaxStreamingBitrate=${effective.maxStreamingBitrate}", "POST", body.toString())
         val sources = json.optJSONArray("MediaSources") ?: JSONArray()
-        val source = (0 until sources.length()).mapNotNull { sources.optJSONObject(it) }.firstOrNull { source ->
+        val source = (0 until sources.length()).mapNotNull { sources.optJSONObject(it) }.filter { mediaSourceId == null || it.optString("Id") == mediaSourceId }.firstOrNull { source ->
             source.optBoolean("SupportsDirectPlay", false) || source.optBoolean("SupportsDirectStream", false) || source.optBoolean("SupportsTranscoding", false) || source.optString("TranscodingUrl").isNotBlank()
         } ?: throw IOException("No playable media source.")
         val id = source.optString("Id").takeIf { it.isNotBlank() } ?: itemId
         val transcode = source.optString("TranscodingUrl").takeIf { it.isNotBlank() }
-        val url = if (transcode != null) Urls.resolveRelative(baseUrl, transcode) else Urls.directStreamUrl(baseUrl, itemId, id)
+        val directStream = source.optString("DirectStreamUrl").takeIf { it.isNotBlank() }
+        val url = when {
+            source.optBoolean("SupportsDirectPlay") && transcode == null -> Urls.directStreamUrl(credentials.serverUrl, itemId, id)
+            transcode != null -> Urls.resolveRelative(credentials.serverUrl, transcode)
+            directStream != null -> Urls.resolveRelative(credentials.serverUrl, directStream)
+            source.optBoolean("SupportsDirectStream") || source.optBoolean("SupportsTranscoding") -> throw IOException("Server did not supply a negotiated media URL.")
+            else -> throw IOException("Media source is not playable on this device.")
+        }
+        val streams = source.optJSONArray("MediaStreams") ?: JSONArray()
+        val subtitle = (0 until streams.length()).mapNotNull { streams.optJSONObject(it) }
+            .firstOrNull { it.optString("Type") == "Subtitle" && it.optInt("Index") == selectedSubtitle }
+        val subtitlePath = subtitle?.optString("DeliveryUrl")?.takeIf { it.isNotBlank() }
         PlaybackSource(
             json.optString("PlaySessionId"), id, url, transcode != null,
             transcode?.contains(".m3u8", ignoreCase = true) == true, source.optString("Container"),
             source.optString("LiveStreamId").takeIf { it.isNotBlank() } ?: "",
+            tracks = zepigit.firefin.app.playback.StreamSelection.tracks(streams),
+            subtitleUrl = subtitlePath?.let { Urls.resolveRelative(credentials.serverUrl, it) },
+            subtitleMime = when (subtitle?.optString("Codec")) { "srt" -> "application/x-subrip"; "vtt", "webvtt" -> "text/vtt"; else -> null },
+            playMethod = if (transcode != null) "Transcode" else if (directStream != null && !source.optBoolean("SupportsDirectPlay")) "DirectStream" else "DirectPlay",
+            audioIndex = selectedAudio,
+            subtitleIndex = selectedSubtitle,
         )
     }
 
@@ -121,7 +155,8 @@ class JellyfinClient(private val session: SessionStore) {
         (0 until arr.length()).mapNotNull { i ->
             val o = arr.optJSONObject(i) ?: return@mapNotNull null
             val now = o.optJSONObject("NowPlayingItem")?.optString("Name") ?: ""
-            RemoteSession(o.optString("Id"), o.optString("DeviceId"), o.optString("DeviceName"), o.optString("UserName"), now, o.optJSONArray("Capabilities") != null)
+            RemoteSession(o.optString("Id"), o.optString("DeviceId"), o.optString("DeviceName"), o.optString("UserName"), now,
+                o.optBoolean("SupportsMediaControl") || o.optJSONObject("Capabilities")?.optBoolean("SupportsMediaControl") == true)
         }
     }
 

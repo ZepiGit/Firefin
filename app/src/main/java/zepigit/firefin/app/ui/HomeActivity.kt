@@ -10,6 +10,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -36,6 +37,9 @@ class HomeActivity : AppCompatActivity() {
     private var pendingScroll: Int? = null
     private var homeLoaded = false
     private var loadingHome = false
+    private var libraries = emptyList<UserView>()
+    private var previewJob: Job? = null
+    private var latestRows = emptyList<HomeRow>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,7 +55,8 @@ class HomeActivity : AppCompatActivity() {
         emptyView = findViewById(R.id.empty)
         rowsAdapter = HomeRowsAdapter(
             onItem = { item -> DetailActivity.start(this, item.id) },
-            onRowTitle = { view -> LibraryActivity.start(this, view.id, view.name) },
+            onFocus = ::preview,
+            onRowTitle = { view -> LibraryActivity.start(this, view.id, view.name, view.collectionType) },
         )
         rowsView.layoutManager = LinearLayoutManager(this)
         rowsView.adapter = rowsAdapter
@@ -66,7 +71,37 @@ class HomeActivity : AppCompatActivity() {
             startActivity(Intent(this, RemoteActivity::class.java))
         }
 
+        findViewById<Button>(R.id.libraryButton).setOnClickListener {
+            if (libraries.isNotEmpty()) androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Bibliotheken").setItems(libraries.map { it.name }.toTypedArray()) { _, index ->
+                    val library = libraries[index]
+                    LibraryActivity.start(this, library.id, library.name, library.collectionType)
+                }.show()
+        }
+        findViewById<Button>(R.id.seerrButton).setOnClickListener {
+            startActivity(Intent(this, SeerrActivity::class.java))
+        }
+        findViewById<Button>(R.id.favoritesButton).setOnClickListener {
+            LibraryActivity.start(this, "", "Favoriten", favorites = true)
+        }
         loadHome()
+    }
+
+    private fun preview(item: MediaItem) {
+        previewJob?.cancel()
+        previewJob = scope.launch {
+            kotlinx.coroutines.delay(150)
+            findViewById<TextView>(R.id.previewName).text = item.seriesName.takeIf { item.isEpisode && it.isNotBlank() } ?: item.name
+            findViewById<TextView>(R.id.previewMeta).text = listOfNotNull(item.year.takeIf { it > 0 }?.toString(), if (item.resumeTicks > 0) "Fortsetzen" else null).joinToString(" · ")
+            findViewById<TextView>(R.id.previewOverview).text = item.overview
+            val type = if (item.backdropTag != null) "Backdrop" else if (item.thumbTag != null) "Thumb" else "Primary"
+            val tag = when (type) { "Backdrop" -> item.backdropTag; "Thumb" -> item.thumbTag; else -> item.posterTag }
+            val previewImage = findViewById<android.widget.ImageView>(R.id.previewImage)
+            if (ServiceLocator.preferences.effective().stored.backdropEnabled) {
+                val width = if (type == "Primary") 320 else 960
+                ServiceLocator.images.load(zepigit.firefin.app.util.Urls.imageUrl(ServiceLocator.client.baseUrl, item.id, type, width, tag), width, previewImage)
+            } else ServiceLocator.images.cancel(previewImage)
+        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -82,7 +117,13 @@ class HomeActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (::rowsAdapter.isInitialized && homeLoaded && !loadingHome) loadHome()
+        if (::rowsAdapter.isInitialized && !ServiceLocator.preferences.effective().stored.backdropEnabled) {
+            ServiceLocator.images.cancel(findViewById(R.id.previewImage))
+        }
+        // Refresh resume/next-up after returning from Detail or Player. The adapter
+        // preserves stable row/card ids and the saved vertical position.
+        if (::rowsAdapter.isInitialized && homeLoaded && !loadingHome) loadHome(refreshOnly = true)
+        else if (::rowsAdapter.isInitialized && !homeLoaded && !loadingHome) loadHome()
     }
 
     override fun onDestroy() {
@@ -90,7 +131,7 @@ class HomeActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
-    private fun loadHome() {
+    private fun loadHome(refreshOnly: Boolean = false) {
         if (loadingHome) return
         loadingHome = true
         progress.visibility = View.VISIBLE
@@ -99,10 +140,18 @@ class HomeActivity : AppCompatActivity() {
                 val rows = mutableListOf<HomeRow>()
                 rows.add(HomeRow(getString(R.string.continue_watching), ServiceLocator.client.resume(), landscape = true))
                 rows.add(HomeRow(getString(R.string.next_up), ServiceLocator.client.nextUp(), landscape = true))
-                val views = ServiceLocator.client.views()
-                val mediaViews = views.filter {
+                if (refreshOnly) {
+                    rows.addAll(latestRows)
+                    rowsAdapter.submitRows(rows)
+                    homeLoaded = true
+                    emptyView.text = if (rowsAdapter.itemCount == 0) getString(R.string.empty_home) else ""
+                    emptyView.visibility = if (rowsAdapter.itemCount == 0) View.VISIBLE else View.GONE
+                    return@launch
+                }
+                libraries = ServiceLocator.client.views()
+                val mediaViews = libraries.filter {
                     it.collectionType in setOf("movies", "tvshows", "mixed", "")
-                }.take(4)
+                }
                 for (view in mediaViews) {
                     rows.add(
                         HomeRow(
@@ -110,10 +159,13 @@ class HomeActivity : AppCompatActivity() {
                             ServiceLocator.client.latest(view.id),
                             libraryId = view.id,
                             libraryName = view.name,
+                            libraryType = view.collectionType,
                         ),
                     )
                 }
+                latestRows = rows.drop(2)
                 rowsAdapter.submitRows(rows)
+                if (!homeLoaded) rows.firstOrNull { it.items.isNotEmpty() }?.items?.firstOrNull()?.let(::preview)
                 homeLoaded = true
                 emptyView.text = if (rowsAdapter.itemCount == 0) getString(R.string.empty_home) else ""
                 emptyView.visibility = if (rowsAdapter.itemCount == 0) View.VISIBLE else View.GONE
@@ -121,6 +173,8 @@ class HomeActivity : AppCompatActivity() {
                     (rowsView.layoutManager as LinearLayoutManager).scrollToPosition(it)
                     pendingScroll = null
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 emptyView.text = e.message ?: getString(R.string.error_generic)
                 emptyView.visibility = View.VISIBLE

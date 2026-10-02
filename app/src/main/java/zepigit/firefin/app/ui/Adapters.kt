@@ -17,13 +17,21 @@ import zepigit.firefin.app.util.Urls
 
 class MediaCardAdapter(
     private val posterStyle: Boolean = true,
+    private val onFocus: (MediaItem) -> Unit = {},
+    private val artwork: ((MediaItem, ImageView) -> Unit)? = null,
     private val onClick: (MediaItem) -> Unit,
 ) : RecyclerView.Adapter<MediaCardAdapter.Holder>() {
     val posterStyleForBinding: Boolean get() = posterStyle
     init { setHasStableIds(true) }
     private val items = mutableListOf<MediaItem>()
-    fun submit(newItems: List<MediaItem>) { items.clear(); items.addAll(newItems); notifyDataSetChanged() }
-    fun appendItems(newItems: List<MediaItem>) { val start = items.size; items.addAll(newItems); notifyItemRangeInserted(start, newItems.size) }
+    fun submit(newItems: List<MediaItem>) {
+        if (items == newItems) return
+        items.clear(); items.addAll(newItems); notifyDataSetChanged()
+    }
+    fun appendItems(newItems: List<MediaItem>) {
+        val unique = newItems.filter { next -> items.none { it.id == next.id } }
+        val start = items.size; items.addAll(unique); notifyItemRangeInserted(start, unique.size)
+    }
     override fun getItemCount() = items.size
     override fun getItemId(position: Int) = items[position].id.hashCode().toLong()
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder = Holder(
@@ -31,33 +39,67 @@ class MediaCardAdapter(
     )
     override fun onBindViewHolder(holder: Holder, position: Int) {
         val item = items[position]
-        holder.name.text = if (item.isEpisode && item.seriesName.isNotEmpty()) "S%d:E%d · %s".format(item.parentIndexNumber, item.indexNumber, item.name) else item.name
-        val image = if (posterStyle && item.posterTag != null) {
-            ArtworkParams("Primary", ArtworkPolicy.POSTER_WIDTH, item.posterTag, ArtworkPolicy.POSTER_MAX_HEIGHT)
-        } else ArtworkParams("Thumb", ArtworkPolicy.LANDSCAPE_WIDTH, item.thumbTag ?: item.backdropTag, null)
-        val url = Urls.imageUrl(ServiceLocator.client.baseUrl, item.id, image.type, image.width, image.tag, maxHeight = image.maxHeight)
-        ServiceLocator.images.load(url, ArtworkPolicy.decodeBucket(image.width), holder.image)
+        holder.name.text = if ((item.isEpisode || item.type == "Season") && item.seriesName.isNotEmpty()) "${item.seriesName} · ${item.name}" else item.name
+        holder.subtitle.text = buildString {
+            if (item.year > 0) append(item.year)
+            if (item.played) append("  ✓ Gesehen")
+            else if (item.resumeTicks > 0) append("  ▶ Fortsetzen")
+        }
+        if (artwork != null) artwork.invoke(item, holder.image) else {
+            val type = when {
+                posterStyle && item.posterTag != null -> "Primary"
+                item.thumbTag != null -> "Thumb"
+                item.backdropTag != null -> "Backdrop"
+                else -> "Primary"
+            }
+            val width = if (type == "Primary") ArtworkPolicy.POSTER_WIDTH else ArtworkPolicy.LANDSCAPE_WIDTH
+            val tag = when (type) { "Primary" -> item.posterTag; "Thumb" -> item.thumbTag; else -> item.backdropTag }
+            val url = Urls.imageUrl(ServiceLocator.client.baseUrl, item.id, type, width, tag,
+                maxHeight = if (type == "Primary") ArtworkPolicy.POSTER_MAX_HEIGHT else null)
+            ServiceLocator.images.load(url, ArtworkPolicy.decodeBucket(width), holder.image)
+        }
         holder.card.setOnClickListener { onClick(item) }
-        holder.card.isFocusable = true
-        holder.card.isClickable = true
+        holder.card.setOnFocusChangeListener { view, focused ->
+            val expand = ServiceLocator.preferences.effective().cardFocusExpansion
+            val scale = if (expand && focused) 1.05f else 1f
+            view.animate().scaleX(scale).scaleY(scale).setDuration(if (expand) 150 else 0).start()
+            holder.name.isSelected = focused
+            if (focused) onFocus(item)
+        }
+        val expand = ServiceLocator.preferences.effective().cardFocusExpansion
+        holder.card.scaleX = if (expand && holder.card.hasFocus()) 1.05f else 1f
+        holder.card.scaleY = holder.card.scaleX
+        holder.name.isSelected = holder.card.hasFocus()
     }
-    private data class ArtworkParams(val type: String, val width: Int, val tag: String?, val maxHeight: Int?)
+    override fun onViewRecycled(holder: Holder) {
+        ServiceLocator.images.cancel(holder.image)
+        holder.card.animate().cancel()
+        holder.card.setOnFocusChangeListener(null)
+        holder.card.scaleX = 1f; holder.card.scaleY = 1f
+        super.onViewRecycled(holder)
+    }
     class Holder(view: View) : RecyclerView.ViewHolder(view) {
         val card: FrameLayout = view.findViewById(R.id.card)
         val image: ImageView = view.findViewById(R.id.image)
         val name: TextView = view.findViewById(R.id.name)
+        val subtitle: TextView = view.findViewById(R.id.subtitle)
     }
 }
 
-data class HomeRow(val title: String, val items: List<MediaItem>, val libraryId: String? = null, val libraryName: String? = null, val landscape: Boolean = false)
+data class HomeRow(val title: String, val items: List<MediaItem>, val libraryId: String? = null, val libraryName: String? = null, val libraryType: String = "", val landscape: Boolean = false)
 
 class HomeRowsAdapter(
     private val onItem: (MediaItem) -> Unit,
+    private val onFocus: (MediaItem) -> Unit = {},
     private val onRowTitle: (UserView) -> Unit,
 ) : RecyclerView.Adapter<HomeRowsAdapter.RowHolder>() {
     init { setHasStableIds(true) }
     private val rows = mutableListOf<HomeRow>()
-    fun submitRows(newRows: List<HomeRow>) { rows.clear(); rows.addAll(newRows.filter { it.items.isNotEmpty() }); notifyDataSetChanged() }
+    fun submitRows(newRows: List<HomeRow>) {
+        val visible = newRows.filter { it.items.isNotEmpty() }
+        if (rows == visible) return
+        rows.clear(); rows.addAll(visible); notifyDataSetChanged()
+    }
     override fun getItemCount() = rows.size
     override fun getItemId(position: Int) = rows[position].title.hashCode().toLong()
     override fun getItemViewType(position: Int) = if (rows[position].landscape) 1 else 0
@@ -68,10 +110,10 @@ class HomeRowsAdapter(
         val library = row.libraryId != null
         holder.title.isFocusable = library
         holder.title.isClickable = library
-        holder.title.setOnClickListener(if (library) View.OnClickListener { onRowTitle(UserView(row.libraryId!!, row.libraryName ?: row.title, "")) } else null)
+        holder.title.setOnClickListener(if (library) View.OnClickListener { onRowTitle(UserView(row.libraryId!!, row.libraryName ?: row.title, row.libraryType)) } else null)
         if (holder.items.adapter == null || holder.items.adapter is MediaCardAdapter && (holder.items.adapter as MediaCardAdapter).posterStyleForBinding != !row.landscape) {
             holder.items.layoutManager = LinearLayoutManager(holder.items.context, LinearLayoutManager.HORIZONTAL, false)
-            holder.items.adapter = MediaCardAdapter(posterStyle = !row.landscape, onClick = onItem)
+            holder.items.adapter = MediaCardAdapter(posterStyle = !row.landscape, onFocus = onFocus, onClick = onItem)
         }
         (holder.items.adapter as MediaCardAdapter).submit(row.items)
     }

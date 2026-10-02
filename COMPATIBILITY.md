@@ -17,11 +17,11 @@ optional; Leanback launcher and TV banner are present.
 
 | Evidence | Result |
 |---|---|
-| Clean local build, current working tree (on top of `8d53ab583`, commit pending) | 29 unit tests pass; strict lint 0 errors / 58 warnings; R8 release APK builds (unsigned) |
-| API 22 stock x86 emulator, manual install/launch smoke | Debug APK installs, package `zepigit.firefin.app`, `LoginActivity` shown, no `FATAL` in logcat |
-| Physical AFTT (ARMv7) | **Absent.** No install, D-pad, playback, memory or thermal result |
-| Signed release APK | **Absent.** None built; not published |
-| Login, browsing, playback on API 22 (emulator or device) | Not exercised |
+| Current uncommitted candidate local gates | 56 unit tests pass; strict debug/release lint 0 errors; Debug/Release APKs build; release unsigned by design |
+| API 22 stock x86 emulator | Login, Moonfin-like Home/Library/Detail/Search/Settings, Seerr discovery/search/detail/season confirmation, TMDB artwork, baseline 480p playback, resume, D-pad controller, audio dialog and cleanup exercised |
+| Physical AFTT (ARMv7) | **Absent.** No hardware decoder/memory/thermal result |
+| Signed release APK | **Absent.** Production keystore and protected environment unavailable |
+| CI on current candidate | Not run because candidate is uncommitted |
 
 The emulator is x86; it does not validate ARMv7 codecs, the 1 GB memory limit
 or real remote hardware. Treat Fire OS behavior as unproven until an AFTT run is
@@ -36,10 +36,9 @@ recorded.
 - Transcoding: server-side HLS (`ts`, H.264 + AAC), which gives Media3 a
   seekable timeline; resume position is applied once at start. HEVC and other
   codecs the profile does not list are left to the server to transcode.
-- Subtitles: the profile declares external SRT and VTT only, but the player
-  does not side-load external subtitle files; it only offers text tracks that
-  Media3 exposes from the stream. Subtitle behavior is a known gap and
-  unverified.
+- Subtitles: external SRT/VTT delivery is wired when Jellyfin supplies a
+  delivery URL; embedded audio/subtitle source selection is negotiated through
+  PlaybackInfo. Additional formats remain outside the slim target scope.
 - Absent by design on this target: Media Bar, inline previews, blur, card
   focus expansion, Google Cast, Picture-in-Picture.
 - Device limits are applied at runtime and are not meant to be stored or
@@ -53,17 +52,17 @@ affect playback independently of the client.
 
 Server requests use fixed classes: posters 320 px wide (max 480 high),
 landscape/thumb 640, backdrop 960. Decode buckets are 160, 240, 320, 480, 640
-and 960 px with RGB_565 sampling. At most two concurrent network fetches;
-memory cache capped at the smaller of 32 MiB and one eighth of the heap; disk
-cache capped at 64 MiB (clearable in Settings). These are implemented limits;
-cold/warm-cache stress behavior has not been measured on a 1 GB device.
+and 960 px with RGB_565 sampling. At most two global decode/fetch workers;
+private Jellyfin and public TMDB caches are separately bounded, account-keyed
+for private content and clearable in Settings. Cold/warm-cache stress behavior
+has not been measured on a 1 GB AFTT device.
 
 ## Remote control (implemented, not hardware-verified)
 
 Player, controller hidden: Left/Right and Rewind/Fast Forward seek 10 s;
 Center/Up/Down/Menu show the controller; Play/Pause toggles playback. Controller
 visible: Menu hides it, Up opens the audio-track dialog, Down the subtitle
-dialog, other keys navigate the controller. Back leaves the player.
+dialog, other keys navigate the controller. Back hides the visible controller first; a subsequent Back leaves the player.
 
 ## Legacy Flutter app (history only)
 

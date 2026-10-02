@@ -74,6 +74,11 @@ class SearchActivity : AppCompatActivity() {
                 }
             }
         })
+        box.setOnEditorActionListener { _, _, _ ->
+            (getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager).hideSoftInputFromWindow(box.windowToken, 0)
+            results.requestFocus()
+            true
+        }
         box.requestFocus()
     }
 

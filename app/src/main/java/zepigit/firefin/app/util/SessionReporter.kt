@@ -93,7 +93,7 @@ class SessionReporter(
     suspend fun awaitTerminal(timeoutMs: Long = 30_000) = kotlinx.coroutines.withTimeout(timeoutMs) { worker.join() }
 
     private suspend fun send(event: Event) {
-        runCatching {
+        try {
             when (event) {
                 Event.Playing -> transport.json(
                     "Sessions/Playing", "POST",
@@ -111,19 +111,23 @@ class SessionReporter(
                         .put("MediaSourceId", mediaSourceId).toString(),
                 )
             }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            // Session reporting is best effort and never retries a failed event.
         }
     }
 
     /** One-shot, idempotent transcode teardown bound to this playback session only. */
     private suspend fun cleanupTranscode() {
-        runCatching {
+        try {
             val query = "?DeviceId=" + urlEncode(transport.deviceId) + "&PlaySessionId=" + urlEncode(sessionId)
             transport.json("Videos/ActiveEncodings$query", "DELETE")
-        }.onFailure { if (it !is ServerResponseException || it.status != 404) Unit }
+        } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: ServerResponseException) { if (e.status != 404) Unit } catch (_: Exception) { Unit }
         if (liveStreamId.isNotBlank()) {
-            runCatching {
+            try {
                 transport.json("LiveStreams/Close", "POST", JSONObject().put("LiveStreamId", liveStreamId).toString())
-            }.onFailure { if (it !is ServerResponseException || it.status != 404) Unit }
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: ServerResponseException) { if (e.status != 404) Unit } catch (_: Exception) { Unit }
         }
     }
 
