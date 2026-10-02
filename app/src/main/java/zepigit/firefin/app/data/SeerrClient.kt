@@ -3,6 +3,8 @@ package zepigit.firefin.app.data
 import java.io.IOException
 import java.net.URLEncoder
 import okio.ByteString.Companion.decodeBase64
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.json.JSONObject
 
 class SeerrException(val status: Int) : IOException(when (status) {
@@ -14,38 +16,95 @@ class SeerrException(val status: Int) : IOException(when (status) {
     else -> "Seerr-Anfrage fehlgeschlagen (HTTP $status)."
 })
 
-/** Each screen owns a snapshot; no password, cookie or Seerr API key is persisted. */
-class SeerrClient(private val transport: ServerTransport) {
-    private var prefix = "Moonfin/Seerr"
+/** No password, cookie or Seerr API key is persisted. */
+class SeerrClient(private var transport: ServerTransport) {
+    private var prefix = "Moonfin/Jellyseerr"
+    private var probeComplete = false
+    private var authenticated = false
+    private val stateMutex = Mutex()
     var user = SeerrUser(0, 0)
         private set
 
-    suspend fun connect(): Boolean {
+    private fun applyIdentity(json: JSONObject, allowBareId: Boolean = false): Boolean {
+        val keys = if (allowBareId) {
+            listOf("id", "userId", "seerrUserId", "jellyseerrUserId", "JellyseerrUserId")
+        } else {
+            listOf("userId", "seerrUserId", "jellyseerrUserId", "JellyseerrUserId")
+        }
+        val id = keys.firstNotNullOfOrNull { key -> json.optInt(key, 0).takeIf { it > 0 } } ?: 0
+        val hasPermissions = json.has("permissions") || json.has("Permissions")
+        if (id > 0 && hasPermissions) {
+            val permissions = json.optLong("permissions", json.optLong("Permissions", 0L))
+            user = SeerrUser(id, permissions)
+            return true
+        }
+        return false
+    }
+
+    fun resetTransport(transport: ServerTransport) {
+        this.transport = transport
+        prefix = "Moonfin/Jellyseerr"
+        probeComplete = false
+        authenticated = false
+        user = SeerrUser(0, 0)
+    }
+
+    fun invalidate() {
+        probeComplete = false
+        authenticated = false
+        user = SeerrUser(0, 0)
+    }
+
+    suspend fun connect(): Boolean = stateMutex.withLock {
+        if (probeComplete) return@withLock authenticated
         val ping = call("Moonfin/Ping", optional = true) ?: throw IOException("Moonbase ist auf diesem Server nicht verfügbar.")
         if (!ping.optBoolean("installed", ping.optBoolean("Installed", true))) throw IOException("Moonbase nicht installiert.")
         val config = call("$prefix/Config", optional = true) ?: run {
-            prefix = "Moonfin/Jellyseerr"
+            prefix = "Moonfin/Seerr"
             call("$prefix/Config")!!
         }
         if (!config.optBoolean("enabled", config.optBoolean("Enabled", false)) ||
             !config.optBoolean("userEnabled", config.optBoolean("UserEnabled", true))) throw SeerrException(503)
         val status = call("$prefix/Status")!!
-        if (!status.optBoolean("authenticated", status.optBoolean("Authenticated", false))) return false
-        refreshUser()
-        return true
+        if (!status.optBoolean("authenticated", status.optBoolean("Authenticated", false))) {
+            probeComplete = false
+            authenticated = false
+            user = SeerrUser(0, 0)
+            return@withLock false
+        }
+        authenticated = applyIdentity(status, allowBareId = false) || try {
+            refreshUser()
+            true
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (_: SeerrException) {
+            false
+        }
+        probeComplete = authenticated
+        authenticated
     }
 
-    suspend fun login(username: String = "", password: String = "", quickConnect: Boolean = false, local: Boolean = false) {
+    suspend fun login(username: String = "", password: String = "", quickConnect: Boolean = false, local: Boolean = false) = stateMutex.withLock {
         val body = JSONObject().put("authType", if (quickConnect) "quickconnect" else if (local) "local" else "jellyfin")
         if (!quickConnect) body.put("username", username).put("password", password)
-        val result = call("$prefix/Login", "POST", body)!!
+        val result = try { call("$prefix/Login", "POST", body)!! } catch (e: SeerrException) {
+            if (e.status != 404) throw e
+            prefix = if (prefix == "Moonfin/Jellyseerr") "Moonfin/Seerr" else "Moonfin/Jellyseerr"
+            call("$prefix/Login", "POST", body)!!
+        }
         if (!result.optBoolean("success", result.optBoolean("Success", false))) throw IOException("Seerr-Anmeldung fehlgeschlagen.")
-        refreshUser()
+        if (!applyIdentity(result, allowBareId = false)) {
+            val status = call("$prefix/Status")
+            if (status == null || !applyIdentity(status, allowBareId = false)) refreshUser()
+        }
+        probeComplete = true
+        authenticated = true
     }
 
     private suspend fun refreshUser() {
         val me = api("auth/me")
-        user = SeerrUser(me.optInt("id"), me.optLong("permissions"))
+        if (!me.has("permissions") && !me.has("Permissions")) throw SeerrException(401)
+        user = SeerrUser(me.optInt("id"), me.optLong("permissions", me.optLong("Permissions", 0L)))
         if (user.id <= 0) throw SeerrException(401)
     }
 
@@ -71,12 +130,13 @@ class SeerrClient(private val transport: ServerTransport) {
         val response = try { transport.response("$prefix/Api/request", "POST", payload) }
         catch (_: IOException) { return RequestResult.UNKNOWN }
         if (response.status == 401) {
+            invalidate()
             if (transport.response("Users/Me").status == 401) throw SessionExpiredException()
             throw SeerrException(401)
         }
         return when {
             response.status == 202 -> RequestResult.UNKNOWN
-            response.status in 200..299 -> if (runCatching { parseEnvelope(response.body).optInt("id") > 0 }.getOrDefault(false)) RequestResult.CREATED else RequestResult.UNKNOWN
+            response.status in 200..299 -> if (runCatching { parseEnvelope(response.body).let { it.optInt("id", it.optInt("Id", 0)) > 0 } }.getOrDefault(false)) RequestResult.CREATED else RequestResult.UNKNOWN
             response.status == 409 -> RequestResult.ALREADY_REQUESTED
             response.status >= 500 -> RequestResult.UNKNOWN
             else -> throw SeerrException(response.status)
@@ -112,7 +172,11 @@ class SeerrClient(private val transport: ServerTransport) {
     private suspend fun call(path: String, method: String = "GET", body: JSONObject? = null, optional: Boolean = false): JSONObject? {
         val result = transport.response(path, method, body?.toString())
         if (optional && result.status == 404) return null
-        if (result.status == 401 && transport.response("Users/Me").status == 401) throw SessionExpiredException()
+        if (result.status == 401) {
+            invalidate()
+            if (transport.response("Users/Me").status == 401) throw SessionExpiredException()
+            throw SeerrException(401)
+        }
         if (result.status !in 200..299) throw SeerrException(result.status)
         return try {
             parseEnvelope(result.body)

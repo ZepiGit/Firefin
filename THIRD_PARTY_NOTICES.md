@@ -67,8 +67,12 @@ anchor by the scoped TMDB artwork client on legacy API 22. It is not a
 Jellyfin trust bypass or certificate pin. The certificate SHA-256 is recorded
 in the release audit artifact, not in a secret-bearing file.
 
-Launcher icon and TV banner assets in `app/src/main/res/` were added in the
-native migration; their artwork provenance has not been audited here.
+Toolbar vector icons in `app/src/main/res/drawable/ic_*.xml` are based on
+Material Icons path data and are used under the Apache License 2.0. The
+corresponding notice is available at https://github.com/google/material-design-icons.
+The Firefin launcher icon, transparent mark, wordmark and TV banner are
+project artwork supplied for this migration; they are not copied from a
+third-party library.
 
 ## Legacy Flutter app dependencies
 

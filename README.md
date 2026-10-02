@@ -28,14 +28,14 @@ The native version code is deliberately above the legacy `3000028` build line.
 
 ## Verification status
 
-Evidence basis: uncommitted candidate on branch `feature/moonfin-ui-seerr`; final
-commit is intentionally pending the mandatory gpt-6.1-sol review. The complete
-migration ledger and review snapshot are in [docs/FIREFIN_MIGRATION.md](docs/FIREFIN_MIGRATION.md).
-Nothing below is a claim about a published release.
+Evidence basis: the tested implementation snapshot is the parent commit
+identified in the migration ledger; later documentation and ancestry commits
+are tracked separately. This is not a published release. The complete migration ledger is in
+[docs/FIREFIN_MIGRATION.md](docs/FIREFIN_MIGRATION.md).
 
-Verified locally on the current candidate:
+Verified locally on the named implementation snapshot:
 
-- 56 JVM unit tests pass (`:app:testDebugUnitTest`), including transport, Seerr,
+- 60 JVM unit tests pass (`:app:testDebugUnitTest`), including transport, Seerr,
   preferences, playback timeline, source selection and session-report contracts.
 - API-22 instrumentation (`:app:connectedDebugAndroidTest`) passes the login-
   screen focus test on the stock x86 AVD.
@@ -48,7 +48,8 @@ Verified locally on the current candidate:
   season confirmation, TMDB artwork over the API-22 TLS stack, resume playback,
   D-pad controller, audio-track dialog, pause/return cleanup and 480p/1 Mbit
   playback were exercised. The emulator needed the debug baseline H.264 profile;
-  the real AFTT release profile remains 720p/4 Mbit.
+  the real AFTT release profile negotiates up to 1080p/4 Mbit, but physical AFTT
+  decoder and thermal behavior remain unverified.
 
 Still externally blocked and not claimed complete:
 
@@ -56,11 +57,12 @@ Still externally blocked and not claimed complete:
   production playback.
 - Protected production keystore/secrets for a signed release and certificate
   verification.
-- CI run for this still-uncommitted candidate.
+- Final-commit CI and integration status are recorded per SHA in GitHub Actions.
+  The local results above describe tested implementation snapshot `c9da933aa2a331c760325b97e777b51be7d4980f`.
 
 ### Current native screenshots
 
-These are real API-22 emulator captures from the current candidate, with no
+These are real API-22 emulator captures from the named implementation snapshot, with no
 credentials or tokens visible:
 
 ![Firefin Home](docs/screenshots-home.png)

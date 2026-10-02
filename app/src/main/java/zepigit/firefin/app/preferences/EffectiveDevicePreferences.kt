@@ -11,7 +11,7 @@ data class StoredPreferences(
     val backdropEnabled: Boolean = true,
     val homeSectionOrder: List<String> = listOf("resume", "nextUp", "latest"),
     val preferredBitrate: Long = 4_000_000L,
-    val preferredHeight: Int = 720,
+    val preferredHeight: Int = 1080,
     val audioLanguage: String = "",
     val subtitleLanguage: String = "",
 )
@@ -39,7 +39,7 @@ fun deriveEffective(
     maxStreamingBitrate: Long,
 ): EffectiveDevicePreferences = EffectiveDevicePreferences(
     stored = stored,
-    maxVideoWidth = minOf(maxVideoWidth, if (stored.preferredHeight in 1..480) 854 else 1280),
+    maxVideoWidth = minOf(maxVideoWidth, if (stored.preferredHeight in 1..480) 854 else if (stored.preferredHeight <= 720) 1280 else 1920),
     maxVideoHeight = minOf(maxVideoHeight, stored.preferredHeight.takeIf { it > 0 } ?: maxVideoHeight),
     maxStreamingBitrate = minOf(maxStreamingBitrate, stored.preferredBitrate.takeIf { it > 0 } ?: maxStreamingBitrate),
 )

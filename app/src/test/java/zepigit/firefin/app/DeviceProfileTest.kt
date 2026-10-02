@@ -16,9 +16,9 @@ class DeviceProfileTest {
     }
 
     @Test
-    fun `legacy transcode ceilings are preserved incl audio`() {
-        assertEquals(1280, DeviceProfile.MAX_WIDTH)
-        assertEquals(720, DeviceProfile.MAX_HEIGHT)
+    fun `native transcode ceiling supports 1080p within the audio budget`() {
+        assertEquals(1920, DeviceProfile.MAX_WIDTH)
+        assertEquals(1080, DeviceProfile.MAX_HEIGHT)
         assertEquals(4_000_000L, DeviceProfile.MAX_BITRATE)
         assertEquals(4_000_000L, profile.getLong("MaxStreamingBitrate"))
         assertEquals(4_000_000L, profile.getLong("MaxStaticBitrate"))
@@ -37,8 +37,8 @@ class DeviceProfileTest {
         val byProp = (0 until conditions.length()).associate {
             conditions.getJSONObject(it).getString("Property") to conditions.getJSONObject(it).getString("Value")
         }
-        assertEquals("1280", byProp["Width"])
-        assertEquals("720", byProp["Height"])
+        assertEquals("1920", byProp["Width"])
+        assertEquals("1080", byProp["Height"])
         assertEquals("4000000", byProp["VideoBitrate"])
     }
 

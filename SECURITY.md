@@ -39,6 +39,7 @@ completed security audit; open items are listed below.
   artwork) follows at most three GET redirects and only within the configured
   origin and path; anything else fails. The media client's redirect path has dedicated MockWebServer tests for hop
   limits, cross-origin refusal and non-GET refusal.
+- **Seerr credentials.** Jellyfin login never forwards the entered password to Seerr or Moonbase. Seerr authentication is a separate, explicit action from the Media Requests screen; credentials are sent only to the configured server transport after the user presses its sign-in button, and are not stored.
 - **Tokens.** The access token is sent in the `Authorization` header only.
   Firefin does not append it to image, stream or HLS URLs, so it does not
   appear in image cache keys. Cookies are removed from outgoing requests.

@@ -29,10 +29,12 @@ class SettingsActivity : AppCompatActivity() {
             container.addView(button, 1, android.widget.LinearLayout.LayoutParams((320 * resources.displayMetrics.density).toInt(), (44 * resources.displayMetrics.density).toInt()).apply { topMargin = (12 * resources.displayMetrics.density).toInt() })
         }
         setting("Wiedergabequalität") {
-            androidx.appcompat.app.AlertDialog.Builder(this).setTitle("Qualität (Gerät: höchstens 720p / 4 Mbit/s)")
-                .setItems(arrayOf("720p · 4 Mbit/s", "720p · 2 Mbit/s", "480p · 1 Mbit/s")) { _, index ->
+            androidx.appcompat.app.AlertDialog.Builder(this).setTitle("Qualität (Gerät: höchstens 1080p / 4 Mbit/s)")
+                .setItems(arrayOf("1080p · 4 Mbit/s", "720p · 4 Mbit/s", "720p · 2 Mbit/s", "480p · 1 Mbit/s")) { _, index ->
                     val stored = ServiceLocator.preferences.stored()
-                    ServiceLocator.preferences.save(stored.copy(preferredBitrate = listOf(4_000_000L, 2_000_000L, 1_000_000L)[index], preferredHeight = if (index == 2) 480 else 720))
+                    val heights = listOf(1080, 720, 720, 480)
+                    val rates = listOf(4_000_000L, 4_000_000L, 2_000_000L, 1_000_000L)
+                    ServiceLocator.preferences.save(stored.copy(preferredBitrate = rates[index], preferredHeight = heights[index]))
                 }.show()
         }
         setting("Hintergrundbilder ein/aus") {

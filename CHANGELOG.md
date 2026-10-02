@@ -9,16 +9,17 @@ preserved unchanged as history.
 ### 0.2.0-firefin (versionCode 3001000), unreleased
 
 Not released: no signed APK exists and no AFTT hardware result is recorded.
-The current candidate is on `feature/moonfin-ui-seerr`; its final commit and CI
-run are pending the mandatory gpt-6.1-sol review.
+The tested implementation snapshot is `c9da933aa2a331c760325b97e777b51be7d4980f`.
+Later documentation-only and ancestry-merge commits do not change its app code.
+CI results are per-SHA records in GitHub Actions, not inferred from local tests.
 
-Verified locally on the current candidate: 55 JVM unit tests, API22
+Verified locally on the implementation snapshot: 60 JVM unit tests, API22
 instrumentation login-focus test, strict debug/release lint (0 errors; current
-reports contain 130 warnings), R8 release APK (unsigned), and the manual API22
+reports contain 118 warnings), R8 release APK (unsigned), and the manual API22
 x86 flow record in `docs/FIREFIN_MIGRATION.md`. No AFTT hardware or signed
 release is claimed.
 
-#### Current native candidate scope (uncommitted; feature/moonfin-ui-seerr)
+#### Native implementation scope (tested snapshot `c9da933aa2a331c760325b97e777b51be7d4980f`)
 
 - Transport: `ServerTransport` now exposes a REST client with bounded call and
   read timeouts and a separate media client without call/read timeouts, used
@@ -66,7 +67,7 @@ Earlier notes claimed clean lint, "all review findings fixed", protected
 signing, bounded disk decode, and completed API 22 validation. Those claims
 were not acceptance evidence and are withdrawn. The earlier figures of 18 or
 21 unit tests and the 5m25s CI run describe older trees, not the current one
-(56 unit tests).
+(60 unit tests).
 
 ## Legacy Flutter line (history)
 
