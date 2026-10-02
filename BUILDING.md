@@ -4,7 +4,7 @@ This document covers the native Kotlin app (`app/`). The legacy Flutter build
 is kept at the end as history; it is validation-only and is never published.
 
 Build status, in short: a clean local build of the current working tree passed
-56 unit tests, strict lint (0 errors; current reports contain 118 warnings) and an R8 release build, and
+60 unit tests, strict lint (0 errors; current reports contain 118 warnings) and an R8 release build, and
 the debug APK installed and launched on an API 22 stock x86 emulator. There is
 no signed release and no AFTT hardware result. The commit carrying these fixes
 is documented per commit; CI runs are listed in docs/FIREFIN_MIGRATION.md.
@@ -106,8 +106,8 @@ upload (`if-no-files-found: error`).
 
 Artifacts: `firefin-candidate-<sha>` (both APKs and verification JSON) and
 `firefin-reports-<sha>` (test and lint reports). The candidate APKs are
-validation artifacts, not releases. No CI run exists yet for the current
-working tree.
+validation artifacts, not releases. Native CI for commit `cf2ac1e31` is
+tracked separately from this local verification record.
 
 ## Protected release (`Firefin signed release`, `.github/workflows/release.yml`)
 

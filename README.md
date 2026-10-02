@@ -34,7 +34,7 @@ it is not a published release. The complete migration ledger is in
 
 Verified locally on the current candidate:
 
-- 56 JVM unit tests pass (`:app:testDebugUnitTest`), including transport, Seerr,
+- 60 JVM unit tests pass (`:app:testDebugUnitTest`), including transport, Seerr,
   preferences, playback timeline, source selection and session-report contracts.
 - API-22 instrumentation (`:app:connectedDebugAndroidTest`) passes the login-
   screen focus test on the stock x86 AVD.
@@ -56,7 +56,7 @@ Still externally blocked and not claimed complete:
   production playback.
 - Protected production keystore/secrets for a signed release and certificate
   verification.
-- CI run for this still-uncommitted candidate.
+- Native CI for commit `cf2ac1e31` is tracked separately; the local gates above are complete.
 
 ### Current native screenshots
 

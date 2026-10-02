@@ -19,13 +19,10 @@ object ServiceLocator {
 
     lateinit var discoveryImages: ImageLoader
         private set
-    lateinit var seerr: zepigit.firefin.app.data.SeerrClient
-        private set
-
     lateinit var preferences: zepigit.firefin.app.preferences.PreferenceStore
         private set
 
-    fun isReady(): Boolean = ::session.isInitialized && ::client.isInitialized && ::seerr.isInitialized
+    fun isReady(): Boolean = ::session.isInitialized && ::client.isInitialized
 
     fun init(context: Context) {
         session = SessionStore(context.applicationContext)
@@ -48,6 +45,5 @@ object ServiceLocator {
                 chain.proceed(chain.request().newBuilder().removeHeader("Authorization").removeHeader("Cookie").build())
             }.build()
         discoveryImages = ImageLoader(context.applicationContext, publicHttp, "discovery", 8 * 1024 * 1024)
-        seerr = zepigit.firefin.app.data.SeerrClient(client.transportSnapshot())
     }
 }

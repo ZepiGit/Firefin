@@ -42,7 +42,6 @@ class JellyfinClient(private val session: SessionStore, private val preferences:
         session.userName = user.optString("Name")
         session.serverName = json.optString("ServerId")
         transport.update(ServerCredentials(server, session.userId, token))
-        if (zepigit.firefin.app.ServiceLocator.isReady()) zepigit.firefin.app.ServiceLocator.seerr.resetTransport(transport.snapshot())
         json
     }
 

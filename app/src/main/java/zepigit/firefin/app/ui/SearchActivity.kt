@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import zepigit.firefin.app.R
 import zepigit.firefin.app.ServiceLocator
+import zepigit.firefin.app.data.SearchQueryGate
 import zepigit.firefin.app.data.SeerrClient
 import zepigit.firefin.app.data.SeerrMedia
 import zepigit.firefin.app.data.SessionExpiredException
@@ -27,7 +28,7 @@ import zepigit.firefin.app.images.TmdbArtwork
 class SearchActivity : AppCompatActivity() {
     private val scope = CoroutineScope(Dispatchers.Main + Job())
     private var queryJob: Job? = null
-    private var queryGeneration = 0
+    private val queryGate = SearchQueryGate()
     @Volatile private var seerrProbeUnavailable = false
 
     override fun onDestroy() { queryJob?.cancel(); scope.cancel(); super.onDestroy() }
@@ -51,7 +52,7 @@ class SearchActivity : AppCompatActivity() {
             override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit
             override fun afterTextChanged(s: android.text.Editable?) {
                 queryJob?.cancel()
-                val generation = ++queryGeneration
+                val generation = queryGate.next()
                 val q = s?.toString()?.trim().orEmpty()
                 if (q.length < 2) {
                     rows.submit(emptyList(), emptyList())
@@ -94,26 +95,26 @@ class SearchActivity : AppCompatActivity() {
                             }
                             jf.await() to seerr.await()
                         }
-                        if (generation != queryGeneration) return@launch
+                        if (!queryGate.isCurrent(generation)) return@launch
                         val local = pair.first; val remote = pair.second
                         rows.submit(local, remote)
                         empty.text = getString(R.string.empty_search)
                         empty.visibility = if (local.isEmpty() && remote.isEmpty()) View.VISIBLE else View.GONE
                     } catch (e: CancellationException) { throw e }
                     catch (e: SessionExpiredException) {
-                        if (generation == queryGeneration) {
+                        if (queryGate.isCurrent(generation)) {
                             ServiceLocator.session.clear()
                             LoginActivity.startFresh(this@SearchActivity)
                         }
                     }
                     catch (e: Exception) {
-                        if (generation != queryGeneration) return@launch
+                        if (!queryGate.isCurrent(generation)) return@launch
                         rows.submit(emptyList(), emptyList())
                         empty.text = e.message ?: getString(R.string.error_generic)
                         empty.visibility = View.VISIBLE
                     }
                     finally {
-                        if (generation == queryGeneration) progress.visibility = View.GONE
+                        if (queryGate.isCurrent(generation)) progress.visibility = View.GONE
                     }
                 }
             }
