@@ -62,7 +62,17 @@ jobs:
       - uses: gradle/actions/wrapper-validation@v4
       - uses: gradle/actions/setup-gradle@v4
       - name: Install pinned SDK packages
-        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
+          if [[ ! -x "$SDKMANAGER" ]]; then SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | head -1)"; fi
+          test -x "$SDKMANAGER"
+          set +o pipefail
+          yes | "$SDKMANAGER" 'platforms;android-35' 'build-tools;35.0.0'
+          sdk_status=${PIPESTATUS[1]}
+          set -o pipefail
+          test "$sdk_status" -eq 0
       - name: Build with required production key and verify its identity
         env:
           FIREFIN_KEYSTORE_BASE64: ${{ secrets.FIREFIN_KEYSTORE_BASE64 }}
