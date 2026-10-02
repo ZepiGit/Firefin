@@ -34,7 +34,6 @@ This project is not about being the best Jellyfin/Moonfin alternative. It doesn'
 
 ## Screenshots
 
-The screenshots were captured with the German translation of the interface.
 
 <table>
   <tr>
