@@ -1,129 +1,116 @@
-# Firefin
+<p align="center">
+  <img src="app/src/main/res/drawable-nodpi/firefin_mark.png" width="128" height="128" alt="Firefin logo" />
+</p>
 
-[![License: GPL v2](https://img.shields.io/badge/license-GPL--2.0-blue.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Fire%20OS%205-orange)](COMPATIBILITY.md)
-[![Architecture](https://img.shields.io/badge/architecture-ARMv7-lightgrey)](COMPATIBILITY.md)
+<h1 align="center">Firefin</h1>
 
-**Firefin** is an independent native Kotlin Jellyfin client for legacy Fire TV
-devices, originally derived from Moonfin Core. Not affiliated with or supported
-by Moonfin, Jellyfin, Emby, or Amazon.
+<p align="center">
+  <strong>A focused native Jellyfin experience for TV screens and remote controls.</strong><br />
+  Targets the second-generation Fire TV Stick and the legacy Fire TV profile described below.
+</p>
 
-**Primary target:** Fire TV Stick 2nd Generation / Basic Edition (`AFTT`,
-`LY73PR`), Fire OS 5.2.8.0 (Android 5.1 / **API 22**), ARMv7, 1 GB RAM.
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--2.0-1f6feb.svg" alt="GPL-2.0" /></a>
+  <a href="COMPATIBILITY.md"><img src="https://img.shields.io/badge/Fire%20OS-5%20%2F%20API%2022-f59e0b.svg" alt="Fire OS 5 and API 22" /></a>
+  <a href="COMPATIBILITY.md"><img src="https://img.shields.io/badge/architecture-ARMv7-64748b.svg" alt="ARMv7" /></a>
+  <a href="docs/FIREFIN_TECHNICAL_OVERVIEW.md"><img src="https://img.shields.io/badge/status-development-8b5cf6.svg" alt="Development status" /></a>
+</p>
 
-> **Status: in development, not release-ready, not feature-equal to the legacy
-> app.** No signed release exists. No run on real AFTT hardware has been
-> recorded. See [Verification status](#verification-status) and the acceptance
-> ledger in [docs/FIREFIN_MIGRATION.md](docs/FIREFIN_MIGRATION.md).
+<p align="center">
+  <img src="app/src/main/res/drawable/tv_banner.png" width="320" alt="Firefin TV banner" />
+</p>
 
-| Field | Native app (this line) | Legacy app (history, validation only) |
-|---|---|---|
-| Package | `zepigit.firefin.app` | `org.moonfin.firetv32` |
-| Version | `0.2.0-firefin` / versionCode `3001000` (`version.properties`) | `1.1.0-firetv32-r21` / `3000028` |
-| SDK | minSdk 21, targetSdk 34, compileSdk 35 | minSdk 21 |
-| UI | Native Android Views/XML, Media3 ExoPlayer, OkHttp | Flutter + media_kit |
-| Language of UI strings | German only at present | English |
+Firefin is a native Android TV application for browsing, discovering and playing media from a Jellyfin server. It is built around a simple idea: the living-room interface should stay readable from a sofa, with every important action reachable by remote control. Firefin is derived from the Moonfin Core codebase and is an independent project, not affiliated with Moonfin, Jellyfin, Emby or Amazon. See [third-party notices](THIRD_PARTY_NOTICES.md) for attribution and licensing details.
 
-The native version code is deliberately above the legacy `3000028` build line.
+The interface is currently German only.
 
-## Verification status
+## Main features
 
-Evidence basis: the tested implementation snapshot is the parent commit
-identified in the migration ledger; later documentation and ancestry commits
-are tracked separately. This is not a published release. The complete migration ledger is in
-[docs/FIREFIN_MIGRATION.md](docs/FIREFIN_MIGRATION.md).
+- A clean TV-first home screen with continue watching, next up and library rows
+- Remote-friendly navigation for home, search, libraries, random playback, favourites, requests and settings
+- Media details with descriptions, release information, playback actions and watched state
+- Series browsing with seasons and episodes
+- Jellyfin library search alongside Seerr/Moonbase discovery results
+- Media3 playback with audio and subtitle selection, resume support and D-pad controls
+- Seerr request discovery, title details, season selection and confirmation flows
+- Firefin branding with a dedicated launcher icon, transparent in-app mark and TV banner
 
-Verified locally on the named implementation snapshot:
+## Screenshots
 
-- 60 JVM unit tests pass (`:app:testDebugUnitTest`), including transport, Seerr,
-  preferences, playback timeline, source selection and session-report contracts.
-- API-22 instrumentation (`:app:connectedDebugAndroidTest`) passes the login-
-  screen focus test on the stock x86 AVD.
-- Strict debug/release lint: 0 errors (warnings remain documented).
-- R8-minified unsigned release APK builds; debug and release APK metadata is
-  checked by `scripts/verify-native-apk.py` (debug ABIs: armeabi-v7a/x86;
-  release ABI: armeabi-v7a only).
-- API 22 x86 emulator with the authorized Jellyfin test account: login, Moonfin-like
-  Home/Library/Detail/Search/Settings navigation, Seerr discovery/search/detail/
-  season confirmation, TMDB artwork over the API-22 TLS stack, resume playback,
-  D-pad controller, audio-track dialog, pause/return cleanup and 480p/1 Mbit
-  playback were exercised. The emulator needed the debug baseline H.264 profile;
-  the real AFTT release profile negotiates up to 1080p/4 Mbit, but physical AFTT
-  decoder and thermal behavior remain unverified.
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/firefin-home-current.png" alt="Firefin home screen with the new icon navigation bar and Continue Watching row" />
+      <p align="center"><sub><strong>Home</strong><br />A focused TV dashboard with library rows and continue watching.</sub></p>
+    </td>
+    <td width="50%">
+      <img src="docs/southpark-series.png" alt="South Park series details in the German Firefin UI with season cards" />
+      <p align="center"><sub><strong>Details</strong><br />Readable metadata, overview and playback actions.</sub></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="docs/southpark-playback.png" alt="South Park episode playing in Firefin with D-pad transport controls" />
+      <p align="center"><sub><strong>Playback</strong><br />D-pad transport controls with audio and subtitle access.</sub></p>
+    </td>
+    <td width="50%">
+      <img src="docs/firefin-seerr-current.png" alt="Seerr discovery screen in Firefin with Trending and request navigation" />
+      <p align="center"><sub><strong>Requests</strong><br />Seerr discovery and request browsing through Moonbase.</sub></p>
+    </td>
+  </tr>
+</table>
 
-Still externally blocked and not claimed complete:
+### South Park on Firefin
 
-- Physical AFTT/ARMv7 install, hardware decoder/memory/thermal behavior and
-  production playback.
-- Protected production keystore/secrets for a signed release and certificate
-  verification.
-- Final-commit CI and integration status are recorded per SHA in GitHub Actions.
-  The local results above describe tested implementation snapshot `c9da933aa2a331c760325b97e777b51be7d4980f`.
+These captures come from the running Firefin app on the API-22 x86 emulator. They show a South Park search result, the series with its seasons, an episode detail screen and an episode playing with remote-friendly controls. The interface is German in this build.
 
-### Current native screenshots
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots-southpark-search.png" alt="South Park search in German Firefin UI with the first library result focused" /></td>
+    <td width="50%"><img src="docs/southpark-series.png" alt="South Park season selection in Firefin" /></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/southpark-episode.png" alt="South Park episode details in Firefin with playback actions" /></td>
+    <td width="50%"><img src="docs/southpark-playback.png" alt="South Park episode playing in Firefin with D-pad transport controls" /></td>
+  </tr>
+</table>
 
-These are real API-22 emulator captures from the named implementation snapshot, with no
-credentials or tokens visible:
+## Works with
 
-![Firefin Home](docs/screenshots-home.png)
-![Firefin detail](docs/screenshots-detail.png)
-![Firefin player](docs/screenshots-player.png)
-![Firefin Seerr discovery](docs/screenshots-seerr.png)
+| Service | Compatibility |
+|---|---|
+| **Jellyfin Server** | Main media source for login, libraries, search, details, playback and watched state |
+| **Moonbase / Seerr** | Optional discovery and media-request service, available from the Requests area and from combined search |
 
-## Feature parity (open)
+Firefin does not require a second media server. It connects to the Jellyfin server you choose and uses Moonbase/Seerr only when that service is available and configured.
 
-The native app covers password login, a home screen (continue watching, next
-up, latest for up to four movie/show/mixed libraries), library grids, details
-with episodes, search, favorite/watched toggles, Media3 playback with D-pad
-control, remote session control and basic settings (image cache, logout).
-The current slim native target deliberately prioritizes the old Fire TV device:
-Jellyfin login, Moonfin-like Home/library/detail/search/player flows, D-pad
-focus, account-safe playback, Seerr through Moonbase (discovery, search,
-status, season selection, request dialog and submission code; live server submission is not claimed), bounded artwork and stored /
-effective playback preferences. It deliberately does not claim Live TV,
-offline downloads, music/books/photos/DLNA, admin, plugin sync, parental/PIN,
-full Quick Connect code polling or every modern Moonfin screen. Flutter sources
-remain in the repository until the selected native flows are accepted. Track
-this scope and evidence in [docs/FIREFIN_MIGRATION.md](docs/FIREFIN_MIGRATION.md).
+## Device compatibility
 
-## Install note (important)
+| Device or platform | Status |
+|---|---|
+| **Fire TV Stick 2nd Generation (AFTT)** | Primary target; Fire OS 5 / Android API 22 / ARMv7. Physical hardware validation is still pending. |
+| **Fire TV Stick Basic Edition (LY73PR)** | Same target profile; physical validation is still pending. |
+| **API-22 x86 Android emulator** | Used for local login, navigation, search, Seerr and baseline playback verification. |
+| **Fire TV Stick 1st Generation** | Not verified. |
+| **Newer 64-bit Fire TV devices** | Not the intended target; not verified. |
 
-The native Firefin app uses a **new application ID**. It is a different
-Android app, not an in-place update of the old one:
+The app is intentionally tuned for the resource limits of the older Fire TV profile. Newer hardware may run it, but compatibility should not be assumed without testing.
 
-- The old Moonfin FireTV32 app (`org.moonfin.firetv32`) can stay installed
-  side by side; it is not uninstalled or wiped automatically.
-- Firefin starts with a fresh login; tokens and settings from the old app are
-  **not** migrated automatically.
+## Getting started
 
-## Build (native app)
+Firefin is currently a development build. A signed public release is not available yet. For local development, start with [BUILDING.md](BUILDING.md) and the technical overview in [docs/FIREFIN_TECHNICAL_OVERVIEW.md](docs/FIREFIN_TECHNICAL_OVERVIEW.md).
 
-Requires JDK 17 and Android SDK platform 35 with build-tools 35.0.0; the Gradle
-wrapper (8.10.2) is included. See [BUILDING.md](BUILDING.md) for the full
-procedure, artifact names, APK verification and the protected release flow.
+## Project status
 
-```bash
-./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug :app:lintRelease :app:assembleDebug :app:assembleRelease
-```
+The native TV experience is actively being completed. Physical AFTT testing, production signing and some broader Jellyfin feature areas remain open. Firefin does not claim support for Live TV/DVR, offline downloads, music or book readers, DLNA, administration or every modern Jellyfin client feature.
 
-Outputs: `app/build/outputs/apk/debug/app-debug.apk` (debug-signed, testing
-only) and `app/build/outputs/apk/release/app-release-unsigned.apk` (R8, unsigned
-validation artifact, not a release). A signed release is produced only by the
-manual, protected `Firefin signed release` workflow with `FIREFIN_*` secrets;
-there is no debug-key fallback for releases.
+For compatibility boundaries, security notes and verification evidence, see:
 
-## Security
+- [Compatibility](COMPATIBILITY.md)
+- [Security](SECURITY.md)
+- [Technical overview](docs/FIREFIN_TECHNICAL_OVERVIEW.md)
+- [Third-party notices](THIRD_PARTY_NOTICES.md)
 
-Default platform TLS trust, no certificate or hostname bypass, no automatic
-redirect following to other origins, tokens sent in a header only. Details and
-limits: [SECURITY.md](SECURITY.md).
+## License
 
-## Origin and licensing
-
-Firefin descends from the Moonfin FireTV32 backport of
-[Moonfin-Client/Moonfin-Core](https://github.com/Moonfin-Client/Moonfin-Core)
-(GPL-2.0). The repaired git history preserves the upstream commits and their
-authors; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md),
-[LICENSE](LICENSE) and [docs/FIREFIN_MIGRATION.md](docs/FIREFIN_MIGRATION.md).
-
-Bugs and support belong to Firefin, not to Moonfin.
+Firefin is distributed under the GPL-2.0 license. See [LICENSE](LICENSE).
