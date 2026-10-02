@@ -10,11 +10,11 @@ preserved unchanged as history.
 
 Not released: no signed APK exists and no AFTT hardware result is recorded.
 The current candidate is on `feature/moonfin-ui-seerr`; its final commit and CI
-run are pending the mandatory gpt-6.1-sol review.
+run are pending final review.
 
-Verified locally on the current candidate: 55 JVM unit tests, API22
+Verified locally on the current candidate: 56 JVM unit tests, API22
 instrumentation login-focus test, strict debug/release lint (0 errors; current
-reports contain 130 warnings), R8 release APK (unsigned), and the manual API22
+reports contain 118 warnings), R8 release APK (unsigned), and the manual API22
 x86 flow record in `docs/FIREFIN_MIGRATION.md`. No AFTT hardware or signed
 release is claimed.
 

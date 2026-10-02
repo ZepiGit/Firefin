@@ -20,8 +20,8 @@ class EffectivePreferencesTest {
             DeviceProfile.MAX_HEIGHT,
             DeviceProfile.MAX_BITRATE,
         )
-        assertEquals(1280, effective.maxVideoWidth)
-        assertEquals(720, effective.maxVideoHeight)
+        assertEquals(1920, effective.maxVideoWidth)
+        assertEquals(1080, effective.maxVideoHeight)
         assertEquals(4_000_000L, effective.maxStreamingBitrate)
         assertFalse(effective.cardFocusExpansion)
         assertFalse(effective.mediaBarEnabled)
@@ -53,7 +53,7 @@ class EffectivePreferencesTest {
     fun `serialization contains only stored values, never device limits`() {
         val map = serializeStored(StoredPreferences(backdropEnabled = false))
         assertEquals(
-            mapOf("backdropEnabled" to "false", "homeSectionOrder" to "resume,nextUp,latest", "preferredBitrate" to "4000000", "preferredHeight" to "720", "audioLanguage" to "", "subtitleLanguage" to ""),
+            mapOf("backdropEnabled" to "false", "homeSectionOrder" to "resume,nextUp,latest", "preferredBitrate" to "4000000", "preferredHeight" to "1080", "audioLanguage" to "", "subtitleLanguage" to ""),
             map,
         )
         assertFalse(map.keys.any { it.contains("max", ignoreCase = true) || it.contains("blur") })

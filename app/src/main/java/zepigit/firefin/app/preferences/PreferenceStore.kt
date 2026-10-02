@@ -12,7 +12,7 @@ class PreferenceStore(context: Context, private val session: SessionStore) {
         val hash = MessageDigest.getInstance("SHA-256").digest(account.toByteArray()).joinToString("") { "%02x".format(it) }
         return "$hash:$name"
     }
-    fun stored() = StoredPreferences(
+    fun stored(): StoredPreferences = StoredPreferences(
         prefs.getBoolean(key("backdropEnabled"), true),
         prefs.getString(key("homeSectionOrder"), "resume,nextUp,latest")!!.split(","),
         prefs.getLong(key("preferredBitrate"), DeviceProfile.MAX_BITRATE),

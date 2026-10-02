@@ -51,7 +51,7 @@ class SeerrContractTest {
             val client=SeerrClient(transport(server)); assertTrue(client.connect()); client.page("trending",1,"ä &+")
             repeat(4) { server.takeRequest() }
             val request=server.takeRequest()
-            assertTrue(request.path!!.startsWith("/jellyfin/Moonfin/Seerr/Api/search?query="))
+            assertTrue(request.path!!.startsWith("/jellyfin/Moonfin/Jellyseerr/Api/search?query="))
             assertTrue(request.getHeader("Authorization")!!.contains("synthetic"))
             assertFalse(request.path!!.contains("synthetic"))
         }

@@ -79,8 +79,8 @@ class JellyfinClientTest {
         assertTrue(body.contains("\"MaxStreamingBitrate\":4000000"))
         assertTrue(body.contains("Firefin for Fire TV"))
         assertTrue(body.contains("\"Width\""))
-        assertTrue(body.contains("\"1280\""))
-        assertTrue(body.contains("\"720\""))
+        assertTrue(body.contains("\"1920\""))
+        assertTrue(body.contains("\"1080\""))
     }
 
     @Test fun `preferred source languages are selected before transcode and subtitle delivery retained`() = runBlocking {

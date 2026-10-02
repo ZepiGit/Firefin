@@ -30,7 +30,8 @@ recorded.
 ## Native playback profile (as implemented in `DeviceProfile`)
 
 - Streaming limit: 4 Mbit/s total (`MaxStreamingBitrate` 4 000 000, video and
-  audio together); video 1280x720 maximum; stereo audio maximum.
+  audio together); video 1920x1080 maximum; stereo audio maximum. The 1080p
+  option is a negotiated ceiling, not a physical AFTT hardware guarantee.
 - Direct play: H.264 in mp4/mkv/mov with AAC/MP3/AC-3 audio; audio-only
   AAC/MP3.
 - Transcoding: server-side HLS (`ts`, H.264 + AAC), which gives Media3 a
@@ -74,7 +75,7 @@ The **r20** candidate was installed as an in-place update on that device and
 checked for: install/reboot/direct start, retained login, Jellyfin home rows
 and artwork, D-pad focus/select on home, detail and settings, Media Bar locked
 off, Seerr under Integrations, player Play/Pause/seek/Audio/Subtitles, server
-transcoding at the 720p / 4 Mbit/s ceiling, and no false server-unavailable
+transcoding at the legacy 720p / 4 Mbit/s ceiling, and no false server-unavailable
 banner.
 
 **r21** (waves A/B/C0) was never smoke-tested on hardware; it is not

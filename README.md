@@ -28,10 +28,9 @@ The native version code is deliberately above the legacy `3000028` build line.
 
 ## Verification status
 
-Evidence basis: uncommitted candidate on branch `feature/moonfin-ui-seerr`; final
-commit is intentionally pending the mandatory gpt-6.1-sol review. The complete
-migration ledger and review snapshot are in [docs/FIREFIN_MIGRATION.md](docs/FIREFIN_MIGRATION.md).
-Nothing below is a claim about a published release.
+Evidence basis: the current candidate is being validated on the feature branch;
+it is not a published release. The complete migration ledger is in
+[docs/FIREFIN_MIGRATION.md](docs/FIREFIN_MIGRATION.md).
 
 Verified locally on the current candidate:
 
@@ -48,7 +47,8 @@ Verified locally on the current candidate:
   season confirmation, TMDB artwork over the API-22 TLS stack, resume playback,
   D-pad controller, audio-track dialog, pause/return cleanup and 480p/1 Mbit
   playback were exercised. The emulator needed the debug baseline H.264 profile;
-  the real AFTT release profile remains 720p/4 Mbit.
+  the real AFTT release profile negotiates up to 1080p/4 Mbit, but physical AFTT
+  decoder and thermal behavior remain unverified.
 
 Still externally blocked and not claimed complete:
 

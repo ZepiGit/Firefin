@@ -45,11 +45,9 @@ class LoginActivity : AppCompatActivity() {
             error.visibility = View.GONE
             scope.launch {
                 try {
-                    ServiceLocator.client.login(
-                        server.text.toString(),
-                        user.text.toString(),
-                        password.text.toString(),
-                    )
+                    val loginPassword = password.text.toString()
+                    ServiceLocator.client.login(server.text.toString(), user.text.toString(), loginPassword)
+                    password.text.clear()
                     goHome()
                 } catch (e: CancellationException) {
                     throw e

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/login_gradient" android:fillViewport="true">
 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:orientation="vertical" android:padding="24dp">
-<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Firefin" android:textColor="@color/accent" android:textSize="38sp" android:textStyle="bold" android:layout_marginBottom="20dp"/>
+<ImageView android:layout_width="240dp" android:layout_height="80dp" android:src="@drawable/firefin_wordmark" android:contentDescription="@string/app_name" android:scaleType="fitCenter" android:layout_marginBottom="20dp"/>
 <LinearLayout android:layout_width="540dp" android:layout_height="wrap_content" android:orientation="vertical" android:padding="24dp" android:gravity="center_horizontal" android:background="@drawable/panel_background">
 <TextView android:id="@+id/title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Mit deinem Jellyfin-Server verbinden" android:textSize="20sp" android:layout_marginBottom="18dp"/>
 <EditText android:id="@+id/serverUrl" android:layout_width="match_parent" android:layout_height="48dp" android:background="@drawable/input_background" android:padding="12dp" android:hint="@string/server_url_hint" android:inputType="textUri" android:singleLine="true" android:imeOptions="actionNext" android:textSize="14sp"/>
