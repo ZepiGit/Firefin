@@ -5,7 +5,7 @@
 <h1 align="center">Firefin</h1>
 
 <p align="center">
-  <strong>Native Jellyfin/Moonfin experience for old FireTV-Sticks and Android 5 devices.</strong><br />
+  <strong>Native Jellyfin/Moonfin experience for older FireTV-Sticks and Android 5 devices.</strong><br />
   Targets the first and second-generation Fire TV Stick and the legacy Fire TV profile described below.
 </p>
 
