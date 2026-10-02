@@ -5,8 +5,8 @@
 <h1 align="center">Firefin</h1>
 
 <p align="center">
-  <strong>A focused native Jellyfin experience for TV screens and remote controls.</strong><br />
-  Targets the second-generation Fire TV Stick and the legacy Fire TV profile described below.
+  <strong>Native Jellyfin/Moonfin experience for TV screens and remote controls.</strong><br />
+  Targets the first and second-generation Fire TV Stick and the legacy Fire TV profile described below.
 </p>
 
 <p align="center">
@@ -17,9 +17,8 @@
 </p>
 
 
-Firefin is a native Android TV application for browsing, discovering and playing media from a Jellyfin server. It is built around a simple idea: the living-room interface should stay readable from a sofa, with every important action reachable by remote control. Firefin is derived from the Moonfin Core codebase and is an independent project, not affiliated with Moonfin, Jellyfin, Emby or Amazon. See [third-party notices](THIRD_PARTY_NOTICES.md) for attribution and licensing details.
+Firefin is a 32bit native Android TV application for watching, discovering and browsing media from a Jellyfin server. It is built around a simple idea: the living-room interface should stay readable from a sofa, with every important action reachable by remote control. Firefin is derived from the Moonfin Core codebase and is an independent project, not affiliated with Moonfin, Jellyfin, Emby or Amazon. See [third-party notices](THIRD_PARTY_NOTICES.md) for attribution and licensing details.
 
-The interface is in English by default. A German translation is included and is used automatically on devices set to German.
 
 ## Main features
 
@@ -30,7 +29,8 @@ The interface is in English by default. A German translation is included and is 
 - Jellyfin library search alongside Seerr/Moonbase discovery results
 - Media3 playback with audio and subtitle selection, resume support and D-pad controls
 - Seerr request discovery, title details, season selection and confirmation flows
-- Firefin branding with a dedicated launcher icon, transparent in-app mark and TV banner
+
+This project is not about being the best Jellyfin/Moonfin alternative. It doesn't even aim to be a good Jellyfin/Moonfin player at all. The goal is to give üerfectly fine old devices that were obsolete due to no native app compatability before a purpose again and recreate compatability.
 
 ## Screenshots
 
@@ -72,21 +72,20 @@ Firefin does not require a second media server. It connects to the Jellyfin serv
 
 | Device or platform | Status |
 |---|---|
-| **Fire TV Stick 2nd Generation (AFTT)** | Primary target; Fire OS 5 / Android API 22 / ARMv7. Physical hardware validation is still pending. |
-| **Fire TV Stick Basic Edition (LY73PR)** | Same target profile; physical validation is still pending. |
-| **API-22 x86 Android emulator** | Used for local login, navigation, search, Seerr and baseline playback verification. |
-| **Fire TV Stick 1st Generation** | Not verified. |
-| **Newer 64-bit Fire TV devices** | Not the intended target; not verified. |
+| **Fire TV Stick 2nd Generation (AFTT)** | Primary target; Fire OS 5 / Android API 22 / ARMv7. |
+| **Fire TV Stick Basic Edition (LY73PR)** | Primary target; Fire OS 5 / Android API 22 / ARMv7. |
+| **Fire TV Stick 1st Generation** | 
+| **Newer 64-bit Fire TV devices** | Might work, but for gods sake, use something else please. |
 
-The app is intentionally tuned for the resource limits of the older Fire TV profile. Newer hardware may run it, but compatibility should not be assumed without testing.
+The app is intentionally tuned for the resource limits of the older Fire TV sticks. No flashy anymations, no bling bling, but gets the job done. Newer hardware may run it, but compatibility should not be assumed without testing.
 
 ## Getting started
 
-Signed Firefin APKs are published on the [releases page](https://github.com/ZepiGit/Firefin/releases); Firefin releases are tagged `firefin-v<version>`. Firefin is still in active development and has not been validated on physical Fire TV hardware yet. To build it yourself, start with [BUILDING.md](BUILDING.md) and the technical overview in [docs/FIREFIN_TECHNICAL_OVERVIEW.md](docs/FIREFIN_TECHNICAL_OVERVIEW.md).
+Signed Firefin-APKs are published on the [releases page](https://github.com/ZepiGit/Firefin/releases); Firefin releases are tagged `firefin-v<version>`. Firefin 32bit is still in development. To build it yourself, start with [BUILDING.md](BUILDING.md) and the technical overview in [docs/FIREFIN_TECHNICAL_OVERVIEW.md](docs/FIREFIN_TECHNICAL_OVERVIEW.md).
 
 ## Project status
 
-The native TV experience is actively being completed. Physical AFTT testing and some broader Jellyfin feature areas remain open. Firefin does not claim support for Live TV/DVR, offline downloads, music or book readers, DLNA, administration or every modern Jellyfin client feature.
+The native TV experience is actively being completed. Firefin does not claim support for Live TV/DVR, offline downloads, music or book readers, DLNA, administration or every modern Jellyfin client feature, but if you got a old fireTV or AndroidTV Device laying around, it might be just for you.
 
 For compatibility boundaries, security notes and verification evidence, see:
 
