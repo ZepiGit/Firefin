@@ -40,18 +40,18 @@ The interface is currently German only.
 <table>
   <tr>
     <td width="50%">
-      <img src="docs/firefin-home-current.png" alt="Firefin home screen with the new icon navigation bar and Continue Watching row" />
-      <p align="center"><sub><strong>Home</strong><br />A focused TV dashboard with library rows and continue watching.</sub></p>
+      <img src="docs/firefin-home-current.png" alt="Firefin home screen with icon navigation and Continue Watching row" />
+      <p align="center"><sub><strong>Home</strong><br />Icon navigation and continue watching.</sub></p>
     </td>
     <td width="50%">
-      <img src="docs/southpark-series.png" alt="South Park series details in the German Firefin UI with season cards" />
-      <p align="center"><sub><strong>Details</strong><br />Readable metadata, overview and playback actions.</sub></p>
+      <img src="docs/southpark-season-two.png" alt="South Park season three and episode list in the German Firefin UI" />
+      <p align="center"><sub><strong>Series</strong><br />Overview, watched state and season browsing.</sub></p>
     </td>
   </tr>
   <tr>
     <td width="50%">
-      <img src="docs/southpark-playback.png" alt="South Park episode playing in Firefin with D-pad transport controls" />
-      <p align="center"><sub><strong>Playback</strong><br />D-pad transport controls with audio and subtitle access.</sub></p>
+      <img src="docs/southpark-episode.png" alt="South Park episode details in Firefin with playback actions" />
+      <p align="center"><sub><strong>Episode details</strong><br />Playback, favourites and watched-state actions.</sub></p>
     </td>
     <td width="50%">
       <img src="docs/firefin-seerr-current.png" alt="Seerr discovery screen in Firefin with Trending and request navigation" />
@@ -62,16 +62,16 @@ The interface is currently German only.
 
 ### South Park on Firefin
 
-These captures come from the running Firefin app on the API-22 x86 emulator. They show a South Park search result, the series with its seasons, an episode detail screen and an episode playing with remote-friendly controls. The interface is German in this build.
+These captures come from the running Firefin app on the API-22 x86 emulator. They show a South Park search result, the series with its seasons, an episode detail screen and the player controls. The interface is German in this build.
 
 <table>
   <tr>
     <td width="50%"><img src="docs/screenshots-southpark-search.png" alt="South Park search in German Firefin UI with the first library result focused" /></td>
-    <td width="50%"><img src="docs/southpark-series.png" alt="South Park season selection in Firefin" /></td>
+    <td width="50%"><img src="docs/southpark-season-two.png" alt="South Park season three and episode list in Firefin" /></td>
   </tr>
   <tr>
     <td width="50%"><img src="docs/southpark-episode.png" alt="South Park episode details in Firefin with playback actions" /></td>
-    <td width="50%"><img src="docs/southpark-playback.png" alt="South Park episode playing in Firefin with D-pad transport controls" /></td>
+    <td width="50%"><img src="docs/firefin-seerr-current.png" alt="Current Firefin Seerr discovery screen with Trending and request navigation" /></td>
   </tr>
 </table>
 
@@ -80,7 +80,7 @@ These captures come from the running Firefin app on the API-22 x86 emulator. The
 | Service | Compatibility |
 |---|---|
 | **Jellyfin Server** | Main media source for login, libraries, search, details, playback and watched state |
-| **Moonbase / Seerr** | Optional discovery and media-request service, available from the Requests area and from combined search |
+| **Moonbase / Seerr** | Optional discovery and media-request service. Moonbase is the bridge installed alongside Jellyfin; Firefin reaches Seerr through it. |
 
 Firefin does not require a second media server. It connects to the Jellyfin server you choose and uses Moonbase/Seerr only when that service is available and configured.
 

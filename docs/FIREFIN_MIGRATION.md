@@ -201,9 +201,9 @@ Current local evidence:
   dialog, terminal session cleanup. The historical release-profile 720p H.264
   High stream exceeded the AOSP x86 software decoder; Debug uses a baseline test
   profile for emulator verification. This is not AFTT hardware evidence.
-- Native screenshots are checked into `docs/screenshots-home.png`,
-  `screenshots-detail.png`, `screenshots-player.png`, and
-  `screenshots-seerr.png`; they contain no credentials or tokens.
+- Current native presentation captures are checked into `docs/firefin-home-current.png`,
+  `docs/firefin-seerr-current.png`, `docs/screenshots-southpark-search.png`,
+  `docs/southpark-season-two.png` and `docs/southpark-episode.png`; they contain no credentials or tokens.
 
 Deliberately reduced scope: no Live TV/DVR, offline downloads, music/book/photo
 readers, DLNA, admin, plugin sync, full modern Moonfin theme customization,
