@@ -51,7 +51,7 @@ class SeerrContractTest {
             val client=SeerrClient(transport(server)); assertTrue(client.connect()); client.page("trending",1,"ä &+")
             repeat(4) { server.takeRequest() }
             val request=server.takeRequest()
-            assertTrue(request.path!!.startsWith("/jellyfin/Moonfin/Seerr/Api/search?query="))
+            assertTrue(request.path!!.startsWith("/jellyfin/Moonfin/Jellyseerr/Api/search?query="))
             assertTrue(request.getHeader("Authorization")!!.contains("synthetic"))
             assertFalse(request.path!!.contains("synthetic"))
         }
@@ -72,6 +72,53 @@ class SeerrContractTest {
             assertThrows(SeerrException::class.java) { runBlocking { client.request(movie(), emptyList()) } }
         }
         Unit
+    }
+
+    @Test fun `auth me without permissions does not establish identity`() = runBlocking {
+        MockWebServer().use { server ->
+            server.start()
+            server.enqueue(MockResponse().setBody("{\"installed\":true}"))
+            server.enqueue(MockResponse().setBody("{\"Enabled\":true,\"UserEnabled\":true}"))
+            server.enqueue(MockResponse().setBody("{\"authenticated\":true}"))
+            server.enqueue(MockResponse().setBody("{\"id\":7}"))
+            val client = SeerrClient(transport(server))
+            assertFalse(client.connect())
+            assertEquals(0, client.user.id)
+            connectResponses(server)
+            assertTrue(client.connect())
+            assertEquals(8, server.requestCount)
+        }
+    }
+
+    @Test fun `invalidate forces a fresh probe after cached connection`() = runBlocking {
+        MockWebServer().use { server ->
+            server.start(); connectResponses(server)
+            val client = SeerrClient(transport(server))
+            assertTrue(client.connect())
+            assertTrue(client.connect())
+            assertEquals(4, server.requestCount)
+            client.invalidate()
+            connectResponses(server)
+            assertTrue(client.connect())
+            assertEquals(8, server.requestCount)
+        }
+    }
+
+    @Test fun `reset transport clears cached identity and uses new origin`() = runBlocking {
+        MockWebServer().use { first ->
+            MockWebServer().use { second ->
+                first.start(); second.start()
+                connectResponses(first)
+                val client = SeerrClient(transport(first))
+                assertTrue(client.connect())
+                client.resetTransport(transport(second))
+                assertEquals(0, client.user.id)
+                connectResponses(second)
+                assertTrue(client.connect())
+                assertEquals(4, first.requestCount)
+                assertEquals(4, second.requestCount)
+            }
+        }
     }
 
     @Test fun `request outcomes 201 200 202 409 500 never retry POST`() = runBlocking {

@@ -55,8 +55,16 @@ class JellyfinClient(private val session: SessionStore, private val preferences:
         parseItems(getJson("Users/${session.userId}/Items/Resume?Limit=$limit&MediaTypes=Video&Fields=PrimaryImageAspectRatio,ProductionYear,Overview&EnableImageTypes=Primary,Backdrop,Thumb"))
     }
 
-    suspend fun nextUp(limit: Int = 12): List<MediaItem> = withContext(Dispatchers.IO) {
-        parseItems(getJson("Shows/NextUp?UserId=${session.userId}&Limit=$limit&Fields=PrimaryImageAspectRatio,ProductionYear"))
+    suspend fun nextUp(limit: Int = 12, seriesId: String? = null): List<MediaItem> = withContext(Dispatchers.IO) {
+        val path = buildString {
+            append("Shows/NextUp?UserId=${session.userId}&Limit=$limit&Fields=PrimaryImageAspectRatio,ProductionYear,Overview")
+            if (!seriesId.isNullOrBlank()) append("&SeriesId=").append(urlEncode(seriesId))
+        }
+        parseItems(getJson(path))
+    }
+
+    suspend fun randomItem(): MediaItem? = withContext(Dispatchers.IO) {
+        items(limit = 1, sortBy = "Random", sortOrder = "Ascending", includeTypes = "Movie,Series,Episode", recursive = true).first.firstOrNull()
     }
 
     suspend fun latest(parentId: String? = null, limit: Int = 12): List<MediaItem> = withContext(Dispatchers.IO) {

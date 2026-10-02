@@ -19,9 +19,10 @@ object ServiceLocator {
 
     lateinit var discoveryImages: ImageLoader
         private set
-
     lateinit var preferences: zepigit.firefin.app.preferences.PreferenceStore
         private set
+
+    fun isReady(): Boolean = ::session.isInitialized && ::client.isInitialized
 
     fun init(context: Context) {
         session = SessionStore(context.applicationContext)

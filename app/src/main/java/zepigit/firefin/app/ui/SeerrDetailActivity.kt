@@ -154,6 +154,7 @@ class SeerrDetailActivity : AppCompatActivity() {
     }
 
     private fun error(error: Exception) {
+        if (error is zepigit.firefin.app.data.SeerrException && error.status == 401) client.invalidate()
         if (error is SessionExpiredException) { ServiceLocator.session.clear(); LoginActivity.startFresh(this); return }
         findViewById<TextView>(R.id.overview).text = error.message ?: "Seerr konnte nicht geladen werden."
         findViewById<Button>(R.id.retryButton).apply { visibility = View.VISIBLE; requestFocus() }

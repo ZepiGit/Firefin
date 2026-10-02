@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 import zepigit.firefin.app.R
 import zepigit.firefin.app.ServiceLocator
 import zepigit.firefin.app.data.MediaItem
+import zepigit.firefin.app.data.SessionExpiredException
 import zepigit.firefin.app.data.UserView
 
 /**
@@ -61,27 +62,38 @@ class HomeActivity : AppCompatActivity() {
         rowsView.layoutManager = LinearLayoutManager(this)
         rowsView.adapter = rowsAdapter
 
-        findViewById<Button>(R.id.searchButton).setOnClickListener {
+        findViewById<View>(R.id.searchButton).setOnClickListener {
             startActivity(Intent(this, SearchActivity::class.java))
         }
-        findViewById<Button>(R.id.settingsButton).setOnClickListener {
+        findViewById<android.view.View>(R.id.homeButton).setOnClickListener {
+            rowsView.scrollToPosition(0)
+            rowsView.post { rowsView.findViewHolderForAdapterPosition(0)?.itemView?.requestFocus() }
+            loadHome(refreshOnly = homeLoaded)
+        }
+        findViewById<View>(R.id.randomButton).setOnClickListener {
+            scope.launch {
+                try { ServiceLocator.client.randomItem()?.let { DetailActivity.start(this@HomeActivity, it.id) } ?: Toast.makeText(this@HomeActivity, R.string.empty_library, Toast.LENGTH_SHORT).show() }
+                catch (e: CancellationException) { throw e }
+                catch (e: SessionExpiredException) {
+                    ServiceLocator.session.clear()
+                    LoginActivity.startFresh(this@HomeActivity)
+                }
+                catch (e: Exception) { Toast.makeText(this@HomeActivity, e.message ?: getString(R.string.error_generic), Toast.LENGTH_LONG).show() }
+            }
+        }
+        findViewById<View>(R.id.mediaRequestsButton).setOnClickListener { startActivity(Intent(this, SeerrActivity::class.java)) }
+        findViewById<View>(R.id.settingsButton).setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
-        findViewById<Button>(R.id.remoteButton).setOnClickListener {
-            startActivity(Intent(this, RemoteActivity::class.java))
-        }
 
-        findViewById<Button>(R.id.libraryButton).setOnClickListener {
+        findViewById<View>(R.id.libraryButton).setOnClickListener {
             if (libraries.isNotEmpty()) androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Bibliotheken").setItems(libraries.map { it.name }.toTypedArray()) { _, index ->
                     val library = libraries[index]
                     LibraryActivity.start(this, library.id, library.name, library.collectionType)
                 }.show()
         }
-        findViewById<Button>(R.id.seerrButton).setOnClickListener {
-            startActivity(Intent(this, SeerrActivity::class.java))
-        }
-        findViewById<Button>(R.id.favoritesButton).setOnClickListener {
+        findViewById<View>(R.id.favoritesButton).setOnClickListener {
             LibraryActivity.start(this, "", "Favoriten", favorites = true)
         }
         loadHome()
@@ -175,6 +187,9 @@ class HomeActivity : AppCompatActivity() {
                 }
             } catch (e: CancellationException) {
                 throw e
+            } catch (e: SessionExpiredException) {
+                ServiceLocator.session.clear()
+                LoginActivity.startFresh(this@HomeActivity)
             } catch (e: Exception) {
                 emptyView.text = e.message ?: getString(R.string.error_generic)
                 emptyView.visibility = View.VISIBLE

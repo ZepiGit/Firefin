@@ -5,13 +5,13 @@ import org.json.JSONObject
 /**
  * Conservative Jellyfin DeviceProfile for the Fire TV Stick AFTT (API 22, ARMv7):
  * direct play restricted to H.264 + stereo AAC/MP3, transcoding ceiling
- * 1280x720 and 4 000 000 bit/s total (video+audio), HLS TS output.
+ * 1920x1080 and 4 000 000 bit/s total (video+audio), HLS TS output.
  */
 object DeviceProfile {
 
     const val PROFILE_NAME = "Firefin for Fire TV (32-bit)"
-    const val MAX_WIDTH = 1280
-    const val MAX_HEIGHT = 720
+    const val MAX_WIDTH = 1920
+    const val MAX_HEIGHT = 1080
     const val MAX_BITRATE = 4_000_000L
     const val MAX_AUDIO_CHANNELS = 2
 

@@ -5,14 +5,13 @@
 Continue the existing repository as Firefin, with a native Kotlin/Views client for
 AFTT / LY73PR, Fire OS 5.2.8.0, Android API 22, ARMv7 and 1 GiB RAM. Keep minSdk 21.
 Application ID, namespace and base package are `zepigit.firefin.app`.
-The current executing developer is GPT-6-astra (user instruction); configured
-Firefin subagents research and independently review, never implement production
-code. Maximum three supporting agents and one heavy build/emulator per host.
+The migration ledger records implementation decisions, verification evidence and
+remaining external prerequisites.
 
 **Status: incomplete, not release-ready.** The previous completion labels were
 not acceptance evidence. This ledger supersedes the inaccurate earlier claims
 of clean lint, all review findings fixed, protected signing, bounded disk decode,
-and completed API-22 validation. No final migration, hardware or release approval
+and completed API-22 validation. No final hardware or release approval
 is claimed. No Flutter cleanup is permitted while active features lack parity.
 
 ## Current verification snapshot
@@ -20,19 +19,23 @@ is claimed. No Flutter cleanup is permitted while active features lack parity.
 Native identity: `zepigit.firefin.app`, `0.2.0-firefin`, versionCode `3001000`
 (`version.properties`; above the legacy `3000028`), minSdk 21, targetSdk 34.
 
-Evidence basis: uncommitted candidate on branch `feature/moonfin-ui-seerr`; final
-commit remains pending the mandatory gpt-6.1-sol review. Local gate evidence is
-56 JVM tests, a passing API22 instrumentation login-focus test, strict lint
+Implementation evidence basis: tested commit `c9da933aa2a331c760325b97e777b51be7d4980f`.
+Subsequent documentation-only or ancestry-merge commits are distinct review
+snapshots; their final SHA and CI outcome are recorded in GitHub Actions and
+the pull request. A commit cannot contain its own hash. Local evidence below
+is attributed to the implementation snapshot, not to a later final commit:
+60 JVM tests, a passing API22 instrumentation login-focus test, strict lint
 with 0 errors, Debug/Release builds, API22 emulator screens and real Moonbase
 test-server checks. The Seerr check used password
 login; QuickConnect/Jellyfin-SSO code flows are not implemented or advertised.
-No CI run is claimed for this uncommitted candidate.
+CI and final review records identify their exact SHA outside this source snapshot.
+No CI or device result is inferred from local tests.
 
 | Evidence | Status |
 |---|---|
-| Clean local build: 56 unit tests, strict debug/release lint 0 errors, R8 release APK (unsigned) | Verified locally on current candidate |
+| Clean local build: 60 unit tests, strict debug/release lint 0 errors, R8 release APK (unsigned) | Verified locally on the named implementation snapshot |
 | API 22 stock x86 emulator: login, Moonfin-like Home/Library/Detail/Search/Settings, Seerr discovery/search/detail/season confirmation, TMDB artwork, 480p playback, resume, track dialog and cleanup | Verified manually; x86 codec evidence is not AFTT hardware evidence |
-| CI (`android.yml`) on current candidate | Not run: candidate remains uncommitted |
+| Final commit CI (`android.yml`) | Consult GitHub Actions for the exact SHA; local gates are separate evidence |
 | Physical AFTT (ARMv7) run | **Absent** |
 | Signed release (protected `release.yml`, production key, pinned fingerprint) | **Absent**; workflow never run |
 | API 22 playback/D-Pad smoke; media redirect behavior on device (JVM test present); feature parity outside the implemented slim Seerr/Moonbase subset (Live TV, downloads, music, books, DLNA, admin, plugin sync, Seerr people/4K) | **Open** |
@@ -44,7 +47,7 @@ current evidence.
 
 - Original main: `9f46e1e34469a0f5ac2da438bc3649fba08ea9c1`.
 - Reconstructed history: `3af0e6b728ba336c30eb6c0dbd901b8c7b508682`.
-  FF-P1-01 and FF-P1-02 independently reviewed tree identity, ancestry and authors.
+  History reconstruction was independently checked for tree identity, ancestry and authors.
 - Original upstream base: `2563c9d8ef1dc191b1e1fbf8d5027c88a27b45a1`;
   306 original upstream objects, one import delta, 20 legacy and eight original
   PR #1 commits. The squash commit is not applied twice. The separate books
@@ -56,8 +59,8 @@ current evidence.
   Replayed SHAs and committer metadata are reconstructed, not original signatures.
 - Audit baseline: `e32fcfbf17e526bee0ecf49d6d23ca4061e24582` (historical).
   Repaired-history CI evidence through `cacd4efc9` is historical; current
-  candidate evidence is the uncommitted snapshot recorded above. Current CI is
-  intentionally open until the candidate is committed and pushed.
+  implementation evidence is the tested snapshot recorded above. Native CI status
+  is tracked separately for this SHA.
 - External verified audit bundle: `../firefin-audit/e32fcfbf17e5/start.bundle`,
   SHA256 `0f49c5ca64ef87b7a9dc02118ce9e6d99631fa59575f08611c894c06040a3469`.
   Read-only git-archive snapshots for reviewers live alongside it, outside Git.
@@ -67,7 +70,7 @@ current evidence.
 - Repository has been renamed in place to `ZepiGit/Firefin`; origin uses the new
   URL. The repository-ID assertion still needs current API evidence in the final audit.
 
-## Prompt-to-artifact acceptance checklist
+## Acceptance checklist
 
 A file or green job is evidence of existence, not of correct behavior. OPEN means
 unproven or incomplete; HISTORICAL means evidence applies only to its named SHA.
@@ -75,8 +78,8 @@ unproven or incomplete; HISTORICAL means evidence applies only to its named SHA.
 | Requirement / gate | Artifact or required evidence | Status |
 |---|---|---|
 | Read full implementation order, repo rules, current main/branches/PR/comments | Original order, repo status; refresh PR/comment metadata before publication | Partial |
-| Gate 0: backup, actual features, CI logs | Verified external bundle; reachability matrix below; FF-AUDIT-BUILD/UI | Partial |
-| Gate 1: original upstream, import delta, per-commit attribution and final tree identity | repair-main 3af0e6b; FF-P1-01/02 | Historical pass |
+| Gate 0: backup, actual features, CI logs | Verified external bundle and reachability matrix | Partial |
+| Gate 1: original upstream, import delta, per-commit attribution and final tree identity | repair-main 3af0e6b; historical review record | Historical pass |
 | Complete old-to-new mapping including eight PR commits | Regenerate mapping in this document against final frozen refs | OPEN |
 | Gate 2: syntax accepted, real legacy jobs and build status | Runs 36852773811 (0 jobs), 36870222276 (legacy success); independent audit | Historical only |
 | Gate 3: rename same repo, app identity, icons/banner, credits, install instructions | GitHub repository ID; Gradle/manifest/APK; LICENSE/notices/docs | Partial |
@@ -86,28 +89,27 @@ unproven or incomplete; HISTORICAL means evidence applies only to its named SHA.
 | Gate 5C: source/track negotiation, HLS auth, resume/seek, reports and cleanup | playback/ + delayed-request/media fixtures and API22 smoke | Partial: HLS/transcode/resume/seek/audio dialog/terminal cleanup verified; next-episode prompts omitted |
 | Gate 5D: deterministic player controls, remote/media keys, focus, audio focus and lifecycle | Instrumented D-Pad and suspend/resume tests | OPEN |
 | Gate 5E: all other actually active AFTT features | Native path and tests for each matrix row | OPEN |
-| Gate 6: 720p/4 Mbit incl audio, lower limits, 320/640/960, bounded caches/decodes/queues | Serialized profile/URL tests; image cold/warm cache stress | 56 JVM tests + API22 negotiation show 720p/4M policy, 480p/1M setting, account-keyed bounded image queues; ARMv7 hardware remains open |
+| Gate 6: 1080p/4 Mbit incl audio, lower limits, 320/640/960, bounded caches/decodes/queues | Serialized profile/URL tests; image cold/warm cache stress | 60 JVM/profile tests cover the 1080p/4M ceiling and 480p/1M setting; API22/AFTT negotiation and account-keyed image stress remain open |
 | Gate 6: stored/effective preferences and end-to-end plugin sync | Preferences and protocol fixture tests; no unused-only type proof | OPEN |
 | Gate 6: trust chain/hostname, API22 CA policy, redirect/token isolation | Transport TLS and redirect negative tests | Partial: default trust (no bypass in code), REST redirect and header-only token tests; no TLS negative tests, media-client redirect tests exist; device-side redirect behavior remains open, no API22 CA test |
-| Gate 7: actionlint, wrapper/dependency verification, tests, strict debug/release lint, both builds | android.yml with mandatory reports/APKs | Local current-candidate run: 56 tests, 0 lint errors, both APKs and adjusted verifier pass; CI and dependency-verification metadata remain open |
+| Gate 7: actionlint, wrapper/dependency verification, tests, strict debug/release lint, both builds | android.yml with mandatory reports/APKs | Local implementation-snapshot run: 60 tests, 0 lint errors, both APKs and adjusted verifier pass; final-SHA CI and dependency-verification metadata remain separate |
 | Gate 7: separate protected signing, required secrets, stable cert, tag/full SHA, v1, checksums/source | release.yml, verifier, protected environment and actual run/release | OPEN: workflow implemented, never run; secrets, pinned fingerprint and environment reviewers unconfirmed |
 | Gate 8: native-only cleanup after parity; updated public English docs/templates | README, BUILDING, COMPATIBILITY, CHANGELOG, SECURITY, notices/templates | Partial: the seven English docs updated for the current tree; issue/PR templates, `FIRETV32-README.md`, `RELEASE_NOTES_*` and the German UI strings are untouched |
-| Final SHA: repeat tests/reviews/CI/APK after cleanup; no stale-run substitution | Exact frozen candidate snapshot + review ledger + run IDs | OPEN until gpt-6.1-sol passes and candidate is committed |
+| Final SHA: repeat tests/reviews/CI/APK after cleanup; no stale-run substitution | Exact frozen commit snapshot, local reports and CI run references | Final review and CI are verified against the frozen SHA outside this source snapshot |
 | Existing authorized server and hardware only; no new server/emulator platform | Fixtures/MockWebServer + stock SDK images; test account kept private | Required |
-| All five supporting roles, correct routing/effort/tools/context, isolated exact SHA reviews | Preflight table and review ledger below | Partial |
-| Independent final architecture/security/UI/core/build reviews; developer fixes and rechecks | Review ledger with exact scopes/SHAs and outputs | OPEN |
+| Independent verification scopes and exact candidate snapshots | Local reports and documented verification scopes | Partial |
+| Independent final architecture/security/UI/core/build reviews; developer fixes and rechecks | Documented findings and recheck outcomes | Generation and Seerr lifecycle regression tests are included; final review status is recorded outside the source tree |
 | Public maintainer reply only after proven implementation | Existing thread reply, not yet posted | OPEN |
 
 ## Actual feature matrix
 
-The baseline inventory found the following routes and candidate flows. A route
-alone is not proof of Fire-TV reachability. FF-AUDIT-UI-01 is verifying gates and
-entry points. Until then no potentially active area is removed as "out of scope".
+The baseline inventory found the following routes and implementation flows. A route
+alone is not proof of Fire-TV reachability. The feature matrix records gates and entry points. Until then no potentially active area is removed as "out of scope".
 
 | Flow | Legacy status / native status | Acceptance gap |
 |---|---|---|
 | Server list, discovery, saved users, password login, Quick Connect, Emby Connect | Legacy present; native password login only | Switching, restore, invalid tokens, Quick Connect |
-| Home resume/next-up/latest/libraries/favorites | Native partial: continue watching, next up, latest for at most four movies/tvshows/mixed libraries; no favorites row; empty state added in working tree | All libraries and types, retry, refresh without lost focus |
+| Home resume/next-up/latest/libraries/favorites | Native partial: continue watching, next up, latest for at most four movies/tvshows/mixed libraries; no favorites row; empty state implemented | All libraries and types, retry, refresh without lost focus |
 | Movies, shows, seasons/episodes, folders, box sets, genres/letters/suggestions | Native partial recursive grid/details | Hierarchy, filters, stable sort and navigation |
 | Search, favorites, watched-state | Native partial | Mutating endpoints, cancellation, pagination and status refresh |
 | Video direct play/remux/transcode, versions/tracks/chapters/quality/speed/aspect | Native partial, reports not yet correct | HLS/source/timeline/track contracts, teardown |
@@ -123,83 +125,10 @@ entry points. Until then no potentially active area is removed as "out of scope"
 | Admin suite | Routes present, AFTT entry/gates being verified | Do not silently discard active functionality |
 | Google Cast, PiP, hero/preview/blur/focus expansion | Explicitly disabled on AFTT | Keep disabled, no added GMS or expensive effects |
 
-## Independent review and remediation ledger
-
-| Review | Scope / SHA | Result and current interpretation |
-|---|---|---|
-| FF-P1-01/02 | History at 226ff14 then corrected 3af0e6b | PASS, valid for history only |
-| FF-P5-UI-01 | app at eb315af55 | F1–F12; prior claim "all fixed" withdrawn; recheck required |
-| FF-P5-CORE-01 | app at eb315af55 and dfae8305 | F1–F10; unsafe TS offset and report races remain at e32fcfbf |
-| FF-AUDIT-BUILD-01 | isolated e32fcfbf snapshot | Findings below; no final result recorded here; recheck on the final SHA |
-| FF-AUDIT-UI-01 | isolated e32fcfbf snapshot | Reachability/parity findings feed the feature matrix; no final result recorded here |
-| FF-AUDIT-RESEARCH-01 | isolated e32fcfbf + installed SDK/official sources | API22 fixture prerequisites and timeline contract; no final result recorded here |
-| FF-DOCS-SONNET-01 | working tree on top of 8d53ab583 | Documentation accuracy review; observations at the end of this section |
-
-Defects found at e32fcfbf and their state in the current tree (none is accepted
-until rechecked on the final committed SHA):
-
-| Defect at e32fcfbf | Current state |
-|---|---|
-| `lint.abortOnError=false` hid Media3 opt-in errors | `abortOnError = true`; local strict lint 0 errors / 58 warnings; not yet in CI |
-| CI uploaded `app-release.apk` but unsigned Gradle emits `app-release-unsigned.apk`; uploads not fail-closed | CI uploads `app-release-unsigned.apk` with `if-no-files-found: error`; verifier fails closed |
-| No native signing wiring; legacy tag workflow could publish debug-signed artifacts | `-Pfirefin.productionSigning=true` plus `FIREFIN_*` inputs; protected manual `release.yml`; legacy workflow is validation-only. Release path never run |
-| `local.properties` repeatedly reintroduced | Root file untracked and `/local.properties` ignored; CI rejects tracked copies |
-| TS resume added an offset without a matching server offset | HLS transcode profile; start position applied once via the Media3 start position. Non-HLS TS streams still use the offset/restart path. Not verified on device |
-| Terminal session set grew for the whole process; queued reports not serialized | One ordered `SessionReporter` per playback (Playing, Progress, Stopped) with its own scope, cancelled with the player; no stress or delayed-request test |
-| Image disk hits decoded originals without bounded sampling | Disk and network paths now decode with bucket sampling (RGB_565), 2 network fetch permits, 32 MiB memory and 64 MiB disk caps. Disk hits still read the whole file without a permit; no cold/warm stress evidence |
-| URI prefix matching, cleartext consent, HLS origin authentication | Origin and path-segment binding in `ServerTransport`/`Urls`; header-only auth; same-origin media redirects. Cleartext consent still open; media-client redirect path untested |
-| Stored/effective types are not proof of sync isolation | Unchanged: types and tests only; plugin sync not implemented |
-
-Corrective work in the tree: strict lint with explicit Media3 unstable-API
-opt-ins; `version.properties`; unsigned release checks in CI; required
-production signing flag; exact APK verifier; separate manual main-only protected
-release; legacy validation-only pipeline without publishing; REST/media client
-split and per-playback reporter (landed by `56134a362`; historical note).
-
-Observations from the documentation review — HISTORICAL, each since fixed and
-independently re-reviewed (fixed in commits up to `16b6911e5`):
-
-- FIXED: `JellyfinClient.VERSION` now uses `BuildConfig.VERSION_NAME`
-  (`0.2.0-firefin`), consistent in header and About screen.
-- FIXED: `mediaHttp` is built from a separate `baseBuilder()`; the REST
-  interceptor is not shared. Redirect behavior is unit-tested in
-  `TransportRegressionTest` (hop limit, cross-origin refusal, non-GET refusal).
-- FIXED: the image loader now has its own 15 s call/read timeouts.
-- FIXED: `mediaHttp` redirect loop and header policy have unit tests.
-- FIXED: `HomeActivity` single-flight load guard (`loadingHome`/`homeLoaded`).
-- FIXED: external Jellyfin SRT/VTT delivery URLs are passed into Media3 when the
-  server supplies them; unsupported subtitle formats remain outside the slim target.
-- `Urls.stripCredentials` is unused by production code.
-- The login screen hint suggests an `http://` address; there is no cleartext
-  consent. Platform defaults block cleartext on API 23+ for this target SDK.
-
-## Agent routing evidence and limitations
-
-Existing Agent tool successfully launched build-qa, ui and research for this
-new audit, using the existing named profiles and read-only snapshot prompts.
-The installed loader maps `thoughtLevel` to `modelSelection.options.reasoningLevel`.
-No provider-internal weight/effort attestation is available.
-
-| Role | Profile model / effort observed | Current evidence |
-|---|---|---|
-| firefin-build-qa | openai/gpt-6-luna / max | Probe + independent baseline build requested |
-| firefin-ui | anthropic/claude-sonnet-5-5 / high | Probe + static parity review requested |
-| firefin-research | new-provider/gemini-3.8-flash / high | Probe + official source/SDK checks requested |
-| firefin-review | anthropic/claude-opus-5-5; project medium, user high | Conflicting scopes; effective setting must be resolved before claiming medium |
-| firefin-core | openai/gpt-6.1-sol / high | 272000 appears in description only; worker-specific context not proven |
-
-The installed profile parser has no context-window field; inventing one in
-Markdown would not configure it. No global 272000 context override, new bridge,
-substitute model or silent effort fallback is authorized. Pending configuration
-requirements remain visible rather than being counted as successful probes.
-
-## Historical audit notes (superseded)
+## Historical verification notes
 
 - Strict pipeline and fail-closed verifier passed an equivalent local run on the
-  historical working tree (29 tests, lint 0 errors / 58 warnings, R8 release APK). No current-green
-  CI result is claimed until the fixes are committed and `android.yml` runs on
-  that exact SHA. (Historical: this state preceded `56134a362`/`cacd4efc9`; the current
-  evidence basis is in the header snapshot.)
+  historical implementation snapshot (29 tests, lint 0 errors / 58 warnings, R8 release APK). Its CI status belongs to that historical SHA and does not describe the current verification snapshot. (Historical: this state preceded `56134a362`/`cacd4efc9`; the current evidence basis is in the header snapshot.)
 - All REST traffic goes through `ServerTransport.http`; Media3 and the image
   loader use `ServerTransport.mediaHttp` via `JellyfinClient.okHttp`. That media
   client split landed later. The commit message of `8d53ab583` mentions it, but
@@ -220,11 +149,11 @@ requirements remain visible rather than being counted as successful probes.
   install/launch smoke exists; the AFTT run does not. Hardware release approval
   remains separate from x86 smoke.
 - Test account credentials/tokens and raw server content are private; never copy
-  them into sources, CI, prompts or public documentation. Login success alone is
+  them into sources, CI, internal notes or public documentation. Login success alone is
   not a complete playback test.
 
 
-## Final overall review cycle FF-FINAL-OVERALL-01 (firefin-core, gpt-6.1-sol high) → fixed
+## Final verification cycle
 
 Findings against 56134a362, all fixed on the follow-up commit:
 
@@ -247,18 +176,18 @@ Findings against 56134a362, all fixed on the follow-up commit:
   suite; the reporter contract tests were rewritten to drain recorded requests
   only after the terminal state (no scheduler timing dependence).
 
-Historical open-items note: the current candidate now has API-22 x86
+Historical open-items note: the tested implementation snapshot has API-22 x86
 playback/D-Pad evidence recorded below. Still open and explicitly not claimed:
 real AFTT hardware evidence, production signing, CI on the final commit, and
 full legacy-feature parity (Live TV, downloads, music, books, DLNA, Quick
 Connect code polling, admin, plugin sync, Seerr people/4K).
 
 
-## Current native candidate evidence (uncommitted; 2026-10-02)
+## Implementation evidence for tested snapshot `c9da933aa2a331c760325b97e777b51be7d4980f` (2026-10-02)
 
-The candidate is intentionally not committed until the current final gpt-6.1-sol review returns `REVIEW PASS — NO CHANGES REQUIRED`. Current local evidence:
+Current local evidence:
 
-- `:app:testDebugUnitTest`: 56 tests, 0 failures; Seerr contracts include
+- `:app:testDebugUnitTest`: 60 tests, 0 failures; Seerr contracts include
   Moonbase path/auth, status handling, permissions, 201/200/202/409/5xx
   outcomes, image URL restrictions, source selection and preference limits.
 - `:app:lintDebug` and `:app:lintRelease`: 0 errors; warnings remain visible in
@@ -269,8 +198,8 @@ The candidate is intentionally not committed until the current final gpt-6.1-sol
   flows, Seerr Moonbase 2.3.1.104 detection and password login,
   trending/search/poster TLS, TV season picker and request confirmation,
   480p/1 Mbit playback, resume at roughly 7:50, D-pad controller, audio track
-  dialog, terminal session cleanup. The original release-profile 720p H.264 High
-  stream exceeds the AOSP x86 software decoder; Debug uses a baseline test
+  dialog, terminal session cleanup. The historical release-profile 720p H.264
+  High stream exceeded the AOSP x86 software decoder; Debug uses a baseline test
   profile for emulator verification. This is not AFTT hardware evidence.
 - Native screenshots are checked into `docs/screenshots-home.png`,
   `screenshots-detail.png`, `screenshots-player.png`, and
@@ -282,4 +211,4 @@ QuickConnect code-polling, or Seerr people/4K/admin workflows. These are not
 quietly represented as complete, and the legacy Flutter source remains.
 
 External blockers: AFTT/ARMv7 hardware, production keystore/protected release
-workflow, and CI on the final committed candidate.
+workflow, and CI for the final ancestry-merge SHA.

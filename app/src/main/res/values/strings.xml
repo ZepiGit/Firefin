@@ -11,6 +11,12 @@
     <string name="search">Suche</string>
     <string name="remote_control">Fernbedienung</string>
     <string name="settings">Einstellungen</string>
+    <string name="home">Start</string>
+    <string name="libraries">Bibliotheken</string>
+    <string name="random_playback">Zufall</string>
+    <string name="media_requests">Medienwünsche</string>
+    <string name="search_in_library">In deiner Mediathek</string>
+    <string name="search_in_seerr">Über Seerr anfragen</string>
     <string name="play">Abspielen</string>
     <string name="resume">Fortsetzen</string>
     <string name="favorite">Favorit</string>
