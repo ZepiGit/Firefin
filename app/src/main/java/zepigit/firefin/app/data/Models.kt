@@ -68,6 +68,12 @@ data class PlaybackSource(
     val container: String,
     val liveStreamId: String = "",
     val resumeTicks: Long = 0L,
+    val tracks: List<zepigit.firefin.app.playback.SourceTrack> = emptyList(),
+    val subtitleUrl: String? = null,
+    val subtitleMime: String? = null,
+    val playMethod: String = if (isTranscode) "Transcode" else "DirectPlay",
+    val audioIndex: Int? = null,
+    val subtitleIndex: Int? = null,
 )
 
 data class RemoteSession(

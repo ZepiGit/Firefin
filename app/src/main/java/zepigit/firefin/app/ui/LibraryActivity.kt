@@ -44,7 +44,7 @@ class LibraryActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        libraryId = intent.getStringExtra(EXTRA_LIBRARY) ?: return
+        libraryId = intent.getStringExtra(EXTRA_LIBRARY).orEmpty()
         setContentView(R.layout.activity_library)
         titleView = findViewById(R.id.libraryTitle)
         progress = findViewById(R.id.progress)
@@ -93,12 +93,23 @@ class LibraryActivity : AppCompatActivity() {
                     startIndex = if (total < 0) 0 else start,
                     sortBy = by,
                     sortOrder = order,
+                    includeTypes = when (intent.getStringExtra("library.type")) {
+                        "movies" -> "Movie,BoxSet"
+                        "tvshows" -> "Series"
+                        "music" -> "MusicAlbum"
+                        else -> if (intent.getBooleanExtra("library.favorites", false)) "Movie,Series,Episode" else null
+                    },
+                    recursive = intent.getStringExtra("library.type") in setOf("movies", "tvshows", "music") || intent.getBooleanExtra("library.favorites", false),
+                    favorites = intent.getBooleanExtra("library.favorites", false),
                 )
                 if (gen != generation) return@launch
                 total = totalCount
                 titleView.text = (intent.getStringExtra(EXTRA_TITLE) ?: "") +
                     " (${total} · ${by.removePrefix("Sort").removePrefix("Date")})"
                 adapter.appendItems(items)
+                findViewById<TextView>(R.id.empty).visibility = if (adapter.itemCount == 0) View.VISIBLE else View.GONE
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Toast.makeText(this@LibraryActivity, e.message ?: "Fehler", Toast.LENGTH_LONG).show()
             } finally {
@@ -116,11 +127,13 @@ class LibraryActivity : AppCompatActivity() {
         private const val EXTRA_TITLE = "library.title"
         private const val GRID_SPAN = 6
 
-        fun start(context: Context, libraryId: String, title: String) {
+        fun start(context: Context, libraryId: String, title: String, collectionType: String = "", favorites: Boolean = false) {
             context.startActivity(
                 Intent(context, LibraryActivity::class.java)
                     .putExtra(EXTRA_LIBRARY, libraryId)
-                    .putExtra(EXTRA_TITLE, title),
+                    .putExtra(EXTRA_TITLE, title)
+                    .putExtra("library.type", collectionType)
+                    .putExtra("library.favorites", favorites),
             )
         }
     }

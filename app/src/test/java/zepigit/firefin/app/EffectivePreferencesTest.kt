@@ -26,6 +26,7 @@ class EffectivePreferencesTest {
         assertFalse(effective.cardFocusExpansion)
         assertFalse(effective.mediaBarEnabled)
         assertEquals(0, effective.blurAmount)
+        assertFalse(effective.cardFocusExpansion)
     }
 
     @Test
@@ -37,10 +38,22 @@ class EffectivePreferencesTest {
     }
 
     @Test
+    fun `higher stored playback values survive while effective limits clamp and lower limits apply`() {
+        val high = StoredPreferences(preferredBitrate = 20_000_000, preferredHeight = 2160)
+        val effective = deriveEffective(high, 1280, 720, 4_000_000)
+        assertEquals(20_000_000L, effective.stored.preferredBitrate)
+        assertEquals(4_000_000L, effective.maxStreamingBitrate)
+        assertEquals(720, effective.maxVideoHeight)
+        val low = deriveEffective(high.copy(preferredBitrate = 2_000_000, preferredHeight = 480), 1280, 720, 4_000_000)
+        assertEquals(2_000_000L, low.maxStreamingBitrate)
+        assertEquals(480, low.maxVideoHeight)
+    }
+
+    @Test
     fun `serialization contains only stored values, never device limits`() {
         val map = serializeStored(StoredPreferences(backdropEnabled = false))
         assertEquals(
-            mapOf("backdropEnabled" to "false", "homeSectionOrder" to "resume,nextUp,latest"),
+            mapOf("backdropEnabled" to "false", "homeSectionOrder" to "resume,nextUp,latest", "preferredBitrate" to "4000000", "preferredHeight" to "720", "audioLanguage" to "", "subtitleLanguage" to ""),
             map,
         )
         assertFalse(map.keys.any { it.contains("max", ignoreCase = true) || it.contains("blur") })

@@ -51,6 +51,8 @@ class LoginActivity : AppCompatActivity() {
                         password.text.toString(),
                     )
                     goHome()
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     error.text = when {
                         e.message?.contains("401") == true -> "Anmeldung fehlgeschlagen: Benutzer oder Passwort falsch."

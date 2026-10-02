@@ -36,18 +36,30 @@ class PlaybackEngine(context: Context, okHttpClient: okhttp3.OkHttpClient) {
                 /* handleAudioFocus = */ true,
             )
             setHandleAudioBecomingNoisy(true)
+            val prefs = zepigit.firefin.app.ServiceLocator.preferences.effective()
+            trackSelectionParameters = trackSelectionParameters.buildUpon()
+                .setMaxVideoSize(prefs.maxVideoWidth, prefs.maxVideoHeight)
+                .setMaxVideoBitrate((prefs.maxStreamingBitrate - 192_000).coerceAtLeast(128_000).toInt())
+                .setPreferredAudioLanguage(prefs.stored.audioLanguage.takeIf { it.isNotBlank() })
+                .setPreferredTextLanguage(prefs.stored.subtitleLanguage.takeIf { it.isNotBlank() })
+                .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, prefs.stored.subtitleLanguage.isBlank()).build()
         }
 
     var currentUrl: String? = null
         private set
 
-    fun prepare(url: String, startMs: Long) {
+    fun prepare(url: String, startMs: Long, subtitleUrl: String? = null, subtitleMime: String? = null) {
         currentUrl = url
         val isHls = url.contains(".m3u8") || url.contains("/hls/")
         val mediaItem = MediaItem.Builder()
             .setUri(url)
             .setMimeType(if (isHls) MimeTypes.APPLICATION_M3U8 else null)
-            .build()
+            .apply {
+                if (subtitleUrl != null && subtitleMime != null) setSubtitleConfigurations(listOf(
+                    MediaItem.SubtitleConfiguration.Builder(android.net.Uri.parse(subtitleUrl))
+                        .setMimeType(subtitleMime).setSelectionFlags(C.SELECTION_FLAG_DEFAULT).build(),
+                ))
+            }.build()
         player.setMediaItem(mediaItem, startMs)
         player.prepare()
         player.playWhenReady = true

@@ -26,7 +26,10 @@ def main():
         forbidden=('flutter_assets/','libflutter.so','libapp.so','libmpv.so','kernel_blob.bin')
         assert not any(any(v in n for v in forbidden) for n in names)
         libs=[n for n in names if n.startswith('lib/') and n.endswith('.so')]
-        if libs: assert all(n.startswith('lib/armeabi-v7a/') for n in libs)
+        if libs:
+            allowed = {'armeabi-v7a'} if x.release else {'armeabi-v7a', 'x86'}
+            abis = {n.split('/')[1] for n in libs}
+            assert 'armeabi-v7a' in abis and abis <= allowed, f'Unexpected native ABIs: {abis}'
     if x.signed:
         signer=bt/('apksigner.bat' if os.name=='nt' else 'apksigner')
         out=run([str(signer),'verify','--min-sdk-version','21','--verbose','--print-certs',str(apk)])

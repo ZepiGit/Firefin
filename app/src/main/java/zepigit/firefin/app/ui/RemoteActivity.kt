@@ -35,11 +35,14 @@ class RemoteActivity : AppCompatActivity() {
         val empty = findViewById<TextView>(R.id.empty)
         adapter = SessionsAdapter { session, command ->
             scope.launch {
-                runCatching { ServiceLocator.client.sendCommand(session.id, command) }
-                    .onFailure {
-                        Toast.makeText(this@RemoteActivity, it.message ?: "Fehler", Toast.LENGTH_LONG).show()
-                    }
-                refresh()
+                try {
+                    ServiceLocator.client.sendCommand(session.id, command)
+                    refresh()
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Toast.makeText(this@RemoteActivity, e.message ?: "Fehler", Toast.LENGTH_LONG).show()
+                }
             }
         }
         list.layoutManager = LinearLayoutManager(this)

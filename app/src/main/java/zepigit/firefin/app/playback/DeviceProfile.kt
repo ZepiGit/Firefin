@@ -15,10 +15,10 @@ object DeviceProfile {
     const val MAX_BITRATE = 4_000_000L
     const val MAX_AUDIO_CHANNELS = 2
 
-    fun build(): JSONObject = JSONObject().apply {
+    fun build(maxBitrate: Long = MAX_BITRATE, maxWidth: Int = MAX_WIDTH, maxHeight: Int = MAX_HEIGHT, baselineOnly: Boolean = false): JSONObject = JSONObject().apply {
         put("Name", PROFILE_NAME)
-        put("MaxStreamingBitrate", MAX_BITRATE)
-        put("MaxStaticBitrate", MAX_BITRATE)
+        put("MaxStreamingBitrate", minOf(maxBitrate, MAX_BITRATE))
+        put("MaxStaticBitrate", minOf(maxBitrate, MAX_BITRATE))
         put("MusicStreamingTranscodingBitrate", 192_000)
         put("DirectPlayProfiles", org.json.JSONArray().apply {
             put(JSONObject().apply {
@@ -57,9 +57,12 @@ object DeviceProfile {
                 put("Type", "Video")
                 put("Codec", "h264")
                 put("Conditions", org.json.JSONArray().apply {
-                    put(condition("LessThanEqual", "Width", MAX_WIDTH.toString()))
-                    put(condition("LessThanEqual", "Height", MAX_HEIGHT.toString()))
-                    put(condition("LessThanEqual", "VideoBitrate", MAX_BITRATE.toString()))
+                    put(condition("LessThanEqual", "Width", minOf(maxWidth, MAX_WIDTH).toString()))
+                    put(condition("LessThanEqual", "Height", minOf(maxHeight, MAX_HEIGHT).toString()))
+                    put(condition("LessThanEqual", "VideoBitrate", minOf(maxBitrate, MAX_BITRATE).toString()))
+                    put(condition("EqualsAny", "VideoProfile", if (baselineOnly) "baseline" else "baseline|main|high"))
+                    put(condition("LessThanEqual", "VideoLevel", if (baselineOnly) "31" else "40"))
+                    put(condition("LessThanEqual", "VideoBitDepth", "8"))
                 })
             })
             put(JSONObject().apply {

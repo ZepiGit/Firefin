@@ -24,11 +24,12 @@ class ServerResponseException(val status: Int) : IOException("Server request fai
 class ServerCredentials(val serverUrl: String, val userId: String, val token: String)
 
 /** A single origin-bound, cancellable HTTP stack shared by REST, images and Media3. */
-class ServerTransport(initial: ServerCredentials, val deviceId: String, private val deviceName: String = "Fire TV", private val version: String = "0.1.0-firefin") {
+class ServerTransport(initial: ServerCredentials, val deviceId: String, private val deviceName: String = "Fire TV", private val version: String = "0.1.0-firefin", private val shared: ServerTransport? = null) {
     @Volatile private var current = initial
     private val lock = Any()
 
     private fun baseBuilder() = OkHttpClient.Builder()
+        .apply { shared?.let { dispatcher(it.http.dispatcher); connectionPool(it.http.connectionPool) } }
         .connectTimeout(10, TimeUnit.SECONDS)
         .followRedirects(false)
         .followSslRedirects(false)
@@ -83,7 +84,7 @@ class ServerTransport(initial: ServerCredentials, val deviceId: String, private 
     fun credentials(): ServerCredentials = current
 
     /** Immutable-by-construction snapshot for a single playback session. */
-    fun snapshot(): ServerTransport = ServerTransport(current, deviceId, deviceName, version)
+    fun snapshot(): ServerTransport = ServerTransport(current, deviceId, deviceName, version, this)
 
     fun requireServerUrl(url: HttpUrl) {
         val configured = baseOrNull() ?: throw IOException("No server is configured.")
@@ -102,9 +103,26 @@ class ServerTransport(initial: ServerCredentials, val deviceId: String, private 
         return result
     }
 
+    data class JsonResponse(val status: Int, val body: String) {
+        override fun toString() = "JsonResponse(status=$status)"
+    }
+
     suspend fun json(path: String, method: String = "GET", body: String? = null): String {
+        val result = response(path, method, body)
+        if (result.status == 401) throw SessionExpiredException()
+        if (result.status !in 200..299) throw ServerResponseException(result.status)
+        return result.body
+    }
+
+    suspend fun response(path: String, method: String = "GET", body: String? = null): JsonResponse {
         val builder = Request.Builder().url(url(path))
-        val content = (body ?: "{}").toRequestBody(JSON)
+        val bytes = (body ?: "{}").toByteArray(Charsets.UTF_8)
+        val content = object : okhttp3.RequestBody() {
+            override fun contentType() = JSON
+            override fun contentLength() = bytes.size.toLong()
+            override fun isOneShot() = true
+            override fun writeTo(sink: okio.BufferedSink) { sink.write(bytes) }
+        }
         when (method) {
             "GET" -> builder.get()
             "POST" -> builder.post(content)
@@ -115,7 +133,7 @@ class ServerTransport(initial: ServerCredentials, val deviceId: String, private 
         return execute(builder.build())
     }
 
-    private suspend fun execute(request: Request): String = withContext(Dispatchers.IO) {
+    private suspend fun execute(request: Request): JsonResponse = withContext(Dispatchers.IO) {
         suspendCancellableCoroutine { continuation ->
             val call = http.newCall(request)
             continuation.invokeOnCancellation { call.cancel() }
@@ -127,11 +145,26 @@ class ServerTransport(initial: ServerCredentials, val deviceId: String, private 
                 override fun onResponse(call: Call, response: Response) {
                     try {
                         val text = response.use {
-                            if (it.code == 401) throw SessionExpiredException()
-                            if (!it.isSuccessful) throw ServerResponseException(it.code)
-                            val body = it.body ?: return@use ""
-                            if (body.contentLength() > MAX_JSON_BYTES) throw IOException("Server response is too large.")
-                            body.string().also { value -> if (value.toByteArray().size > MAX_JSON_BYTES) throw IOException("Server response is too large.") }
+                            val body = it.body ?: return@use JsonResponse(it.code, "")
+                            val limit = if (it.isSuccessful) MAX_JSON_BYTES else 64L * 1024
+                            if (it.isSuccessful && body.contentLength() > limit) throw IOException("Server response is too large.")
+                            val buffer = java.io.ByteArrayOutputStream()
+                            body.byteStream().use { stream ->
+                                val chunk = ByteArray(16 * 1024)
+                                var total = 0L
+                                while (true) {
+                                    val read = stream.read(chunk)
+                                    if (read < 0) break
+                                    total += read
+                                    if (total > limit) {
+                                        if (it.isSuccessful) throw IOException("Server response is too large.")
+                                        buffer.write(chunk, 0, (read - (total - limit)).toInt())
+                                        break
+                                    }
+                                    buffer.write(chunk, 0, read)
+                                }
+                            }
+                            JsonResponse(it.code, buffer.toString("UTF-8"))
                         }
                         if (continuation.isActive) continuation.resume(text)
                     } catch (failure: Exception) {
@@ -142,7 +175,7 @@ class ServerTransport(initial: ServerCredentials, val deviceId: String, private 
         }
     }
 
-    private fun baseOrNull(): HttpUrl? = current.serverUrl.trimEnd('/').takeIf { it.isNotBlank() }?.toHttpUrl()
+    private fun baseOrNull(): HttpUrl? = current.serverUrl.trimEnd('/').takeIf { it.isNotBlank() }?.let { "$it/".toHttpUrl() }
 
     private fun authorization(): String = buildString {
         append("MediaBrowser Client=\"Firefin\", Device=\"").append(headerValue(deviceName))

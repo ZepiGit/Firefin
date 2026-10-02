@@ -4,7 +4,7 @@ This document covers the native Kotlin app (`app/`). The legacy Flutter build
 is kept at the end as history; it is validation-only and is never published.
 
 Build status, in short: a clean local build of the current working tree passed
-40 unit tests, strict lint (0 errors, 58 warnings) and an R8 release build, and
+56 unit tests, strict lint (0 errors; current reports contain 130 warnings) and an R8 release build, and
 the debug APK installed and launched on an API 22 stock x86 emulator. There is
 no signed release and no AFTT hardware result. The commit carrying these fixes
 is documented per commit; CI runs are listed in docs/FIREFIN_MIGRATION.md.
@@ -53,8 +53,9 @@ Unsigned builds do not need any `FIREFIN_*` setting.
 `scripts/verify-native-apk.py` fails closed. It needs Python 3 and the build
 tools. It checks package `zepigit.firefin.app`, minSdk 21, label `Firefin`, a
 non-empty application banner, a Leanback launcher activity, `zipalign -c 4`,
-absence of Flutter/mpv artifacts, and that any native libraries are
-`armeabi-v7a` only. With `--signed` it also requires valid v1 and v2 signatures
+absence of Flutter/mpv artifacts, and that debug native libraries are
+`armeabi-v7a`/`x86` while release native libraries are `armeabi-v7a` only.
+With `--signed` it also requires valid v1 and v2 signatures
 (and, with `--certificate-sha256`, an exact certificate match); with `--release`
 it rejects debuggable builds; `--expect-version-name` / `--expect-version-code`
 pin the version identity.
@@ -86,8 +87,13 @@ adb shell dumpsys activity activities | grep -i resumed   # expect LoginActivity
 adb logcat -d | grep -E "FATAL|AndroidRuntime"            # expect no output
 ```
 
-The recorded smoke covered install, launch, package identity, `LoginActivity`
-and absence of `FATAL`. It did not cover login, browsing, playback or memory.
+The earlier recorded smoke was only an install/launch/package-identity check
+and is historical. The current candidate has a passing
+`:app:connectedDebugAndroidTest` login-focus test and a separate API-22
+ evidence record in `docs/FIREFIN_MIGRATION.md`: authorized login, Home/library/detail/search/
+settings, Seerr discovery/search/detail/season confirmation, TMDB artwork,
+baseline playback, resume, track dialog and cleanup. This remains x86 emulator
+evidence, not AFTT hardware evidence.
 
 ## CI (`Native Android CI`, `.github/workflows/android.yml`)
 

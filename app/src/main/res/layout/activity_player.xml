@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.media3.ui.PlayerView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/playerView"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@android:color/black"
-    android:keepScreenOn="true" />
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@android:color/black">
+    <androidx.media3.ui.PlayerView android:id="@+id/playerView" android:layout_width="match_parent" android:layout_height="match_parent" android:keepScreenOn="true" />
+    <LinearLayout android:id="@+id/playerActions" android:layout_width="match_parent" android:layout_height="56dp" android:layout_gravity="top" android:gravity="end|center_vertical" android:paddingEnd="24dp" android:background="#99000000" android:visibility="gone">
+        <TextView android:id="@+id/playerTitle" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:paddingStart="24dp" android:textColor="#FFFFFF" android:textSize="18sp" android:maxLines="1" />
+        <Button android:id="@+id/playerAudio" android:layout_width="wrap_content" android:layout_height="44dp" android:text="Tonspur" />
+        <Button android:id="@+id/playerSubtitles" android:layout_width="wrap_content" android:layout_height="44dp" android:layout_marginStart="10dp" android:text="Untertitel" />
+        <Button android:id="@+id/playerVideo" android:layout_width="wrap_content" android:layout_height="44dp" android:layout_marginStart="10dp" android:text="Video" />
+    </LinearLayout>
+</FrameLayout>

@@ -83,6 +83,32 @@ class JellyfinClientTest {
         assertTrue(body.contains("\"720\""))
     }
 
+    @Test fun `preferred source languages are selected before transcode and subtitle delivery retained`() = runBlocking {
+        session.serverUrl = server.url("/").toString().trimEnd('/')
+        session.userId = "u1"; session.accessToken = "tok"
+        client = JellyfinClient(session) {
+            zepigit.firefin.app.preferences.deriveEffective(zepigit.firefin.app.preferences.StoredPreferences(audioLanguage = "de", subtitleLanguage = "de"), 1280, 720, 4_000_000)
+        }
+        server.enqueue(MockResponse().setBody("""{"MediaSources":[{"MediaStreams":[{"Type":"Audio","Index":1,"Language":"eng"},{"Type":"Audio","Index":2,"Language":"ger"},{"Type":"Subtitle","Index":4,"Language":"deu"}]}]}"""))
+        server.enqueue(MockResponse().setBody("""{"PlaySessionId":"ps","MediaSources":[{"Id":"s","TranscodingUrl":"/v.m3u8","MediaStreams":[{"Type":"Subtitle","Index":4,"Codec":"srt","DeliveryUrl":"/sub.srt"}]}]}"""))
+        val source = client.playbackInfo("i1")
+        assertEquals("/Users/u1/Items/i1", server.takeRequest().path)
+        val body = org.json.JSONObject(server.takeRequest().body.readUtf8())
+        assertEquals(2, body.getInt("AudioStreamIndex"))
+        assertEquals(4, body.getInt("SubtitleStreamIndex"))
+        assertEquals(server.url("/sub.srt").toString(), source.subtitleUrl)
+        assertEquals("application/x-subrip", source.subtitleMime)
+    }
+
+    @Test fun `direct stream uses negotiated remux URL not static original`() = runBlocking {
+        session.serverUrl = server.url("/").toString().trimEnd('/')
+        session.userId = "u1"; session.accessToken = "tok"
+        server.enqueue(MockResponse().setBody("""{"PlaySessionId":"ps","MediaSources":[{"Id":"s","SupportsDirectPlay":false,"SupportsDirectStream":true,"DirectStreamUrl":"/remux.ts"}]}"""))
+        val source = client.playbackInfo("i1")
+        assertEquals(server.url("/remux.ts").toString(), source.url)
+        assertEquals("DirectStream", source.playMethod)
+    }
+
     /** Minimal in-memory SharedPreferences so SessionStore runs in JVM tests. */
     private class InMemoryPrefs : android.content.SharedPreferences {
         private val map = mutableMapOf<String, String>()

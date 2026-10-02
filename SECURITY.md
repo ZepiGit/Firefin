@@ -12,9 +12,12 @@ unsanitized logs in public issues.
 These describe the code in `ServerTransport` and `Urls`. They are not a
 completed security audit; open items are listed below.
 
-- **Default TLS trust.** Certificates and hostnames are validated by the
-  platform defaults. The native app contains no custom `TrustManager`,
-  `HostnameVerifier` or socket factory, and no global "accept all" switch.
+- **Jellyfin TLS trust.** Jellyfin REST/media clients use platform trust and
+  hostname validation. The native app has no trust-all `TrustManager`,
+  `HostnameVerifier` bypass or global accept-all switch. Only the public TMDB
+  artwork client adds the bundled ISRG Root X1 anchor through a scoped
+  `HandshakeCertificates` client; this is not pinning or a validation bypass.
+  Conscrypt 2.5.2 is installed for API-22 TLS compatibility.
 - **Fire OS 5 caveat.** Fire OS 5 ships a frozen certificate store. Some
   currently valid public chains and many private Jellyfin certificates may be
   rejected. Firefin does not work around this by disabling validation; use a
@@ -34,8 +37,8 @@ completed security audit; open items are listed below.
   request cannot forward the password or `Authorization` header to another
   origin (covered by a MockWebServer test). The media client (Media3 and
   artwork) follows at most three GET redirects and only within the configured
-  origin and path; anything else fails. The media client's redirect path has no
-  dedicated unit test yet.
+  origin and path; anything else fails. The media client's redirect path has dedicated MockWebServer tests for hop
+  limits, cross-origin refusal and non-GET refusal.
 - **Tokens.** The access token is sent in the `Authorization` header only.
   Firefin does not append it to image, stream or HLS URLs, so it does not
   appear in image cache keys. Cookies are removed from outgoing requests.
@@ -47,8 +50,8 @@ completed security audit; open items are listed below.
 - **Storage.** The session (server URL, user, access token, device ID) is kept
   in app-private SharedPreferences, unencrypted, with `allowBackup="false"`.
   Logout clears server, user and token.
-- **Version header.** The client still identifies itself to the server as
-  version `0.1.0` (`JellyfinClient.VERSION`), not the APK version.
+- **Version header.** The client identifies itself with `BuildConfig.VERSION_NAME`,
+  currently `0.2.0-firefin`, matching the APK version.
 
 ## Signing key handling
 

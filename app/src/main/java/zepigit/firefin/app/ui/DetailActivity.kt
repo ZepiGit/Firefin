@@ -30,7 +30,9 @@ class DetailActivity : AppCompatActivity() {
     private val scope = CoroutineScope(Dispatchers.Main + Job())
     private var item: MediaItem? = null
     private var itemId = ""
-    private var firstLoad = true
+    private var firstResume = true
+    private var loadJob: Job? = null
+    private var startingPlayback = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,6 +47,7 @@ class DetailActivity : AppCompatActivity() {
         val watched = findViewById<Button>(R.id.watchedButton)
         val children = findViewById<RecyclerView>(R.id.children)
 
+        findViewById<Button>(R.id.retryButton).setOnClickListener { loadItem() }
         loadItem()
     }
 
@@ -56,11 +59,10 @@ class DetailActivity : AppCompatActivity() {
     /** Re-queries user data on return from the player so resume/watch state stays current. */
     override fun onResume() {
         super.onResume()
-        if (!firstLoad) refreshUserData()
+        if (firstResume) firstResume = false else refreshUserData()
     }
 
     private fun loadItem() {
-        firstLoad = false
         loadItemInternal(reloadChildren = true)
     }
 
@@ -77,7 +79,10 @@ class DetailActivity : AppCompatActivity() {
         val favorite = findViewById<Button>(R.id.favoriteButton)
         val watched = findViewById<Button>(R.id.watchedButton)
         val children = findViewById<RecyclerView>(R.id.children)
-        scope.launch {
+        findViewById<android.widget.ProgressBar>(R.id.progress).visibility = View.VISIBLE
+        findViewById<Button>(R.id.retryButton).visibility = View.GONE
+        loadJob?.cancel()
+        loadJob = scope.launch {
             try {
                 val loaded = ServiceLocator.client.item(itemId)
                 item = loaded
@@ -109,6 +114,9 @@ class DetailActivity : AppCompatActivity() {
                 favorite.text = if (loaded.favorite) "★ " + getString(R.string.favorite) else getString(R.string.favorite)
                 watched.text = if (loaded.played) "✓ " + getString(R.string.mark_watched) else getString(R.string.mark_watched)
                 play.setOnClickListener { startPlayback(loaded, loaded.resumeTicks) }
+                val restart = findViewById<Button>(R.id.restartButton)
+                restart.visibility = if (loaded.isPlayable && loaded.resumeTicks > 0) View.VISIBLE else View.GONE
+                restart.setOnClickListener { startPlayback(loaded, 0L) }
                 favorite.setOnClickListener {
                     scope.launch {
                         try { ServiceLocator.client.setFavorite(loaded.id, !loaded.favorite); refreshUserData() }
@@ -131,29 +139,38 @@ class DetailActivity : AppCompatActivity() {
                     loaded.backdropTag,
                     ServiceLocator.session.accessToken,
                 )
-                ServiceLocator.images.load(backdropUrl, ArtworkPolicy.decodeBucket(ArtworkPolicy.BACKDROP_WIDTH), backdrop)
-                if (loaded.isSeries && reloadChildren) {
+                if (ServiceLocator.preferences.effective().stored.backdropEnabled) ServiceLocator.images.load(backdropUrl, ArtworkPolicy.decodeBucket(ArtworkPolicy.BACKDROP_WIDTH), backdrop)
+                else ServiceLocator.images.cancel(backdrop)
+                if (!loaded.isPlayable && reloadChildren) {
                     children.layoutManager = LinearLayoutManager(
                         this@DetailActivity,
                         LinearLayoutManager.HORIZONTAL,
                         false,
                     )
-                    children.adapter = MediaCardAdapter(onClick = { child ->
-                        if (child.isPlayable) startPlayback(child, child.resumeTicks)
-                        else DetailActivity.start(this@DetailActivity, child.id)
+                    findViewById<TextView>(R.id.childrenTitle).text = if (loaded.isSeries) "Staffeln" else if (loaded.type == "Season") "Episoden" else "Inhalte"
+                    children.adapter = MediaCardAdapter(posterStyle = loaded.type != "Season", onClick = { child ->
+                        DetailActivity.start(this@DetailActivity, child.id)
                     })
-                    val episodes = ServiceLocator.client.children(loaded.id)
+                    val episodes = ServiceLocator.client.children(loaded)
                     (children.adapter as MediaCardAdapter).submit(episodes)
+                    if (episodes.isNotEmpty()) children.post { children.getChildAt(0)?.requestFocus() }
+                } else if (reloadChildren) {
+                    play.requestFocus()
                 }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                Toast.makeText(this@DetailActivity, e.message ?: "Fehler", Toast.LENGTH_LONG).show()
+                findViewById<TextView>(R.id.overview).text = e.message ?: "Fehler beim Laden."
+                findViewById<Button>(R.id.retryButton).apply { visibility = View.VISIBLE; requestFocus() }
+            } finally {
+                findViewById<android.widget.ProgressBar>(R.id.progress).visibility = View.GONE
             }
         }
     }
 
     private fun startPlayback(loaded: MediaItem, startTicks: Long) {
+        if (startingPlayback) return
+        startingPlayback = true
         scope.launch {
             try {
                 val source = ServiceLocator.client.playbackInfo(loaded.id)
@@ -168,9 +185,19 @@ class DetailActivity : AppCompatActivity() {
                     isTranscode = source.isTranscode,
                     isHls = source.isHls,
                     liveStreamId = source.liveStreamId,
+                    subtitleUrl = source.subtitleUrl,
+                    subtitleMime = source.subtitleMime,
+                    playMethod = source.playMethod,
+                    tracks = source.tracks,
+                    audioIndex = source.audioIndex,
+                    subtitleIndex = source.subtitleIndex,
                 )
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Toast.makeText(this@DetailActivity, e.message ?: "Playback-Fehler", Toast.LENGTH_LONG).show()
+            } finally {
+                startingPlayback = false
             }
         }
     }

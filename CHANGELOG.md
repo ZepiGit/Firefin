@@ -9,21 +9,23 @@ preserved unchanged as history.
 ### 0.2.0-firefin (versionCode 3001000), unreleased
 
 Not released: no signed APK exists and no AFTT hardware result is recorded.
-The working tree described below sits on top of commit `8d53ab583`; the commit
-that carries it is pending, so none of it has run in CI.
+The current candidate is on `feature/moonfin-ui-seerr`; its final commit and CI
+run are pending the mandatory gpt-6.1-sol review.
 
-Verified locally on the working tree (clean build): 29 unit tests, strict lint
-0 errors / 58 warnings, R8 release APK (unsigned). API 22 stock x86 emulator:
-install, launch, package `zepigit.firefin.app`, `LoginActivity`, no `FATAL`.
+Verified locally on the current candidate: 55 JVM unit tests, API22
+instrumentation login-focus test, strict debug/release lint (0 errors; current
+reports contain 130 warnings), R8 release APK (unsigned), and the manual API22
+x86 flow record in `docs/FIREFIN_MIGRATION.md`. No AFTT hardware or signed
+release is claimed.
 
-#### Uncommitted working-tree changes (after `8d53ab583`)
+#### Current native candidate scope (uncommitted; feature/moonfin-ui-seerr)
 
 - Transport: `ServerTransport` now exposes a REST client with bounded call and
   read timeouts and a separate media client without call/read timeouts, used
   by Media3 and the image loader. Both stay origin-bound and header-authenticated.
 - Session reporting: `SessionReporter` owns its coroutine scope, reports the
   actual play method (`DirectPlay` or `Transcode`), stays ordered
-  (Playing, Progress, Stopped) and is cancelled when the player is destroyed.
+  (Playing, Progress, Stopped) and drains terminal stop/cleanup when the player is destroyed.
 - UI lifecycle: scopes are cancelled in `onDestroy` (login, detail, search,
   remote); cancellation is no longer shown as an error toast; Home reloads on
   resume and shows an empty state; Detail refreshes in place after
@@ -48,12 +50,15 @@ install, launch, package `zepigit.firefin.app`, `LoginActivity`, no `FATAL`.
 - `version.properties` (single version source), native version raised above the
   legacy build line.
 
-#### Still open
+#### Still open for the slim native target
 
-Quick Connect, all library types beyond movies/shows/mixed, Live TV, Seerr,
-downloads, music, books/comics/photos, DLNA, admin, plugin sync, settings and
-parental controls, English UI strings (German only today), a signed release,
-and an AFTT hardware run. See [docs/FIREFIN_MIGRATION.md](docs/FIREFIN_MIGRATION.md).
+Quick Connect code polling, all library types beyond movies/shows/mixed, Live
+TV, downloads, music, books/comics/photos, DLNA, admin, plugin sync, settings
+and parental controls, a signed release, and an AFTT hardware run remain open.
+The native Seerr subset (Moonbase detection, discovery, search, detail, status,
+season selection and confirmation) is implemented; people/4K/admin and live
+request submission are intentionally not claimed. See
+[docs/FIREFIN_MIGRATION.md](docs/FIREFIN_MIGRATION.md).
 
 ### Earlier native work (superseded claims)
 
@@ -61,7 +66,7 @@ Earlier notes claimed clean lint, "all review findings fixed", protected
 signing, bounded disk decode, and completed API 22 validation. Those claims
 were not acceptance evidence and are withdrawn. The earlier figures of 18 or
 21 unit tests and the 5m25s CI run describe older trees, not the current one
-(29 unit tests).
+(56 unit tests).
 
 ## Legacy Flutter line (history)
 

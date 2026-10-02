@@ -42,24 +42,33 @@ standard library and Okio):
 | `org.jetbrains.kotlinx:kotlinx-coroutines-android` | 1.8.1 |
 | `androidx.media3:media3-exoplayer`, `-ui`, `-exoplayer-hls`, `-datasource-okhttp` | 1.8.1 |
 | `com.squareup.okhttp3:okhttp` | 4.12.0 |
+| `com.squareup.okhttp3:okhttp-tls` | 4.12.0 |
+| `org.conscrypt:conscrypt-android` | 2.5.2 |
 
 Test only (not packaged): `junit` 4.13.2, `okhttp3:mockwebserver` 4.12.0,
-`kotlinx-coroutines-test` 1.8.1, `org.json:json` 20231013.
+`kotlinx-coroutines-test` 1.8.1, `org.json:json` 20231013, AndroidX Test
+`core` 1.5.0, `ext:junit` 1.1.5, `runner` 1.5.2 and `rules` 1.5.0.
+The release APK packages Conscrypt's `libconscrypt_jni.so` for ARMv7; debug
+also packages x86 for the API-22 emulator.
 
 Build tooling: Android Gradle Plugin 8.7.3, Kotlin Gradle plugin 2.0.21,
 Gradle 8.10.2.
 
-Native (`.so`) libraries: listing the locally built debug and unsigned release
-APKs (built 2026-10-01 from the working tree) shows no `lib/` entries, so
-neither bundles a native library. This is a point-in-time listing, not a
-guarantee for future dependency changes; the APK verifier requires any native
-library that is present to be `armeabi-v7a` and rejects Flutter/mpv artifacts.
+Native (`.so`) libraries: the current release APK packages Conscrypt's
+`lib/armeabi-v7a/libconscrypt_jni.so`; debug additionally packages `lib/x86/`
+for the API-22 emulator. This is a point-in-time listing; the verifier rejects
+unexpected release ABIs and all Flutter/mpv artifacts.
 The legacy Flutter build bundled the Flutter engine and media_kit/mpv
 libraries; those must not appear in the native APK.
 
+Bundled public certificate: `app/src/main/res/raw/isrgrootx1.pem` is the
+ISRG Root X1 certificate from Let's Encrypt, used only as an additional trust
+anchor by the scoped TMDB artwork client on legacy API 22. It is not a
+Jellyfin trust bypass or certificate pin. The certificate SHA-256 is recorded
+in the release audit artifact, not in a secret-bearing file.
+
 Launcher icon and TV banner assets in `app/src/main/res/` were added in the
-native migration commit (`284e7202f`); their artwork provenance has not been
-audited here.
+native migration; their artwork provenance has not been audited here.
 
 ## Legacy Flutter app dependencies
 

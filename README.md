@@ -28,30 +28,45 @@ The native version code is deliberately above the legacy `3000028` build line.
 
 ## Verification status
 
-Evidence basis: branch `firefin/dev`, base commit `cacd4efc90f2c1a5043fe43503b005fe2e35036e`,
-GitHub Actions run `36926364003` (Native Android CI: success). Later commits
-document follow-up fixes; their runs are listed in
-[docs/FIREFIN_MIGRATION.md](docs/FIREFIN_MIGRATION.md). Nothing below is a
-claim about a published release.
+Evidence basis: uncommitted candidate on branch `feature/moonfin-ui-seerr`; final
+commit is intentionally pending the mandatory gpt-6.1-sol review. The complete
+migration ledger and review snapshot are in [docs/FIREFIN_MIGRATION.md](docs/FIREFIN_MIGRATION.md).
+Nothing below is a claim about a published release.
 
-Verified locally (one clean build of the current working tree):
+Verified locally on the current candidate:
 
-- 40 JVM unit tests pass (`:app:testDebugUnitTest`), including regression
-  tests for transport isolation, session-report ordering and the playback
-  timeline contract.
-- Strict lint (`abortOnError = true`): 0 errors, 58 warnings.
-- R8-minified release APK builds (unsigned).
-- API 22 stock x86 emulator: debug APK installs and launches, package ID is
-  `zepigit.firefin.app`, `LoginActivity` is shown, no `FATAL` in logcat.
-  Login against a server and playback were not part of this smoke.
+- 56 JVM unit tests pass (`:app:testDebugUnitTest`), including transport, Seerr,
+  preferences, playback timeline, source selection and session-report contracts.
+- API-22 instrumentation (`:app:connectedDebugAndroidTest`) passes the login-
+  screen focus test on the stock x86 AVD.
+- Strict debug/release lint: 0 errors (warnings remain documented).
+- R8-minified unsigned release APK builds; debug and release APK metadata is
+  checked by `scripts/verify-native-apk.py` (debug ABIs: armeabi-v7a/x86;
+  release ABI: armeabi-v7a only).
+- API 22 x86 emulator with the authorized Jellyfin test account: login, Moonfin-like
+  Home/Library/Detail/Search/Settings navigation, Seerr discovery/search/detail/
+  season confirmation, TMDB artwork over the API-22 TLS stack, resume playback,
+  D-pad controller, audio-track dialog, pause/return cleanup and 480p/1 Mbit
+  playback were exercised. The emulator needed the debug baseline H.264 profile;
+  the real AFTT release profile remains 720p/4 Mbit.
 
-Not verified / absent:
+Still externally blocked and not claimed complete:
 
-- Physical AFTT (ARMv7) device: no install, remote, playback or memory result.
-  An x86 emulator smoke is not hardware evidence.
-- A signed release APK: none built, no production key or pinned certificate
-  fingerprint is recorded in this repository.
-- CI on the current `firefin/dev` HEAD (runs are linked in the migration ledger).
+- Physical AFTT/ARMv7 install, hardware decoder/memory/thermal behavior and
+  production playback.
+- Protected production keystore/secrets for a signed release and certificate
+  verification.
+- CI run for this still-uncommitted candidate.
+
+### Current native screenshots
+
+These are real API-22 emulator captures from the current candidate, with no
+credentials or tokens visible:
+
+![Firefin Home](docs/screenshots-home.png)
+![Firefin detail](docs/screenshots-detail.png)
+![Firefin player](docs/screenshots-player.png)
+![Firefin Seerr discovery](docs/screenshots-seerr.png)
 
 ## Feature parity (open)
 
@@ -59,12 +74,15 @@ The native app covers password login, a home screen (continue watching, next
 up, latest for up to four movie/show/mixed libraries), library grids, details
 with episodes, search, favorite/watched toggles, Media3 playback with D-pad
 control, remote session control and basic settings (image cache, logout).
-The following legacy features are **not ported**: Quick Connect (and Emby
-Connect, server switching), all library types beyond movies/shows/mixed, Live
-TV, Seerr, downloads/offline, music, books/comics/photos, DLNA, the admin
-suite, plugin synchronization, parental/PIN and most settings. Until each is
-ported or explicitly retired with evidence, no Flutter code is removed. Track
-progress in [docs/FIREFIN_MIGRATION.md](docs/FIREFIN_MIGRATION.md).
+The current slim native target deliberately prioritizes the old Fire TV device:
+Jellyfin login, Moonfin-like Home/library/detail/search/player flows, D-pad
+focus, account-safe playback, Seerr through Moonbase (discovery, search,
+status, season selection, request dialog and submission code; live server submission is not claimed), bounded artwork and stored /
+effective playback preferences. It deliberately does not claim Live TV,
+offline downloads, music/books/photos/DLNA, admin, plugin sync, parental/PIN,
+full Quick Connect code polling or every modern Moonfin screen. Flutter sources
+remain in the repository until the selected native flows are accepted. Track
+this scope and evidence in [docs/FIREFIN_MIGRATION.md](docs/FIREFIN_MIGRATION.md).
 
 ## Install note (important)
 

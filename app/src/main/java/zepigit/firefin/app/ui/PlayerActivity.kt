@@ -46,6 +46,15 @@ class PlayerActivity : AppCompatActivity() {
     private var isHls = false
     private var transcodeOffsetMs = 0L
     private var reporter: SessionReporter? = null
+    private var sourceTracks = emptyList<zepigit.firefin.app.playback.SourceTrack>()
+    private var audioIndex: Int? = null
+    private var subtitleIndex: Int? = null
+    private var switching = false
+    private var consumedBack = false
+    private var resumed = false
+    private var sourceId = ""
+    private var directPlay = false
+    private lateinit var playbackTransport: zepigit.firefin.app.data.ServerTransport
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,11 +67,16 @@ class PlayerActivity : AppCompatActivity() {
         isHls = intent.getBooleanExtra(EXTRA_HLS, false)
         val name = intent.getStringExtra(EXTRA_NAME) ?: "Firefin"
         title = name
+        sourceId = intent.getStringExtra(EXTRA_SOURCE).orEmpty()
+        directPlay = intent.getStringExtra("p.playMethod") == "DirectPlay"
+        audioIndex = intent.getIntExtra("p.audioIndex", Int.MIN_VALUE).takeIf { it != Int.MIN_VALUE }
+        subtitleIndex = intent.getIntExtra("p.subtitleIndex", Int.MIN_VALUE).takeIf { it != Int.MIN_VALUE }
 
         // One immutable credential snapshot serves BOTH the media stream and
         // session reporting, so an account switch mid-playback cannot mix
         // identities. The global client remains for browsing/images only.
-        val playbackTransport = ServiceLocator.client.transportSnapshot()
+        playbackTransport = ServiceLocator.client.transportSnapshot()
+        sourceTracks = zepigit.firefin.app.playback.StreamSelection.tracks(org.json.JSONArray(intent.getStringExtra("p.tracks") ?: "[]"))
         val timeline = PlaybackTimeline.start(isTranscode, isHls, startMs)
         transcodeOffsetMs = timeline.offsetMs
         val playbackUrl = if (isTranscode && !isHls) {
@@ -72,9 +86,16 @@ class PlayerActivity : AppCompatActivity() {
             url
         }
         val playerView = findViewById<PlayerView>(R.id.playerView)
+        findViewById<android.widget.TextView>(R.id.playerTitle).text = name
+        findViewById<android.widget.Button>(R.id.playerAudio).setOnClickListener { showTrackDialog(C.TRACK_TYPE_AUDIO, "Tonspur") }
+        findViewById<android.widget.Button>(R.id.playerSubtitles).setOnClickListener { showTrackDialog(C.TRACK_TYPE_TEXT, "Untertitel") }
+        findViewById<android.widget.Button>(R.id.playerVideo).setOnClickListener { showTrackDialog(C.TRACK_TYPE_VIDEO, "Video") }
+        playerView.setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { visibility ->
+            findViewById<android.view.View>(R.id.playerActions).visibility = visibility
+        })
         engine = PlaybackEngine(this, playbackTransport.mediaHttp).also { e ->
             playerView.player = e.player
-            e.prepare(playbackUrl, timeline.preparePositionMs)
+            e.prepare(playbackUrl, timeline.preparePositionMs, intent.getStringExtra("p.subtitleUrl"), intent.getStringExtra("p.subtitleMime"))
         }
         engine?.player?.addListener(object : androidx.media3.common.Player.Listener {
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
@@ -87,7 +108,7 @@ class PlayerActivity : AppCompatActivity() {
             itemId,
             playSessionId,
             intent.getStringExtra(EXTRA_SOURCE).orEmpty(),
-            if (isTranscode) "Transcode" else "DirectPlay",
+            intent.getStringExtra("p.playMethod") ?: if (isTranscode) "Transcode" else "DirectPlay",
             intent.getStringExtra(EXTRA_LIVE_STREAM).orEmpty(),
         )
         reporter?.playing()
@@ -126,7 +147,10 @@ class PlayerActivity : AppCompatActivity() {
         player.playWhenReady = true
     }
 
+    override fun onResume() { super.onResume(); resumed = true }
+
     override fun onPause() {
+        resumed = false
         super.onPause()
         val p = engine?.player ?: return
         p.pause()
@@ -157,10 +181,24 @@ class PlayerActivity : AppCompatActivity() {
         val playerView = findViewById<PlayerView>(R.id.playerView)
         val controllerVisible = playerView.isControllerFullyVisible
         val keyCode = event.keyCode
+        if (switching && keyCode != KeyEvent.KEYCODE_BACK) return true
+        if (keyCode == KeyEvent.KEYCODE_BACK && event.action == KeyEvent.ACTION_UP && consumedBack) {
+            consumedBack = false
+            return true
+        }
+        if (keyCode == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE && event.action == KeyEvent.ACTION_DOWN) {
+            engine?.player?.let { if (it.playWhenReady) it.pause() else it.play() }
+            return true
+        }
         if (controllerVisible) {
             if (event.action == KeyEvent.ACTION_DOWN) {
                 when (keyCode) {
                     KeyEvent.KEYCODE_MENU -> {
+                        playerView.hideController()
+                        return true
+                    }
+                    KeyEvent.KEYCODE_BACK -> {
+                        consumedBack = true
                         playerView.hideController()
                         return true
                     }
@@ -203,7 +241,68 @@ class PlayerActivity : AppCompatActivity() {
     /** Deterministic track selection dialog (audio/subtitle) driven by ExoPlayer track state. */
     private fun showTrackDialog(trackType: Int, title: String) {
         val player = engine?.player ?: return
-        androidx.media3.ui.TrackSelectionDialogBuilder(this, title, player, trackType).build().show()
+        val type = if (trackType == C.TRACK_TYPE_AUDIO) "Audio" else "Subtitle"
+        val available = sourceTracks.filter { it.type == type }
+        if (directPlay || trackType == C.TRACK_TYPE_VIDEO || available.isEmpty()) {
+            androidx.media3.ui.TrackSelectionDialogBuilder(this, title, player, trackType).build().show()
+            return
+        }
+        val labels = (if (type == "Subtitle") listOf("Aus") else emptyList()) + available.map { it.title }
+        androidx.appcompat.app.AlertDialog.Builder(this).setTitle(title).setItems(labels.toTypedArray()) { _, chosen ->
+            val index = if (type == "Subtitle" && chosen == 0) -1 else available[chosen - if (type == "Subtitle") 1 else 0].index
+            switchSourceTrack(type, index)
+        }.show()
+    }
+
+    private fun switchSourceTrack(type: String, index: Int) {
+        if (switching) return
+        val player = engine?.player ?: return
+        val credentials = playbackTransport.credentials()
+        fun sameAccount() = credentials.userId == ServiceLocator.session.userId && credentials.serverUrl == ServiceLocator.session.serverUrl && credentials.token == ServiceLocator.session.accessToken
+        if (!sameAccount()) return
+        switching = true
+        val position = actualPositionMs(player)
+        val wasPlaying = player.playWhenReady
+        player.pause()
+        player.stop()
+        player.clearMediaItems()
+        if (type == "Audio") audioIndex = index else subtitleIndex = index
+        scope.launch {
+            try {
+                reporter?.stopped(Ticks.fromMs(position))
+                reporter?.awaitTerminal()
+                reporter = null
+                if (!sameAccount()) { finish(); return@launch }
+                val source = ServiceLocator.client.playbackInfo(itemId, audioIndex, subtitleIndex, playbackTransport, sourceId)
+                if (!sameAccount() || isFinishing || isDestroyed) {
+                    SessionReporter(playbackTransport, itemId, source.playSessionId, source.mediaSourceId, source.playMethod, source.liveStreamId).stopped(Ticks.fromMs(position))
+                    if (!isFinishing && !isDestroyed) finish()
+                    return@launch
+                }
+                sourceId = source.mediaSourceId
+                directPlay = source.playMethod == "DirectPlay"
+                audioIndex = source.audioIndex; subtitleIndex = source.subtitleIndex
+                playSessionId = source.playSessionId
+                isTranscode = source.isTranscode; isHls = source.isHls
+                sourceTracks = source.tracks
+                val timeline = PlaybackTimeline.start(isTranscode, isHls, position)
+                transcodeOffsetMs = timeline.offsetMs
+                val url = if (isTranscode && !isHls) Urls.withStartTimeTicks(source.url, Ticks.fromMs(position)) else source.url
+                engine?.prepare(url, timeline.preparePositionMs, source.subtitleUrl, source.subtitleMime)
+                player.playWhenReady = wasPlaying && resumed
+                player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+                    .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, subtitleIndex == -1).build()
+                reporter = SessionReporter(playbackTransport, itemId, playSessionId, source.mediaSourceId, source.playMethod, source.liveStreamId)
+            } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+                Toast.makeText(this@PlayerActivity, "Spurwechsel abgebrochen: Sitzung konnte nicht beendet werden.", Toast.LENGTH_LONG).show()
+                finish()
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+            catch (e: Exception) {
+                Toast.makeText(this@PlayerActivity, e.message ?: "Spurwechsel fehlgeschlagen", Toast.LENGTH_LONG).show()
+                finish()
+            }
+            finally { switching = false }
+        }
     }
 
     companion object {
@@ -229,6 +328,12 @@ class PlayerActivity : AppCompatActivity() {
         isTranscode: Boolean = false,
         isHls: Boolean = false,
         liveStreamId: String = "",
+        subtitleUrl: String? = null,
+        subtitleMime: String? = null,
+        playMethod: String = if (isTranscode) "Transcode" else "DirectPlay",
+        tracks: List<zepigit.firefin.app.playback.SourceTrack> = emptyList(),
+        audioIndex: Int? = null,
+        subtitleIndex: Int? = null,
     ) {
         context.startActivity(
             Intent(context, PlayerActivity::class.java)
@@ -240,7 +345,11 @@ class PlayerActivity : AppCompatActivity() {
                 .putExtra(EXTRA_NAME, name)
                 .putExtra(EXTRA_TRANSCODE, isTranscode)
                 .putExtra(EXTRA_HLS, isHls)
-                .putExtra(EXTRA_LIVE_STREAM, liveStreamId),
+                .putExtra(EXTRA_LIVE_STREAM, liveStreamId)
+                .putExtra("p.subtitleUrl", subtitleUrl).putExtra("p.subtitleMime", subtitleMime)
+                .putExtra("p.playMethod", playMethod)
+                .putExtra("p.audioIndex", audioIndex ?: Int.MIN_VALUE).putExtra("p.subtitleIndex", subtitleIndex ?: Int.MIN_VALUE)
+                .putExtra("p.tracks", org.json.JSONArray(tracks.map { track -> org.json.JSONObject().put("Index", track.index).put("Type", track.type).put("Language", track.language).put("DisplayTitle", track.title) }).toString()),
         )
     }
     }

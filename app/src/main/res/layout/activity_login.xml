@@ -1,73 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="#101418"
-    android:gravity="center"
-    android:orientation="vertical"
-    android:padding="48dp">
-
-    <TextView
-        android:id="@+id/title"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="32dp"
-        android:text="@string/login_title"
-        android:textColor="#FFFFFF"
-        android:textSize="28sp"
-        android:textStyle="bold" />
-
-    <EditText
-        android:id="@+id/serverUrl"
-        android:layout_width="560dp"
-        android:layout_height="wrap_content"
-        android:hint="@string/server_url_hint"
-        android:imeOptions="actionNext"
-        android:inputType="textUri"
-        android:singleLine="true"
-        android:textColor="#FFFFFF" />
-
-    <EditText
-        android:id="@+id/username"
-        android:layout_width="560dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:hint="@string/username_hint"
-        android:imeOptions="actionNext"
-        android:inputType="text"
-        android:singleLine="true"
-        android:textColor="#FFFFFF" />
-
-    <EditText
-        android:id="@+id/password"
-        android:layout_width="560dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:hint="@string/password_hint"
-        android:imeOptions="actionDone"
-        android:inputType="textPassword"
-        android:singleLine="true"
-        android:textColor="#FFFFFF" />
-
-    <Button
-        android:id="@+id/loginButton"
-        android:layout_width="280dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:text="@string/login_button" />
-
-    <ProgressBar
-        android:id="@+id/progress"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:visibility="gone" />
-
-    <TextView
-        android:id="@+id/error"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:textColor="#FF8A80"
-        android:visibility="gone" />
-</LinearLayout>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/login_gradient" android:fillViewport="true">
+<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:orientation="vertical" android:padding="24dp">
+<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Firefin" android:textColor="@color/accent" android:textSize="38sp" android:textStyle="bold" android:layout_marginBottom="20dp"/>
+<LinearLayout android:layout_width="540dp" android:layout_height="wrap_content" android:orientation="vertical" android:padding="24dp" android:gravity="center_horizontal" android:background="@drawable/panel_background">
+<TextView android:id="@+id/title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Mit deinem Jellyfin-Server verbinden" android:textSize="20sp" android:layout_marginBottom="18dp"/>
+<EditText android:id="@+id/serverUrl" android:layout_width="match_parent" android:layout_height="48dp" android:background="@drawable/input_background" android:padding="12dp" android:hint="@string/server_url_hint" android:inputType="textUri" android:singleLine="true" android:imeOptions="actionNext" android:textSize="14sp"/>
+<EditText android:id="@+id/username" android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginTop="12dp" android:background="@drawable/input_background" android:padding="12dp" android:hint="@string/username_hint" android:inputType="text" android:singleLine="true" android:imeOptions="actionNext" android:textSize="14sp"/>
+<EditText android:id="@+id/password" android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginTop="12dp" android:background="@drawable/input_background" android:padding="12dp" android:hint="@string/password_hint" android:inputType="textPassword" android:singleLine="true" android:imeOptions="actionDone" android:textSize="14sp"/>
+<Button android:id="@+id/loginButton" android:layout_width="220dp" android:layout_height="48dp" android:layout_marginTop="18dp" android:text="Anmelden"/>
+<ProgressBar android:id="@+id/progress" android:layout_width="32dp" android:layout_height="32dp" android:layout_marginTop="8dp" android:visibility="gone"/>
+<TextView android:id="@+id/error" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:textColor="@color/error" android:visibility="gone"/>
+</LinearLayout></LinearLayout></ScrollView>
