@@ -110,7 +110,7 @@ class SearchActivity : AppCompatActivity() {
                     catch (e: Exception) {
                         if (!queryGate.isCurrent(generation)) return@launch
                         rows.submit(emptyList(), emptyList())
-                        empty.text = e.message ?: getString(R.string.error_generic)
+                        empty.text = errorMessage(e)
                         empty.visibility = View.VISIBLE
                     }
                     finally {

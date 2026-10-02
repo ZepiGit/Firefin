@@ -87,9 +87,9 @@ class PlayerActivity : AppCompatActivity() {
         }
         val playerView = findViewById<PlayerView>(R.id.playerView)
         findViewById<android.widget.TextView>(R.id.playerTitle).text = name
-        findViewById<android.widget.Button>(R.id.playerAudio).setOnClickListener { showTrackDialog(C.TRACK_TYPE_AUDIO, "Tonspur") }
-        findViewById<android.widget.Button>(R.id.playerSubtitles).setOnClickListener { showTrackDialog(C.TRACK_TYPE_TEXT, "Untertitel") }
-        findViewById<android.widget.Button>(R.id.playerVideo).setOnClickListener { showTrackDialog(C.TRACK_TYPE_VIDEO, "Video") }
+        findViewById<android.widget.Button>(R.id.playerAudio).setOnClickListener { showTrackDialog(C.TRACK_TYPE_AUDIO, getString(R.string.track_audio)) }
+        findViewById<android.widget.Button>(R.id.playerSubtitles).setOnClickListener { showTrackDialog(C.TRACK_TYPE_TEXT, getString(R.string.track_subtitles)) }
+        findViewById<android.widget.Button>(R.id.playerVideo).setOnClickListener { showTrackDialog(C.TRACK_TYPE_VIDEO, getString(R.string.track_video)) }
         playerView.setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { visibility ->
             findViewById<android.view.View>(R.id.playerActions).visibility = visibility
         })
@@ -203,11 +203,11 @@ class PlayerActivity : AppCompatActivity() {
                         return true
                     }
                     KeyEvent.KEYCODE_DPAD_UP -> {
-                        showTrackDialog(C.TRACK_TYPE_AUDIO, "Tonspur")
+                        showTrackDialog(C.TRACK_TYPE_AUDIO, getString(R.string.track_audio))
                         return true
                     }
                     KeyEvent.KEYCODE_DPAD_DOWN -> {
-                        showTrackDialog(C.TRACK_TYPE_TEXT, "Untertitel")
+                        showTrackDialog(C.TRACK_TYPE_TEXT, getString(R.string.track_subtitles))
                         return true
                     }
                 }
@@ -247,7 +247,7 @@ class PlayerActivity : AppCompatActivity() {
             androidx.media3.ui.TrackSelectionDialogBuilder(this, title, player, trackType).build().show()
             return
         }
-        val labels = (if (type == "Subtitle") listOf("Aus") else emptyList()) + available.map { it.title }
+        val labels = (if (type == "Subtitle") listOf(getString(R.string.subtitles_off)) else emptyList()) + available.map { it.title }
         androidx.appcompat.app.AlertDialog.Builder(this).setTitle(title).setItems(labels.toTypedArray()) { _, chosen ->
             val index = if (type == "Subtitle" && chosen == 0) -1 else available[chosen - if (type == "Subtitle") 1 else 0].index
             switchSourceTrack(type, index)
@@ -294,11 +294,11 @@ class PlayerActivity : AppCompatActivity() {
                     .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, subtitleIndex == -1).build()
                 reporter = SessionReporter(playbackTransport, itemId, playSessionId, source.mediaSourceId, source.playMethod, source.liveStreamId)
             } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
-                Toast.makeText(this@PlayerActivity, "Spurwechsel abgebrochen: Sitzung konnte nicht beendet werden.", Toast.LENGTH_LONG).show()
+                Toast.makeText(this@PlayerActivity, R.string.track_switch_aborted, Toast.LENGTH_LONG).show()
                 finish()
             } catch (e: kotlinx.coroutines.CancellationException) { throw e }
             catch (e: Exception) {
-                Toast.makeText(this@PlayerActivity, e.message ?: "Spurwechsel fehlgeschlagen", Toast.LENGTH_LONG).show()
+                Toast.makeText(this@PlayerActivity, errorMessage(e, R.string.track_switch_failed), Toast.LENGTH_LONG).show()
                 finish()
             }
             finally { switching = false }

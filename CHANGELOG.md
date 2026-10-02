@@ -6,18 +6,38 @@ preserved unchanged as history.
 
 ## Native Firefin
 
-### 0.2.3-firefin (versionCode 3001003), unreleased
+### Unreleased
 
-Not released: no signed APK exists and no AFTT hardware result is recorded.
+- The interface now defaults to English. The previous German texts are kept as a
+  German translation (`values-de`) and are used on devices set to German.
+- User-visible text in the screens and layouts moved from Kotlin code into
+  string resources. Seerr and Moonbase error messages carry a string resource and
+  are shown in the device language.
+- Not localized and still English: errors from the Jellyfin transport and playback
+  negotiation (for example "Server request failed (HTTP 500)"), the server
+  address validation messages on the sign-in screen, the Jellyfin sort key shown
+  in the library title, the Media3 error code in the player error toast, and
+  internal guard messages that the UI prevents from being reached.
+- Added a JVM test that keeps the English and German resource files in sync
+  (same keys, format placeholders and no edge whitespace that the resource
+  compiler would drop).
+
+### 0.2.3-firefin (versionCode 3001003)
+
+Published on 2026-10-02 as a signed GitHub release (tag `firefin-v0.2.3-firefin`)
+by the protected release workflow from commit
+`e9760aa62e71f5ddb1b7a7f806b0d26c0726c987`; the APK was checked against the
+pinned production signing certificate. No AFTT hardware result is recorded.
 The tested implementation snapshot is `c9da933aa2a331c760325b97e777b51be7d4980f`.
 Later documentation-only and ancestry-merge commits do not change its app code.
 CI results are per-SHA records in GitHub Actions, not inferred from local tests.
 
 Verified locally on the implementation snapshot: 60 JVM unit tests, API22
 instrumentation login-focus test, strict debug/release lint (0 errors; current
-reports contain 118 warnings), R8 release APK (unsigned), and the manual API22
-x86 flow record in `docs/FIREFIN_MIGRATION.md`. No AFTT hardware or signed
-release is claimed.
+reports contain 118 warnings), R8 release APK (unsigned CI build), and the manual
+API22 x86 flow record in `docs/FIREFIN_MIGRATION.md`. The published release APK
+was built and verified by the protected release workflow. No AFTT hardware
+result is claimed.
 
 #### Native implementation scope (tested snapshot `c9da933aa2a331c760325b97e777b51be7d4980f`)
 
@@ -55,7 +75,7 @@ release is claimed.
 
 Quick Connect code polling, all library types beyond movies/shows/mixed, Live
 TV, downloads, music, books/comics/photos, DLNA, admin, plugin sync, settings
-and parental controls, a signed release, and an AFTT hardware run remain open.
+and parental controls, and an AFTT hardware run remain open.
 The native Seerr subset (Moonbase detection, discovery, search, detail, status,
 season selection and confirmation) is implemented; people/4K/admin and live
 request submission are intentionally not claimed. See

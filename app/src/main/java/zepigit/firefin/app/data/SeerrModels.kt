@@ -1,7 +1,9 @@
 package zepigit.firefin.app.data
 
+import androidx.annotation.StringRes
 import org.json.JSONArray
 import org.json.JSONObject
+import zepigit.firefin.app.R
 
 private fun JSONObject.array(name: String): List<JSONObject> = optJSONArray(name)?.let { a ->
     (0 until a.length()).mapNotNull { a.optJSONObject(it) }
@@ -21,14 +23,15 @@ data class SeerrMedia(
     val pendingSeasons: Set<Int> = emptySet(),
 ) {
     val key: String get() = "$type:$id"
-    val statusLabel: String get() = when (status) {
-        2 -> "Angefragt"
-        3 -> "In Bearbeitung"
-        4 -> "Teilweise verfügbar"
-        5 -> "Verfügbar"
-        6 -> "Gesperrt"
-        7 -> "Gelöscht"
-        else -> "Noch nicht verfügbar"
+    @get:StringRes
+    val statusLabelRes: Int get() = when (status) {
+        2 -> R.string.seerr_status_requested
+        3 -> R.string.seerr_status_processing
+        4 -> R.string.seerr_status_partial
+        5 -> R.string.seerr_status_available
+        6 -> R.string.seerr_status_blocked
+        7 -> R.string.seerr_status_deleted
+        else -> R.string.seerr_status_unavailable
     }
     fun card(): MediaItem = MediaItem(
         key, title, if (type == "movie") "Movie" else "Series", year, overview,
@@ -39,11 +42,11 @@ data class SeerrMedia(
     }
     val requestable: Boolean get() = if (type == "movie") status !in setOf(2, 3, 4, 5, 6) else eligibleSeasons.isNotEmpty()
     fun requestBody(selectedSeasons: List<Int>): JSONObject {
-        require(id > 0 && type in setOf("movie", "tv") && requestable) { "Dieser Titel ist nicht anforderbar." }
+        require(id > 0 && type in setOf("movie", "tv") && requestable) { "This title cannot be requested." }
         val body = JSONObject().put("mediaType", type).put("mediaId", id).put("is4k", false)
         if (type == "tv") {
             val eligible = eligibleSeasons.map { it.number }
-            require(selectedSeasons.isNotEmpty() && selectedSeasons.all { it in eligible }) { "Keine anforderbaren Staffeln gewählt." }
+            require(selectedSeasons.isNotEmpty() && selectedSeasons.all { it in eligible }) { "No requestable seasons selected." }
             body.put("seasons", JSONArray(selectedSeasons.distinct().sorted()))
         }
         return body
@@ -79,13 +82,14 @@ data class SeerrPage(val page: Int, val totalPages: Int, val items: List<SeerrMe
 }
 
 data class SeerrRequest(val id: Int, val mediaId: Int, val type: String, val status: Int) {
-    val statusLabel: String get() = when (status) {
-        1 -> "Ausstehend"
-        2 -> "Genehmigt"
-        3 -> "Abgelehnt"
-        4 -> "Fehlgeschlagen"
-        5 -> "Abgeschlossen"
-        else -> "Unbekannt"
+    @get:StringRes
+    val statusLabelRes: Int get() = when (status) {
+        1 -> R.string.seerr_request_pending
+        2 -> R.string.seerr_request_approved
+        3 -> R.string.seerr_request_declined
+        4 -> R.string.seerr_request_failed
+        5 -> R.string.seerr_request_completed
+        else -> R.string.seerr_request_unknown
     }
     companion object {
         fun from(json: JSONObject): SeerrRequest {

@@ -8,11 +8,12 @@ Application ID, namespace and base package are `zepigit.firefin.app`.
 The migration ledger records implementation decisions, verification evidence and
 remaining external prerequisites.
 
-**Status: incomplete, not release-ready.** The previous completion labels were
-not acceptance evidence. This ledger supersedes the inaccurate earlier claims
+**Status: incomplete; no AFTT hardware approval.** The previous completion labels
+were not acceptance evidence. This ledger supersedes the inaccurate earlier claims
 of clean lint, all review findings fixed, protected signing, bounded disk decode,
-and completed API-22 validation. No final hardware or release approval
-is claimed. No Flutter cleanup is permitted while active features lack parity.
+and completed API-22 validation. Release `0.2.3-firefin` was published by the
+protected workflow (see Gate 7); no AFTT hardware approval is claimed. No Flutter
+cleanup is permitted while active features lack parity.
 
 ## Current verification snapshot
 
@@ -37,7 +38,7 @@ No CI or device result is inferred from local tests.
 | API 22 stock x86 emulator: login, Moonfin-like Home/Library/Detail/Search/Settings, Seerr discovery/search/detail/season confirmation, TMDB artwork, 480p playback, resume, track dialog and cleanup | Verified manually; x86 codec evidence is not AFTT hardware evidence |
 | Final commit CI (`android.yml`) | Consult GitHub Actions for the exact SHA; local gates are separate evidence |
 | Physical AFTT (ARMv7) run | **Absent** |
-| Signed release (protected `release.yml`, production key, pinned fingerprint) | **Absent**; workflow never run |
+| Signed release (protected `release.yml`, production key, pinned fingerprint) | Published for `0.2.3-firefin` (run 37055114680); not validated on AFTT hardware |
 | API 22 playback/D-Pad smoke; media redirect behavior on device (JVM test present); feature parity outside the implemented slim Seerr/Moonbase subset (Live TV, downloads, music, books, DLNA, admin, plugin sync, Seerr people/4K) | **Open** |
 
 The old "18/21 tests" and "5m25s" CI figures describe earlier trees and are not
@@ -93,8 +94,8 @@ unproven or incomplete; HISTORICAL means evidence applies only to its named SHA.
 | Gate 6: stored/effective preferences and end-to-end plugin sync | Preferences and protocol fixture tests; no unused-only type proof | OPEN |
 | Gate 6: trust chain/hostname, API22 CA policy, redirect/token isolation | Transport TLS and redirect negative tests | Partial: default trust (no bypass in code), REST redirect and header-only token tests; no TLS negative tests, media-client redirect tests exist; device-side redirect behavior remains open, no API22 CA test |
 | Gate 7: actionlint, wrapper/dependency verification, tests, strict debug/release lint, both builds | android.yml with mandatory reports/APKs | Local implementation-snapshot run: 60 tests, 0 lint errors, both APKs and adjusted verifier pass; final-SHA CI and dependency-verification metadata remain separate |
-| Gate 7: separate protected signing, required secrets, stable cert, tag/full SHA, v1, checksums/source | release.yml, verifier, protected environment and actual run/release | OPEN: workflow implemented, never run; secrets, pinned fingerprint and environment reviewers unconfirmed |
-| Gate 8: native-only cleanup after parity; updated public English docs/templates | README, BUILDING, COMPATIBILITY, CHANGELOG, SECURITY, notices/templates | Partial: the seven English docs updated for the current tree; issue/PR templates, `FIRETV32-README.md`, `RELEASE_NOTES_*` and the German UI strings are untouched |
+| Gate 7: separate protected signing, required secrets, stable cert, tag/full SHA, v1, checksums/source | release.yml, verifier, protected environment and actual run/release | DONE for 0.2.3: the protected `firefin-release` environment (required reviewer, `main` only), the production signing secrets and the pinned certificate fingerprint are configured; run 37055114680 built, verified and published `firefin-v0.2.3-firefin` from `e9760aa62e71f5ddb1b7a7f806b0d26c0726c987`. Earlier attempts failed for setup reasons (SDK path, keystore secret content, annotated tag) and were corrected; the tags `firefin-v0.2.0-firefin`, `firefin-v0.2.1-firefin` and `firefin-v0.2.2-firefin` exist without a release |
+| Gate 8: native-only cleanup after parity; updated public English docs/templates | README, BUILDING, COMPATIBILITY, CHANGELOG, SECURITY, notices/templates | Partial: the seven English docs updated for the current tree; issue/PR templates, `FIRETV32-README.md` and `RELEASE_NOTES_*` are untouched; the UI is English by default with a German translation |
 | Final SHA: repeat tests/reviews/CI/APK after cleanup; no stale-run substitution | Exact frozen commit snapshot, local reports and CI run references | Final review and CI are verified against the frozen SHA outside this source snapshot |
 | Existing authorized server and hardware only; no new server/emulator platform | Fixtures/MockWebServer + stock SDK images; test account kept private | Required |
 | Independent verification scopes and exact candidate snapshots | Local reports and documented verification scopes | Partial |
@@ -140,11 +141,12 @@ alone is not proof of Fire-TV reachability. The feature matrix records gates and
 ## External gates (not waived)
 
 - No explicit approval to replace the published main history has been given.
-- Production signing key, pinned signing certificate (`FIREFIN_CERTIFICATE_SHA256`)
-  and the protected `firefin-release` environment with required reviewers must
-  exist before a release can succeed; no debug-key release. The release workflow
-  needs a lightweight tag `firefin-v0.2.3-firefin` on a reviewed `main` commit
-  with a successful `android.yml` run for that SHA.
+- A release needs the production signing key, the pinned signing certificate
+  (`FIREFIN_CERTIFICATE_SHA256`) and the protected `firefin-release` environment
+  with required reviewers; there is no debug-key release. These exist and
+  `0.2.3-firefin` was published with them. Every future release still needs a new
+  version, a lightweight tag `firefin-v<version>` on a `main` commit and a
+  successful `android.yml` run for that SHA.
 - API22 stock emulator and actual AFTT are separate evidence. The emulator
   install/launch smoke exists; the AFTT run does not. Hardware release approval
   remains separate from x86 smoke.
@@ -176,9 +178,10 @@ Findings against 56134a362, all fixed on the follow-up commit:
   suite; the reporter contract tests were rewritten to drain recorded requests
   only after the terminal state (no scheduler timing dependence).
 
-Historical open-items note: the tested implementation snapshot has API-22 x86
-playback/D-Pad evidence recorded below. Still open and explicitly not claimed:
-real AFTT hardware evidence, production signing, CI on the final commit, and
+Historical open-items note (written before the first signed release; production
+signing is done for `0.2.3-firefin`, see Gate 7): the tested implementation
+snapshot has API-22 x86 playback/D-Pad evidence recorded below. Still open and
+explicitly not claimed: real AFTT hardware evidence, CI on the final commit, and
 full legacy-feature parity (Live TV, downloads, music, books, DLNA, Quick
 Connect code polling, admin, plugin sync, Seerr people/4K).
 

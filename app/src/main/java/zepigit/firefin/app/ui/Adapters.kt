@@ -42,8 +42,8 @@ class MediaCardAdapter(
         holder.name.text = if ((item.isEpisode || item.type == "Season") && item.seriesName.isNotEmpty()) "${item.seriesName} · ${item.name}" else item.name
         holder.subtitle.text = buildString {
             if (item.year > 0) append(item.year)
-            if (item.played) append("  ✓ Gesehen")
-            else if (item.resumeTicks > 0) append("  ▶ Fortsetzen")
+            if (item.played) append("  ✓ ").append(holder.itemView.context.getString(R.string.mark_watched))
+            else if (item.resumeTicks > 0) append("  ▶ ").append(holder.itemView.context.getString(R.string.resume))
         }
         if (artwork != null) artwork.invoke(item, holder.image) else {
             val type = when {

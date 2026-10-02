@@ -4,16 +4,16 @@
 <View android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/backdrop_scrim"/>
 <ScrollView android:layout_width="match_parent" android:layout_height="match_parent" android:fillViewport="true">
 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="36dp">
-<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="FIREFIN / MEDIATHEK" android:textSize="12sp" android:textColor="@color/accent" android:layout_marginBottom="20dp"/>
+<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/detail_breadcrumb" android:textSize="12sp" android:textColor="@color/accent" android:layout_marginBottom="20dp"/>
 <TextView android:id="@+id/name" android:layout_width="620dp" android:layout_height="wrap_content" android:textSize="32sp" android:textStyle="bold"/>
 <TextView android:id="@+id/meta" android:layout_width="620dp" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:textColor="@color/text_secondary" android:textSize="14sp"/>
 <TextView android:id="@+id/overview" android:layout_width="620dp" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:maxLines="5" android:ellipsize="end" android:lineSpacingExtra="3dp" android:textSize="14sp"/>
 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:orientation="horizontal">
-<Button android:id="@+id/playButton" android:layout_width="wrap_content" android:layout_height="48dp" android:text="▶ Abspielen"/>
-<Button android:id="@+id/restartButton" android:layout_width="wrap_content" android:layout_height="48dp" android:layout_marginStart="10dp" android:text="Von Anfang" android:visibility="gone"/>
-<Button android:id="@+id/favoriteButton" android:layout_width="wrap_content" android:layout_height="48dp" android:layout_marginStart="10dp" android:text="Favorit"/>
-<Button android:id="@+id/watchedButton" android:layout_width="wrap_content" android:layout_height="48dp" android:layout_marginStart="10dp" android:text="Gesehen"/>
-<Button android:id="@+id/retryButton" android:layout_width="wrap_content" android:layout_height="48dp" android:layout_marginStart="10dp" android:text="Erneut laden" android:visibility="gone"/>
+<Button android:id="@+id/playButton" android:layout_width="wrap_content" android:layout_height="48dp" android:text="@string/play_with_icon"/>
+<Button android:id="@+id/restartButton" android:layout_width="wrap_content" android:layout_height="48dp" android:layout_marginStart="10dp" android:text="@string/restart" android:visibility="gone"/>
+<Button android:id="@+id/favoriteButton" android:layout_width="wrap_content" android:layout_height="48dp" android:layout_marginStart="10dp" android:text="@string/favorite"/>
+<Button android:id="@+id/watchedButton" android:layout_width="wrap_content" android:layout_height="48dp" android:layout_marginStart="10dp" android:text="@string/mark_watched"/>
+<Button android:id="@+id/retryButton" android:layout_width="wrap_content" android:layout_height="48dp" android:layout_marginStart="10dp" android:text="@string/reload" android:visibility="gone"/>
 </LinearLayout>
 <TextView android:id="@+id/childrenTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp" android:textSize="18sp"/>
 <androidx.recyclerview.widget.RecyclerView android:id="@+id/children" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:clipToPadding="false" android:padding="6dp"/>

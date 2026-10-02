@@ -2,8 +2,9 @@
 
 ## Supported release
 
-No signed Firefin release has been published yet. Until one exists, security
-reports should target the latest commit of the native app on `main`. Do not
+Signed Firefin releases are published on the GitHub releases page and tagged
+`firefin-v<version>`. Security reports should target the newest release or the
+latest commit of the native app on `main`. Do not
 include server passwords, access tokens, private URLs, full database files or
 unsanitized logs in public issues.
 
@@ -52,7 +53,7 @@ completed security audit; open items are listed below.
   in app-private SharedPreferences, unencrypted, with `allowBackup="false"`.
   Logout clears server, user and token.
 - **Version header.** The client identifies itself with `BuildConfig.VERSION_NAME`,
-  currently `0.2.0-firefin`, matching the APK version.
+  the version from `version.properties`, matching the APK version.
 
 ## Signing key handling
 
@@ -61,9 +62,12 @@ and its passwords outside the repository, encrypted in backup and accessible
 only to release maintainers. The release workflow reads the key from the
 `FIREFIN_*` secrets and pins the certificate through the
 `FIREFIN_CERTIFICATE_SHA256` variable (see [BUILDING.md](BUILDING.md)); the key
-should be exposed only to the protected `firefin-release` job. Whether those
-secrets and the variable are configured is not recorded here. No production key
-or fingerprint is stored in this repository, and there is no debug-key release
+should be exposed only to the protected `firefin-release` job. The secrets and
+the variable are currently stored at repository level, not inside the
+`firefin-release` environment, and were used to publish `0.2.3-firefin`; the
+reviewer and branch rules of the environment gate the release job, but moving
+the values into the environment is an open hardening step. No production key or
+fingerprint is stored in this repository, and there is no debug-key release
 path.
 
 Never publish:

@@ -5,8 +5,9 @@ is kept at the end as history; it is validation-only and is never published.
 
 Build status for implementation snapshot `c9da933aa2a331c760325b97e777b51be7d4980f`: local verification passed
 60 unit tests, strict lint (0 errors; current reports contain 118 warnings) and an R8 release build, and
-the debug APK installed and launched on an API 22 stock x86 emulator. There is
-no signed release and no AFTT hardware result. The commit carrying these fixes
+the debug APK installed and launched on an API 22 stock x86 emulator. Signed
+APKs come only from the protected release workflow (release `0.2.3-firefin` is
+published); there is no AFTT hardware result. The commit carrying these fixes
 is documented per commit; CI runs are listed in docs/FIREFIN_MIGRATION.md.
 
 ## Toolchain (native)
@@ -111,7 +112,7 @@ above describe implementation snapshot `c9da933aa2a331c760325b97e777b51be7d4980f
 
 ## Protected release (`Firefin signed release`, `.github/workflows/release.yml`)
 
-Manual (`workflow_dispatch`) only. No release has been produced with it.
+Manual (`workflow_dispatch`) only. Release `0.2.3-firefin` was produced with it (run 37055114680).
 
 Inputs:
 

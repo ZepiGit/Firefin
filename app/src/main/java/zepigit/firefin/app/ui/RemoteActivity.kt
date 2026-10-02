@@ -41,7 +41,7 @@ class RemoteActivity : AppCompatActivity() {
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
-                    Toast.makeText(this@RemoteActivity, e.message ?: "Fehler", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@RemoteActivity, errorMessage(e), Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -62,7 +62,7 @@ class RemoteActivity : AppCompatActivity() {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                Toast.makeText(this@RemoteActivity, e.message ?: "Fehler", Toast.LENGTH_LONG).show()
+                Toast.makeText(this@RemoteActivity, errorMessage(e), Toast.LENGTH_LONG).show()
             } finally {
                 findViewById<android.widget.ProgressBar>(R.id.progress).visibility = View.GONE
             }
@@ -93,7 +93,7 @@ private class SessionsAdapter(
 
     override fun onBindViewHolder(holder: Holder, position: Int) {
         val session = sessions[position]
-        holder.device.text = session.deviceName.ifBlank { "Gerät" }
+        holder.device.text = session.deviceName.ifBlank { holder.itemView.context.getString(R.string.remote_device_fallback) }
         holder.info.text = buildString {
             if (session.userName.isNotEmpty()) append(session.userName)
             if (session.nowPlaying.isNotEmpty()) {

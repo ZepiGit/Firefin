@@ -35,8 +35,16 @@ class SeerrContractTest {
         assertEquals(2,page.page); assertEquals(3,page.totalPages); assertEquals("tv:9",page.items.single().key)
     }
     @Test fun `request failed and completed labels are distinct`() {
-        assertEquals("Fehlgeschlagen",SeerrRequest(1,2,"movie",4).statusLabel)
-        assertEquals("Abgeschlossen",SeerrRequest(1,2,"movie",5).statusLabel)
+        assertEquals(R.string.seerr_request_failed, SeerrRequest(1,2,"movie",4).statusLabelRes)
+        assertEquals(R.string.seerr_request_completed, SeerrRequest(1,2,"movie",5).statusLabelRes)
+    }
+    @Test fun `seerr errors carry a localizable resource and an english diagnostic`() {
+        assertEquals(R.string.seerr_error_401, SeerrException(401).messageRes)
+        assertEquals(emptyList<Any>(), SeerrException(401).formatArgs)
+        val other = SeerrException(418)
+        assertEquals(R.string.seerr_error_other, other.messageRes)
+        assertEquals(listOf<Any>(418), other.formatArgs)
+        assertEquals("Seerr request failed (HTTP 418).", other.message)
     }
     @Test fun `tmdb URLs reject traversal userinfo and full URLs`() {
         assertNull(TmdbArtwork.url("https://evil.test/a.jpg"))

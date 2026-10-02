@@ -11,7 +11,7 @@ This document keeps implementation and verification details separate from the pu
 - Target SDK: 34
 - Compile SDK: 35
 - Primary device profile: Fire OS 5 / Android API 22 / ARMv7
-- The interface is currently German only
+- Interface languages: English (default) and German, selected from the device language through Android string resources; a JVM test keeps both resource files in sync
 - Debug emulator ABIs: ARMv7 and x86
 - Release ABI: ARMv7
 
@@ -47,14 +47,13 @@ The standard local verification command is:
 
 The implementation snapshot has local evidence of 60 JVM tests, strict debug/release lint with 0 errors, APK verification and debug/unsigned-release assembly. The API-22 x86 emulator was used for login, navigation, search, Seerr flows, artwork, playback controls and resume checks.
 
-A production-signed release is not available yet. The release workflow requires protected signing credentials outside this repository.
+Signed releases are built only by the protected release workflow, which requires signing credentials stored outside this repository. Release `0.2.3-firefin` was built and verified against the pinned production certificate this way. It has not been validated on physical AFTT hardware.
 
 ## Known boundaries
 
 The following are not claimed complete for the slim native target:
 
 - Physical AFTT/ARMv7 validation
-- Production signing and public release distribution
 - Live TV/DVR
 - Offline downloads
 - Native music, book and photo readers

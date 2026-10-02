@@ -111,7 +111,7 @@ class LibraryActivity : AppCompatActivity() {
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                Toast.makeText(this@LibraryActivity, e.message ?: "Fehler", Toast.LENGTH_LONG).show()
+                Toast.makeText(this@LibraryActivity, errorMessage(e), Toast.LENGTH_LONG).show()
             } finally {
                 if (gen == generation) {
                     loading = false
