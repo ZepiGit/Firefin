@@ -16,9 +16,6 @@
   <a href="docs/FIREFIN_TECHNICAL_OVERVIEW.md"><img src="https://img.shields.io/badge/status-development-8b5cf6.svg" alt="Development status" /></a>
 </p>
 
-<p align="center">
-  <img src="app/src/main/res/drawable/tv_banner.png" width="320" alt="Firefin TV banner" />
-</p>
 
 Firefin is a native Android TV application for browsing, discovering and playing media from a Jellyfin server. It is built around a simple idea: the living-room interface should stay readable from a sofa, with every important action reachable by remote control. Firefin is derived from the Moonfin Core codebase and is an independent project, not affiliated with Moonfin, Jellyfin, Emby or Amazon. See [third-party notices](THIRD_PARTY_NOTICES.md) for attribution and licensing details.
 
