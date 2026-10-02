@@ -56,7 +56,7 @@ Still externally blocked and not claimed complete:
   production playback.
 - Protected production keystore/secrets for a signed release and certificate
   verification.
-- Native CI for commit `cf2ac1e31` is tracked separately; the local gates above are complete.
+- Native CI for commit `c9da933aa2a331c760325b97e777b51be7d4980f` is tracked separately; the local gates above are complete.
 
 ### Current native screenshots
 

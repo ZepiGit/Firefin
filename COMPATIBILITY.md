@@ -17,11 +17,11 @@ optional; Leanback launcher and TV banner are present.
 
 | Evidence | Result |
 |---|---|
-| Commit `cf2ac1e31` local gates | 60 unit tests pass; strict debug/release lint 0 errors; Debug/Release APKs build; release unsigned by design |
+| Commit `c9da933aa2a331c760325b97e777b51be7d4980f` local gates | 60 unit tests pass; strict debug/release lint 0 errors; Debug/Release APKs build; release unsigned by design |
 | API 22 stock x86 emulator | Login, Moonfin-like Home/Library/Detail/Search/Settings, Seerr discovery/search/detail/season confirmation, TMDB artwork, baseline 480p playback, resume, D-pad controller, audio dialog and cleanup exercised |
 | Physical AFTT (ARMv7) | **Absent.** No hardware decoder/memory/thermal result |
 | Signed release APK | **Absent.** Production keystore and protected environment unavailable |
-| Native CI on `cf2ac1e31` | Run separately; local gates above are complete |
+| Native CI on `c9da933aa2a331c760325b97e777b51be7d4980f` | Run separately; local gates above are complete |
 
 The emulator is x86; it does not validate ARMv7 codecs, the 1 GB memory limit
 or real remote hardware. Treat Fire OS behavior as unproven until an AFTT run is

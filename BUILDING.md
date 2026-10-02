@@ -106,7 +106,7 @@ upload (`if-no-files-found: error`).
 
 Artifacts: `firefin-candidate-<sha>` (both APKs and verification JSON) and
 `firefin-reports-<sha>` (test and lint reports). The candidate APKs are
-validation artifacts, not releases. Native CI for commit `cf2ac1e31` is
+validation artifacts, not releases. Native CI for commit `c9da933aa2a331c760325b97e777b51be7d4980f` is
 tracked separately from this local verification record.
 
 ## Protected release (`Firefin signed release`, `.github/workflows/release.yml`)

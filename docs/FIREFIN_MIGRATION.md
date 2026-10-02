@@ -19,20 +19,20 @@ is claimed. No Flutter cleanup is permitted while active features lack parity.
 Native identity: `zepigit.firefin.app`, `0.2.0-firefin`, versionCode `3001000`
 (`version.properties`; above the legacy `3000028`), minSdk 21, targetSdk 34.
 
-Evidence basis: committed candidate `cf2ac1e31` on branch
+Evidence basis: committed candidate `c9da933aa2a331c760325b97e777b51be7d4980f` on branch
 `feature/moonfin-ui-seerr`; its tree matches the reviewed local candidate.
 Local gate evidence is
 60 JVM tests, a passing API22 instrumentation login-focus test, strict lint
 with 0 errors, Debug/Release builds, API22 emulator screens and real Moonbase
 test-server checks. The Seerr check used password
 login; QuickConnect/Jellyfin-SSO code flows are not implemented or advertised.
-Native CI for `cf2ac1e31` is tracked separately; no CI result is inferred from the local run.
+Native CI for `c9da933aa2a331c760325b97e777b51be7d4980f` is tracked separately; no CI result is inferred from the local run.
 
 | Evidence | Status |
 |---|---|
 | Clean local build: 60 unit tests, strict debug/release lint 0 errors, R8 release APK (unsigned) | Verified locally on current candidate |
 | API 22 stock x86 emulator: login, Moonfin-like Home/Library/Detail/Search/Settings, Seerr discovery/search/detail/season confirmation, TMDB artwork, 480p playback, resume, track dialog and cleanup | Verified manually; x86 codec evidence is not AFTT hardware evidence |
-| Native CI (`android.yml`) on `cf2ac1e31` | Run separately; local gates above are complete |
+| Native CI (`android.yml`) on `c9da933aa2a331c760325b97e777b51be7d4980f` | Run separately; local gates above are complete |
 | Physical AFTT (ARMv7) run | **Absent** |
 | Signed release (protected `release.yml`, production key, pinned fingerprint) | **Absent**; workflow never run |
 | API 22 playback/D-Pad smoke; media redirect behavior on device (JVM test present); feature parity outside the implemented slim Seerr/Moonbase subset (Live TV, downloads, music, books, DLNA, admin, plugin sync, Seerr people/4K) | **Open** |
@@ -92,7 +92,7 @@ unproven or incomplete; HISTORICAL means evidence applies only to its named SHA.
 | Gate 7: actionlint, wrapper/dependency verification, tests, strict debug/release lint, both builds | android.yml with mandatory reports/APKs | Local current-candidate run: 60 tests, 0 lint errors, both APKs and adjusted verifier pass; CI and dependency-verification metadata remain open |
 | Gate 7: separate protected signing, required secrets, stable cert, tag/full SHA, v1, checksums/source | release.yml, verifier, protected environment and actual run/release | OPEN: workflow implemented, never run; secrets, pinned fingerprint and environment reviewers unconfirmed |
 | Gate 8: native-only cleanup after parity; updated public English docs/templates | README, BUILDING, COMPATIBILITY, CHANGELOG, SECURITY, notices/templates | Partial: the seven English docs updated for the current tree; issue/PR templates, `FIRETV32-README.md`, `RELEASE_NOTES_*` and the German UI strings are untouched |
-| Final SHA: repeat tests/reviews/CI/APK after cleanup; no stale-run substitution | Exact frozen commit snapshot, local reports and CI run references | OPEN until CI for `cf2ac1e31` completes |
+| Final SHA: repeat tests/reviews/CI/APK after cleanup; no stale-run substitution | Exact frozen commit snapshot, local reports and CI run references | OPEN until CI for `c9da933aa2a331c760325b97e777b51be7d4980f` completes |
 | Existing authorized server and hardware only; no new server/emulator platform | Fixtures/MockWebServer + stock SDK images; test account kept private | Required |
 | Independent verification scopes and exact candidate snapshots | Local reports and documented verification scopes | Partial |
 | Independent final architecture/security/UI/core/build reviews; developer fixes and rechecks | Documented findings and recheck outcomes | Sol gate requires follow-up regression coverage |
@@ -182,7 +182,7 @@ full legacy-feature parity (Live TV, downloads, music, books, DLNA, Quick
 Connect code polling, admin, plugin sync, Seerr people/4K).
 
 
-## Native candidate evidence for commit `cf2ac1e31` (2026-10-02)
+## Native candidate evidence for commit `c9da933aa2a331c760325b97e777b51be7d4980f` (2026-10-02)
 
 Current local evidence:
 
