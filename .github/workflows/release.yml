@@ -90,7 +90,7 @@ jobs:
           export FIREFIN_KEYSTORE_FILE="$RUNNER_TEMP/firefin-release.jks"
           trap 'rm -f "$FIREFIN_KEYSTORE_FILE"' EXIT
           umask 077
-          printf '%s' "$FIREFIN_KEYSTORE_BASE64" | base64 --decode > "$FIREFIN_KEYSTORE_FILE"
+          printf '%s' "$FIREFIN_KEYSTORE_BASE64" | tr -d '\r\n\t ' | base64 --decode > "$FIREFIN_KEYSTORE_FILE"
           ./gradlew --no-daemon -Pfirefin.productionSigning=true :app:testDebugUnitTest :app:lintDebug :app:lintRelease :app:assembleRelease
           mkdir -p artifacts
           VERSION="${RELEASE_TAG#firefin-v}"
