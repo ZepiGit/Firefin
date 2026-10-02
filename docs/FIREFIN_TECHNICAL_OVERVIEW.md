@@ -25,13 +25,13 @@ The app uses origin- and path-bound requests, header-based authentication and bo
 
 ### Moonbase / Seerr
 
-Moonbase/Seerr is optional. Firefin detects the configured Moonbase integration and provides discovery, combined search, title details, TV season selection, request history and a confirmation-based request flow.
+Moonbase/Seerr is optional. Moonbase must be installed with the Jellyfin server; it is the bridge through which Firefin reaches Seerr. Firefin detects the configured integration and provides discovery, combined search, title details, TV season selection, request history and a confirmation-based request flow.
 
 The Jellyfin login never forwards the Jellyfin password to Seerr automatically. Seerr sign-in is a separate user action in the Requests area.
 
 ## Playback profile
 
-The native profile negotiates up to 1920x1080 within a 4,000,000 bit/s total streaming budget, including audio. 720p, 480p and lower settings remain selectable. Stereo audio is the target profile.
+The native profile negotiates up to 1920x1080 within a 4,000,000 bit/s total streaming budget, including audio. 720p and 480p settings remain selectable. Stereo audio is the target profile.
 
 The 1080p ceiling is a client negotiation limit, not a physical hardware guarantee. The API-22 x86 emulator uses a debug-compatible baseline H.264 profile; physical ARMv7 decoder, thermal and sustained playback behavior still require AFTT validation.
 
