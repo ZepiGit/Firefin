@@ -159,19 +159,23 @@ class TransportRegressionTest {
 
     @Test fun `media reads fail on a stalled connection but not on long slow streams`() {
         MockWebServer().use { server ->
-            server.start()
-            val transport = ServerTransport(ServerCredentials(server.url("/").toString(), "u", "t"), "d", mediaReadTimeoutMs = 300)
+            // An IPv4 literal: OkHttp marks the timed-out route as failed, and on hosts
+            // where "localhost" also resolves to ::1 the next call would try that first.
+            val loopback = java.net.InetAddress.getByName("127.0.0.1")
+            server.start(loopback, 0)
+            val base = okhttp3.HttpUrl.Builder().scheme("http").host(loopback.hostAddress!!).port(server.port).build()
+            val transport = ServerTransport(ServerCredentials(base.toString(), "u", "t"), "d", mediaReadTimeoutMs = 300)
             assertEquals(0, transport.mediaHttp.callTimeoutMillis)
             assertEquals(300, transport.snapshot().mediaHttp.readTimeoutMillis)
             // The body starts, then the open connection delivers nothing more.
             server.enqueue(MockResponse().setBody("0123456789").setHeader("Content-Length", "1000").setSocketPolicy(SocketPolicy.KEEP_OPEN))
             val started = System.nanoTime()
-            val stalled = runCatching { transport.mediaHttp.newCall(get(server.url("videos/i1/stream"))).execute().use { it.body!!.bytes() } }
-            assertTrue(stalled.exceptionOrNull() is java.io.IOException)
+            val stalled = runCatching { transport.mediaHttp.newCall(get(base.resolve("videos/i1/stream")!!)).execute().use { it.body!!.bytes() } }
+            assertTrue(stalled.exceptionOrNull() is java.net.SocketTimeoutException)
             assertTrue(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started) < 5_000)
             // Ten chunks 100 ms apart take longer than the read timeout in total and still complete.
             server.enqueue(MockResponse().setBody(okio.Buffer().write(ByteArray(2_000))).throttleBody(200, 100, TimeUnit.MILLISECONDS))
-            val bytes = transport.mediaHttp.newCall(get(server.url("videos/i1/stream"))).execute().use { it.body!!.bytes() }
+            val bytes = transport.mediaHttp.newCall(get(base.resolve("videos/i1/stream")!!)).execute().use { it.body!!.bytes() }
             assertEquals(2_000, bytes.size)
         }
         assertEquals(30_000, ServerTransport(ServerCredentials("https://example.test", "u", "t"), "d").mediaHttp.readTimeoutMillis)
