@@ -3,7 +3,6 @@ package zepigit.firefin.app
 import android.content.Context
 import okhttp3.tls.HandshakeCertificates
 import okhttp3.tls.decodeCertificatePem
-import java.io.IOException
 import zepigit.firefin.app.data.JellyfinClient
 import zepigit.firefin.app.data.SessionStore
 import zepigit.firefin.app.images.ImageLoader
@@ -27,16 +26,19 @@ object ServiceLocator {
     fun init(context: Context) {
         session = SessionStore(context.applicationContext)
         preferences = zepigit.firefin.app.preferences.PreferenceStore(context.applicationContext, session)
-        client = JellyfinClient(session) { preferences.effective() }
+        // Android 5.1 predates ISRG Root X1 (Let's Encrypt), which platforms ship
+        // from 7.1.1 on. It is added next to the platform anchors, never instead of
+        // them; chain and hostname checks are unchanged for Jellyfin and TMDB.
+        val rootPem = context.resources.openRawResource(R.raw.isrgrootx1).bufferedReader().use { it.readText() }
+        val trust = HandshakeCertificates.Builder()
+            .addTrustedCertificate(rootPem.decodeCertificatePem())
+            .addPlatformTrustedCertificates().build()
+        client = JellyfinClient(session, trust) { preferences.effective() }
         images = ImageLoader(context.applicationContext, client.okHttp, accountKey = {
             session.serverUrl + "\u0000" + session.userId
         })
-        val rootPem = context.resources.openRawResource(R.raw.isrgrootx1).bufferedReader().use { it.readText() }
-        val certificates = HandshakeCertificates.Builder()
-            .addTrustedCertificate(rootPem.decodeCertificatePem())
-            .addPlatformTrustedCertificates().build()
         val publicHttp = okhttp3.OkHttpClient.Builder()
-            .sslSocketFactory(certificates.sslSocketFactory(), certificates.trustManager)
+            .sslSocketFactory(trust.sslSocketFactory(), trust.trustManager)
             .followRedirects(false).followSslRedirects(false).retryOnConnectionFailure(true)
             .addInterceptor { chain ->
                 val url = chain.request().url

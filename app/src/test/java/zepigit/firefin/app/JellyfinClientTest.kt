@@ -5,11 +5,15 @@ import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import zepigit.firefin.app.data.JellyfinClient
+import zepigit.firefin.app.data.MediaItem
+import zepigit.firefin.app.data.ServerResponseException
 import zepigit.firefin.app.data.SessionStore
+import java.util.concurrent.TimeUnit
 
 /**
  * JVM contract tests against a short-lived MockWebServer (test library only,
@@ -107,6 +111,71 @@ class JellyfinClientTest {
         val source = client.playbackInfo("i1")
         assertEquals(server.url("/remux.ts").toString(), source.url)
         assertEquals("DirectStream", source.playMethod)
+    }
+
+    private fun signIn() {
+        session.serverUrl = server.url("/").toString().trimEnd('/')
+        session.userId = "u1"; session.accessToken = "tok"; session.userName = "testuser"
+    }
+
+    @Test fun `favorite and watched marks set with POST and clear with DELETE on the same path`() = runBlocking {
+        signIn()
+        repeat(4) { server.enqueue(MockResponse().setBody("{}")) }
+        client.setFavorite("i1", true)
+        client.setFavorite("i1", false)
+        client.setPlayed("i1", true)
+        client.setPlayed("i1", false)
+        val requests = (1..4).map { server.takeRequest() }.map { it.method to it.path }
+        assertEquals(
+            listOf(
+                "POST" to "/Users/u1/FavoriteItems/i1",
+                "DELETE" to "/Users/u1/FavoriteItems/i1",
+                "POST" to "/Users/u1/PlayedItems/i1",
+                "DELETE" to "/Users/u1/PlayedItems/i1",
+            ),
+            requests,
+        )
+    }
+
+    @Test fun `a rejected unmark is reported instead of pretending success`() = runBlocking {
+        signIn()
+        server.enqueue(MockResponse().setResponseCode(500))
+        val failure = runCatching { client.setPlayed("i1", false) }.exceptionOrNull()
+        assertTrue(failure is ServerResponseException)
+    }
+
+    @Test fun `container children are paged by start index and keep the server total`() = runBlocking {
+        signIn()
+        server.enqueue(MockResponse().setBody("""{"Items":[{"Id":"e61","Type":"Episode","IndexNumber":61}],"TotalRecordCount":125}"""))
+        val season = MediaItem.from(org.json.JSONObject("""{"Id":"s1","Type":"Season"}"""))
+        val (page, total) = client.children(season, startIndex = 60)
+        assertEquals(125, total)
+        assertEquals("e61", page.single().id)
+        val path = server.takeRequest().path!!
+        assertTrue(path, path.contains("ParentId=s1") && path.contains("StartIndex=60") && path.contains("Limit=60") && path.contains("Recursive=false"))
+    }
+
+    @Test fun `recently added rows request the overview shown in the home preview`() = runBlocking {
+        signIn()
+        server.enqueue(MockResponse().setBody("[]"))
+        client.latest("lib1")
+        assertTrue(server.takeRequest().path!!.contains("Overview"))
+    }
+
+    @Test fun `logout revokes the token on the server and keeps the address for the next sign-in`() = runBlocking {
+        signIn()
+        val address = session.serverUrl
+        server.enqueue(MockResponse().setResponseCode(204))
+        client.logout()
+        session.clear()
+        val request = server.takeRequest(5, TimeUnit.SECONDS)!!
+        assertEquals("POST", request.method)
+        assertEquals("/Sessions/Logout", request.path)
+        assertTrue(request.getHeader("Authorization")!!.contains("Token=\"tok\""))
+        assertFalse(session.isLoggedIn)
+        assertEquals(address, session.serverUrl)
+        assertEquals("testuser", session.userName)
+        assertEquals("", session.accessToken)
     }
 
     /** Minimal in-memory SharedPreferences so SessionStore runs in JVM tests. */

@@ -17,6 +17,11 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -147,14 +152,24 @@ class SeerrActivity : AppCompatActivity() {
                 val result = if (requests) {
                     val (list, total) = client.requests((selectedPage - 1) * 20)
                     pages = ((total + 19) / 20).coerceAtLeast(1)
-                    list.distinctBy { "${it.type}:${it.mediaId}" }.mapNotNull { entry ->
-                        if (entry.mediaId <= 0 || entry.type !in setOf("movie", "tv")) null
-                        else runCatching { client.detail(entry.type, entry.mediaId) }
-                            .getOrElse {
-                                if (it is CancellationException || it is SessionExpiredException) throw it
-                                SeerrMedia(entry.mediaId, entry.type, getString(R.string.seerr_request_number, entry.id), getString(entry.statusLabelRes), null, null, 0, entry.status)
-                            }
-                            .let { it.copy(overview = "${getString(entry.statusLabelRes)}\n${it.overview}") }
+                    // Details are fetched concurrently but bounded, so a page of requests
+                    // does not open one Moonbase round trip per entry at once.
+                    val limiter = Semaphore(DETAIL_CONCURRENCY)
+                    coroutineScope {
+                        list.distinctBy { "${it.type}:${it.mediaId}" }
+                            .filter { it.mediaId > 0 && it.type in setOf("movie", "tv") }
+                            .map { entry ->
+                                async {
+                                    limiter.withPermit {
+                                        runCatching { client.detail(entry.type, entry.mediaId) }
+                                            .getOrElse {
+                                                if (it is CancellationException || it is SessionExpiredException) throw it
+                                                SeerrMedia(entry.mediaId, entry.type, getString(R.string.seerr_request_number, entry.id), getString(entry.statusLabelRes), null, null, 0, entry.status)
+                                            }
+                                            .let { it.copy(overview = "${getString(entry.statusLabelRes)}\n${it.overview}") }
+                                    }
+                                }
+                            }.awaitAll()
                     }
                 } else {
                     val result = client.page(category, selectedPage, selectedQuery)
@@ -191,4 +206,8 @@ class SeerrActivity : AppCompatActivity() {
         findViewById<Button>(R.id.seerrConnect).setText(if (connected) R.string.reload else R.string.connect)
     }
     override fun onDestroy() { scope.cancel(); super.onDestroy() }
+
+    private companion object {
+        const val DETAIL_CONCURRENCY = 4
+    }
 }

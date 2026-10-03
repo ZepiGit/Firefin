@@ -18,7 +18,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import zepigit.firefin.app.R
 import zepigit.firefin.app.ServiceLocator
-import zepigit.firefin.app.data.MediaItem
 
 /** Library grid with paging and a cycling sort control; no full refresh per scroll tick. */
 class LibraryActivity : AppCompatActivity() {
@@ -35,11 +34,13 @@ class LibraryActivity : AppCompatActivity() {
     private var generation = 0
     private var requestJob: kotlinx.coroutines.Job? = null
 
+    private data class SortOption(val by: String, val order: String, val label: Int)
+
     private val sortOptions = listOf(
-        "SortName" to "Ascending",
-        "DateCreated" to "Descending",
-        "ProductionYear" to "Descending",
-        "CommunityRating" to "Descending",
+        SortOption("SortName", "Ascending", R.string.sort_name),
+        SortOption("DateCreated", "Descending", R.string.sort_date_added),
+        SortOption("ProductionYear", "Descending", R.string.sort_year),
+        SortOption("CommunityRating", "Descending", R.string.sort_rating),
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -85,27 +86,25 @@ class LibraryActivity : AppCompatActivity() {
         progress.visibility = View.VISIBLE
         val gen = generation
         val start = adapter.itemCount
-        val (by, order) = sortOptions[sortByIndex]
+        val sort = sortOptions[sortByIndex]
         requestJob = scope.launch {
             try {
                 val (items, totalCount) = ServiceLocator.client.items(
                     parentId = libraryId,
                     startIndex = if (total < 0) 0 else start,
-                    sortBy = by,
-                    sortOrder = order,
+                    sortBy = sort.by,
+                    sortOrder = sort.order,
                     includeTypes = when (intent.getStringExtra("library.type")) {
                         "movies" -> "Movie,BoxSet"
                         "tvshows" -> "Series"
-                        "music" -> "MusicAlbum"
                         else -> if (intent.getBooleanExtra("library.favorites", false)) "Movie,Series,Episode" else null
                     },
-                    recursive = intent.getStringExtra("library.type") in setOf("movies", "tvshows", "music") || intent.getBooleanExtra("library.favorites", false),
+                    recursive = intent.getStringExtra("library.type") in setOf("movies", "tvshows") || intent.getBooleanExtra("library.favorites", false),
                     favorites = intent.getBooleanExtra("library.favorites", false),
                 )
                 if (gen != generation) return@launch
                 total = totalCount
-                titleView.text = (intent.getStringExtra(EXTRA_TITLE) ?: "") +
-                    " (${total} · ${by.removePrefix("Sort").removePrefix("Date")})"
+                titleView.text = getString(R.string.library_title, intent.getStringExtra(EXTRA_TITLE) ?: "", total, getString(sort.label))
                 adapter.appendItems(items)
                 findViewById<TextView>(R.id.empty).visibility = if (adapter.itemCount == 0) View.VISIBLE else View.GONE
             } catch (e: kotlinx.coroutines.CancellationException) {
@@ -121,9 +120,8 @@ class LibraryActivity : AppCompatActivity() {
         }
     }
 
-    private fun MediaCardAdapter.append(items: List<MediaItem>) = appendItems(items)
-
-    companion object {        private const val EXTRA_LIBRARY = "library.id"
+    companion object {
+        private const val EXTRA_LIBRARY = "library.id"
         private const val EXTRA_TITLE = "library.title"
         private const val GRID_SPAN = 6
 

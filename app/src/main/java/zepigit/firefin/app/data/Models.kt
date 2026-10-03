@@ -25,6 +25,10 @@ data class MediaItem(
     val isSeries: Boolean get() = type == "Series"
     val isPlayable: Boolean get() = type == "Movie" || type == "Episode" || type == "Video"
 
+    /** `S03E04` for numbered episodes, null otherwise. */
+    val episodeCode: String? get() =
+        if (isEpisode && indexNumber > 0) String.format(java.util.Locale.ROOT, "S%02dE%02d", parentIndexNumber, indexNumber) else null
+
     companion object {
         fun from(json: JSONObject): MediaItem {
             val userData = json.optJSONObject("UserData") ?: JSONObject()

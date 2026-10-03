@@ -9,6 +9,7 @@ import androidx.appcompat.app.AppCompatActivity
 import zepigit.firefin.app.R
 import zepigit.firefin.app.ServiceLocator
 import zepigit.firefin.app.data.JellyfinClient
+import zepigit.firefin.app.preferences.StoredPreferences
 
 class SettingsActivity : AppCompatActivity() {
 
@@ -18,37 +19,46 @@ class SettingsActivity : AppCompatActivity() {
         val session = ServiceLocator.session
         val accountInfo = findViewById<TextView>(R.id.accountInfo)
         val aboutText = findViewById<TextView>(R.id.aboutText)
-        accountInfo.text = "${session.userName} @ ${session.serverUrl}"
+        accountInfo.text = getString(R.string.account_info, session.userName, session.serverUrl)
         aboutText.text = getString(R.string.about_text, JellyfinClient.VERSION)
 
         val container = accountInfo.parent as android.widget.LinearLayout
-        fun setting(label: String, action: () -> Unit) {
-            val button = Button(this).apply { text = label; setOnClickListener { action() } }
-            container.addView(button, 1, android.widget.LinearLayout.LayoutParams((320 * resources.displayMetrics.density).toInt(), (44 * resources.displayMetrics.density).toInt()).apply { topMargin = (12 * resources.displayMetrics.density).toInt() })
+        var position = 1
+        // Each button shows its current value, so a change is visible without reopening the dialog.
+        fun setting(label: Int, value: (StoredPreferences) -> String, action: (refresh: () -> Unit) -> Unit) {
+            val button = Button(this)
+            val refresh = { button.text = getString(R.string.setting_value, getString(label), value(ServiceLocator.preferences.stored())) }
+            refresh()
+            button.setOnClickListener { action(refresh) }
+            container.addView(button, position++, android.widget.LinearLayout.LayoutParams((320 * resources.displayMetrics.density).toInt(), (44 * resources.displayMetrics.density).toInt()).apply { topMargin = (12 * resources.displayMetrics.density).toInt() })
         }
-        setting(getString(R.string.setting_quality)) {
-            androidx.appcompat.app.AlertDialog.Builder(this).setTitle(R.string.quality_dialog_title)
-                .setItems(R.array.quality_options) { _, index ->
-                    val stored = ServiceLocator.preferences.stored()
-                    val heights = listOf(1080, 720, 720, 480)
-                    val rates = listOf(4_000_000L, 4_000_000L, 2_000_000L, 1_000_000L)
-                    ServiceLocator.preferences.save(stored.copy(preferredBitrate = rates[index], preferredHeight = heights[index]))
-                }.show()
+        fun choose(title: Int, options: Int, refresh: () -> Unit, apply: (StoredPreferences, Int) -> StoredPreferences) {
+            androidx.appcompat.app.AlertDialog.Builder(this).setTitle(title).setItems(options) { _, index ->
+                ServiceLocator.preferences.save(apply(ServiceLocator.preferences.stored(), index))
+                refresh()
+            }.show()
         }
-        setting(getString(R.string.setting_backdrops)) {
+
+        val qualityLabels = resources.getStringArray(R.array.quality_options)
+        val audioLabels = resources.getStringArray(R.array.audio_language_options)
+        val subtitleLabels = resources.getStringArray(R.array.subtitle_language_options)
+        setting(R.string.setting_quality, { stored ->
+            QUALITIES.indexOf(stored.preferredHeight to stored.preferredBitrate).let { if (it >= 0) qualityLabels[it] else "${stored.preferredHeight}p" }
+        }) { refresh ->
+            choose(R.string.quality_dialog_title, R.array.quality_options, refresh) { stored, index ->
+                stored.copy(preferredHeight = QUALITIES[index].first, preferredBitrate = QUALITIES[index].second)
+            }
+        }
+        setting(R.string.setting_backdrops, { stored -> getString(if (stored.backdropEnabled) R.string.state_on else R.string.state_off) }) { refresh ->
             val stored = ServiceLocator.preferences.stored()
             ServiceLocator.preferences.save(stored.copy(backdropEnabled = !stored.backdropEnabled))
-            Toast.makeText(this, if (stored.backdropEnabled) R.string.backdrops_off else R.string.backdrops_on, Toast.LENGTH_SHORT).show()
+            refresh()
         }
-        setting(getString(R.string.setting_audio_language)) {
-            androidx.appcompat.app.AlertDialog.Builder(this).setTitle(R.string.audio_language_title).setItems(R.array.audio_language_options) { _, index ->
-                ServiceLocator.preferences.save(ServiceLocator.preferences.stored().copy(audioLanguage = listOf("", "de", "en")[index]))
-            }.show()
+        setting(R.string.setting_audio_language, { stored -> audioLabels[LANGUAGES.indexOf(stored.audioLanguage).coerceAtLeast(0)] }) { refresh ->
+            choose(R.string.audio_language_title, R.array.audio_language_options, refresh) { stored, index -> stored.copy(audioLanguage = LANGUAGES[index]) }
         }
-        setting(getString(R.string.setting_subtitle_language)) {
-            androidx.appcompat.app.AlertDialog.Builder(this).setTitle(R.string.subtitle_language_title).setItems(R.array.subtitle_language_options) { _, index ->
-                ServiceLocator.preferences.save(ServiceLocator.preferences.stored().copy(subtitleLanguage = listOf("", "de", "en")[index]))
-            }.show()
+        setting(R.string.setting_subtitle_language, { stored -> subtitleLabels[LANGUAGES.indexOf(stored.subtitleLanguage).coerceAtLeast(0)] }) { refresh ->
+            choose(R.string.subtitle_language_title, R.array.subtitle_language_options, refresh) { stored, index -> stored.copy(subtitleLanguage = LANGUAGES[index]) }
         }
         findViewById<Button>(R.id.remoteButton).setOnClickListener {
             startActivity(Intent(this, RemoteActivity::class.java))
@@ -65,8 +75,16 @@ class SettingsActivity : AppCompatActivity() {
                 else android.view.View.VISIBLE
         }
         findViewById<Button>(R.id.logoutButton).setOnClickListener {
+            ServiceLocator.client.logout()
             session.clear()
             LoginActivity.startFresh(this)
         }
+    }
+
+    private companion object {
+        /** Height and total bitrate per entry of R.array.quality_options. */
+        val QUALITIES = listOf(1080 to 4_000_000L, 720 to 4_000_000L, 720 to 2_000_000L, 480 to 1_000_000L)
+        /** Stored language code per entry of the audio/subtitle language arrays. */
+        val LANGUAGES = listOf("", "de", "en")
     }
 }

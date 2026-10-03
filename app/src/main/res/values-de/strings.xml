@@ -25,8 +25,16 @@
     <string name="password_hint">Passwort</string>
     <string name="login_button">Anmelden</string>
     <string name="login_error_credentials">Anmeldung fehlgeschlagen: Benutzer oder Passwort falsch.</string>
-    <string name="login_error_server">Server nicht erreichbar oder Fehler: %1$s</string>
+    <string name="login_error_server">Der Server meldet einen Fehler (HTTP %1$d).</string>
     <string name="login_error_connection">Verbindung fehlgeschlagen: %1$s</string>
+    <string name="login_error_https_hint">Der Server nimmt keine sichere HTTPS-Verbindung an. Läuft er in deinem Heimnetz ohne HTTPS, gib die Adresse mit http:// ein, z. B. http://192.168.1.10:8096.</string>
+    <string name="login_error_certificate">Dieses Gerät vertraut dem Serverzertifikat nicht. Es muss gültig sein, zu dieser Adresse passen und von einer öffentlichen Zertifizierungsstelle stammen.</string>
+    <string name="login_error_unknown_host">Serveradresse nicht gefunden. Prüfe die Schreibweise.</string>
+    <string name="login_error_unreachable">Der Server ist nicht erreichbar. Prüfe Adresse, Port und Netzwerkverbindung.</string>
+    <string name="login_error_address">Gib eine gültige Serveradresse ein, z. B. http://192.168.1.10:8096 oder https://jellyfin.example.com.</string>
+    <string name="cleartext_title">Unverschlüsselte Verbindung</string>
+    <string name="cleartext_message">Mit http:// werden Passwort und Medien unverschlüsselt übertragen. Nutze das nur in einem vertrauenswürdigen Heimnetz.</string>
+    <string name="cleartext_continue">Trotzdem verbinden</string>
 
     <!-- Home, libraries and search -->
     <string name="home_preview_default">Deine Mediathek</string>
@@ -38,10 +46,20 @@
     <string name="search_in_library">In deiner Mediathek</string>
     <string name="search_in_seerr">Über Seerr anfragen</string>
     <string name="error_generic">Ein Fehler ist aufgetreten</string>
+    <string name="error_session_expired">Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.</string>
+    <string name="error_server_status">Serveranfrage fehlgeschlagen (HTTP %1$d).</string>
+    <string name="error_response_too_large">Die Serverantwort ist zu groß.</string>
+    <string name="error_no_playable_source">Für diesen Titel gibt es keine Quelle, die dieses Gerät abspielen kann.</string>
+    <string name="error_login_response">Die Anmeldeantwort des Servers ist unvollständig.</string>
     <string name="empty_library">Diese Bibliothek ist leer</string>
     <string name="empty_search">Keine Ergebnisse</string>
     <string name="empty_remote">Keine steuerbaren Sitzungen</string>
     <string name="empty_home">Keine Inhalte verfügbar</string>
+    <string name="library_title">%1$s (%2$d · %3$s)</string>
+    <string name="sort_name">Name</string>
+    <string name="sort_date_added">Hinzugefügt</string>
+    <string name="sort_year">Jahr</string>
+    <string name="sort_rating">Bewertung</string>
 
     <!-- Details -->
     <string name="detail_breadcrumb">FIREFIN / MEDIATHEK</string>
@@ -56,6 +74,8 @@
     <string name="children_episodes">Episoden</string>
     <string name="children_items">Inhalte</string>
     <string name="load_error">Fehler beim Laden.</string>
+    <string name="continue_series">▶ Weiter mit %1$s</string>
+    <string name="children_load_more_failed">Weitere Einträge konnten nicht geladen werden. Bewege den Fokus erneut, um es nochmals zu versuchen.</string>
 
     <!-- Player -->
     <string name="track_audio">Tonspur</string>
@@ -64,6 +84,13 @@
     <string name="subtitles_off">Aus</string>
     <string name="track_switch_aborted">Spurwechsel abgebrochen: Sitzung konnte nicht beendet werden.</string>
     <string name="track_switch_failed">Spurwechsel fehlgeschlagen</string>
+    <string name="playback_error_title">Wiedergabe angehalten</string>
+    <string name="playback_error_network">Die Verbindung zum Server ist abgebrochen oder antwortet nicht mehr.</string>
+    <string name="playback_error_server">Der Server hat den Stream abgelehnt.</string>
+    <string name="playback_error_format">Dieses Gerät kann dieses Medienformat nicht abspielen.</string>
+    <string name="playback_error_other">Wiedergabe fehlgeschlagen (%1$s).</string>
+    <string name="retry">Erneut versuchen</string>
+    <string name="back">Zurück</string>
 
     <!-- Remote control -->
     <string name="remote_device_fallback">Gerät</string>
@@ -75,6 +102,10 @@
     <string name="logout">Abmelden</string>
     <string name="about">Über Firefin</string>
     <string name="about_text">Firefin %1$s\nUnabhängiger nativer Kotlin-Jellyfin-Client für ältere Fire-TV-Geräte, ursprünglich von Moonfin Core abgeleitet. Steht in keiner Verbindung zu Moonfin und wird nicht von Moonfin unterstützt.</string>
+    <string name="account_info">%1$s @ %2$s</string>
+    <string name="setting_value">%1$s: %2$s</string>
+    <string name="state_on">An</string>
+    <string name="state_off">Aus</string>
     <string name="setting_quality">Wiedergabequalität</string>
     <string name="quality_dialog_title">Qualität (Gerät: höchstens 1080p / 4 Mbit/s)</string>
     <string-array name="quality_options">
@@ -83,9 +114,7 @@
         <item>720p · 2 Mbit/s</item>
         <item>480p · 1 Mbit/s</item>
     </string-array>
-    <string name="setting_backdrops">Hintergrundbilder ein/aus</string>
-    <string name="backdrops_on">Hintergrundbilder an</string>
-    <string name="backdrops_off">Hintergrundbilder aus</string>
+    <string name="setting_backdrops">Hintergrundbilder</string>
     <string name="setting_audio_language">Bevorzugte Tonsprache</string>
     <string name="audio_language_title">Tonsprache</string>
     <string-array name="audio_language_options">

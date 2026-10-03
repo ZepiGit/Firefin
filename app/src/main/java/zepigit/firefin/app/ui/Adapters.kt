@@ -17,6 +17,8 @@ import zepigit.firefin.app.util.Urls
 
 class MediaCardAdapter(
     private val posterStyle: Boolean = true,
+    /** Episodes inside a season list show only their episode number, not the series name. */
+    private val inSeason: Boolean = false,
     private val onFocus: (MediaItem) -> Unit = {},
     private val artwork: ((MediaItem, ImageView) -> Unit)? = null,
     private val onClick: (MediaItem) -> Unit,
@@ -32,6 +34,7 @@ class MediaCardAdapter(
         val unique = newItems.filter { next -> items.none { it.id == next.id } }
         val start = items.size; items.addAll(unique); notifyItemRangeInserted(start, unique.size)
     }
+    fun positionOf(item: MediaItem) = items.indexOfFirst { it.id == item.id }
     override fun getItemCount() = items.size
     override fun getItemId(position: Int) = items[position].id.hashCode().toLong()
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder = Holder(
@@ -39,7 +42,12 @@ class MediaCardAdapter(
     )
     override fun onBindViewHolder(holder: Holder, position: Int) {
         val item = items[position]
-        holder.name.text = if ((item.isEpisode || item.type == "Season") && item.seriesName.isNotEmpty()) "${item.seriesName} · ${item.name}" else item.name
+        holder.name.text = when {
+            item.isEpisode && inSeason -> listOfNotNull(item.indexNumber.takeIf { it > 0 }?.let { String.format(java.util.Locale.ROOT, "E%02d", it) }, item.name).joinToString(" · ")
+            item.isEpisode -> listOfNotNull(item.seriesName.ifBlank { null }, item.episodeCode, item.name).joinToString(" · ")
+            item.type == "Season" && item.seriesName.isNotEmpty() -> "${item.seriesName} · ${item.name}"
+            else -> item.name
+        }
         holder.subtitle.text = buildString {
             if (item.year > 0) append(item.year)
             if (item.played) append("  ✓ ").append(holder.itemView.context.getString(R.string.mark_watched))
@@ -59,23 +67,17 @@ class MediaCardAdapter(
             ServiceLocator.images.load(url, ArtworkPolicy.decodeBucket(width), holder.image)
         }
         holder.card.setOnClickListener { onClick(item) }
-        holder.card.setOnFocusChangeListener { view, focused ->
-            val expand = ServiceLocator.preferences.effective().cardFocusExpansion
-            val scale = if (expand && focused) 1.05f else 1f
-            view.animate().scaleX(scale).scaleY(scale).setDuration(if (expand) 150 else 0).start()
+        // Card focus expansion is locked off on this target (EffectiveDevicePreferences);
+        // focus only starts the title marquee and notifies the screen.
+        holder.card.setOnFocusChangeListener { _, focused ->
             holder.name.isSelected = focused
             if (focused) onFocus(item)
         }
-        val expand = ServiceLocator.preferences.effective().cardFocusExpansion
-        holder.card.scaleX = if (expand && holder.card.hasFocus()) 1.05f else 1f
-        holder.card.scaleY = holder.card.scaleX
         holder.name.isSelected = holder.card.hasFocus()
     }
     override fun onViewRecycled(holder: Holder) {
         ServiceLocator.images.cancel(holder.image)
-        holder.card.animate().cancel()
         holder.card.setOnFocusChangeListener(null)
-        holder.card.scaleX = 1f; holder.card.scaleY = 1f
         super.onViewRecycled(holder)
     }
     class Holder(view: View) : RecyclerView.ViewHolder(view) {
