@@ -10,8 +10,9 @@ Minimum Android SDK:    21
 Target Android SDK:     35
 Compile Android SDK:    36
 Native ABI:             armeabi-v7a only
-APK size:               (build pending — run build-firetv32.sh / flutter build apk)
-APK SHA-256:            (fill after release APK is produced)
+APK size:               not recorded in this file
+APK SHA-256:            not recorded in this file; the APK is attached to the
+                        v1.1.0-firetv32-r21 release
 Certificate SHA-256:    3633514033016395dc07407a414bb3857a84eca682ef021c8f82c5e6abc622d0
 
 r21 performance changes (static review):
@@ -22,9 +23,11 @@ r21 performance changes (static review):
 - Image Dio/HttpClient maxConnectionsPerHost = 2
 
 Static validation:
-- Clean Flutter release build: pending (Flutter SDK may be absent on build host)
-- FireTV32 URL / image / decode-key regression tests: run when Flutter available
-- aapt manifest/package inspection: pending after APK
+- Clean Flutter release build: not recorded in this file (see the legacy
+  Flutter CI workflow runs)
+- FireTV32 URL / image / decode-key regression tests: part of `flutter test`,
+  results not recorded in this file
+- aapt manifest/package inspection: not recorded in this file
 - Fire TV Leanback launcher and application banner: present in sources
 - Touchscreen requirement: disabled
 - Native libraries: armeabi-v7a only (packaging unchanged)

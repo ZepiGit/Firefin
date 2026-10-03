@@ -47,7 +47,8 @@ standard library and Okio):
 
 Test only (not packaged): `junit` 4.13.2, `okhttp3:mockwebserver` 4.12.0,
 `kotlinx-coroutines-test` 1.8.1, `org.json:json` 20231013, AndroidX Test
-`core` 1.5.0, `ext:junit` 1.1.5, `runner` 1.5.2 and `rules` 1.5.0.
+`core` 1.5.0, `ext:junit` 1.1.5, `runner` 1.5.2 and `rules` 1.5.0; the
+instrumented tests also use `okhttp3:mockwebserver` 4.12.0.
 The release APK packages Conscrypt's `libconscrypt_jni.so` for ARMv7; debug
 also packages x86 for the API-22 emulator.
 
@@ -62,9 +63,9 @@ The legacy Flutter build bundled the Flutter engine and media_kit/mpv
 libraries; those must not appear in the native APK.
 
 Bundled public certificate: `app/src/main/res/raw/isrgrootx1.pem` is the
-ISRG Root X1 certificate from Let's Encrypt, used only as an additional trust
-anchor by the scoped TMDB artwork client on legacy API 22. It is not a
-Jellyfin trust bypass or certificate pin. The certificate SHA-256 is recorded
+ISRG Root X1 certificate from Let's Encrypt, added next to the platform trust
+anchors for the Jellyfin and TMDB clients because Android 5.1 does not ship it.
+It is neither a trust bypass nor a certificate pin. The certificate SHA-256 is recorded
 in the release audit artifact, not in a secret-bearing file.
 
 Toolbar vector icons in `app/src/main/res/drawable/ic_*.xml` are based on

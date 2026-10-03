@@ -5,22 +5,24 @@
 | Device | Fire OS / Android | Status for native Firefin |
 |---|---|---|
 | Fire TV Stick 2nd Generation (`AFTT`) | Fire OS 5 / Android 5.1 (API 22) | Primary target |
-| Fire TV Stick Basic Edition (`AFTT`, `LY73PR`) | Fire OS 5 / Android 5.1 (API 22) | 
-| Fire TV Stick 1st Generation | Fire OS 5 / Android 5.1 | 
-| Newer 64-bit Fire TV devices | Fire OS 6+ | Might work I guess |
+| Fire TV Stick Basic Edition (`AFTT`, `LY73PR`) | Fire OS 5 / Android 5.1 (API 22) | Primary target |
+| Fire TV Stick 1st Generation | Fire OS 5 / Android 5.1 | Expected to work (ARMv7), not tested |
+| Newer 64-bit Fire TV devices | Fire OS 6+ | Might work, not tested; not the intended target |
 
-Native app: minSdk 21, targetSdk 34, `zepigit.firefin.app`, `0.2.4-firefin`
-(versionCode `3001004`). Landscape only; touchscreen and Leanback are declared
-optional; Leanback launcher and TV banner are present.
+Native app: minSdk 21, targetSdk 34, `zepigit.firefin.app`, `0.2.5-firefin`
+(versionCode `3001005`). Landscape only; touchscreen and Leanback are declared
+optional; Leanback launcher and TV banner are present. Cleartext `http://`
+servers work on all supported Android versions after a confirmation.
 
 ## Native verification status
 
 | Evidence | Result |
 |---|---|
-| Tested implementation snapshot `c9da933aa2a331c760325b97e777b51be7d4980f` | 60 unit tests pass; strict debug/release lint 0 errors; Debug/Release APKs build; the CI release build is unsigned by design, signed APKs come only from the protected release workflow |
-| API 22 stock x86 emulator | Login, Moonfin-like Home/Library/Detail/Search/Settings, Seerr discovery/search/detail/season confirmation, TMDB artwork, baseline 480p playback up to 1080p, resume, D-pad controller, audio dialog and cleanup exercised |
+| Local build of `0.2.5-firefin` | 83 JVM unit tests pass; strict debug/release lint 0 errors (74 warnings); Debug/Release APKs build and pass the APK verifier; the CI release build is unsigned by design, signed APKs come only from the protected release workflow |
+| API 22 stock x86 emulator, `0.2.5-firefin` | Two instrumented tests pass (login screen; sign-in over HTTP, favorite set/clear, paging through 125 episodes, sign-out and prefilled sign-in against a local fixture server); sign-in error and cleartext dialog checked manually. Playback was not exercised for this version |
+| API 22 stock x86 emulator, snapshot `c9da933` (before 0.2.4) | Login, Moonfin-like Home/Library/Detail/Search/Settings, Seerr discovery/search/detail/season confirmation, TMDB artwork, baseline 480p playback up to 1080p, resume, D-pad controller, audio dialog and cleanup exercised |
 | Physical AFTT (ARMv7) | **Absent.** No hardware decoder/memory/thermal result |
-| Signed release APK | Release was built, signed and verified against the pinned production certificate by the protected release workflow (run 37055114680).
+| Signed release APK | `0.2.3-firefin` (run 37055114680) and `0.2.4-firefin` (run 37067878548) were built, signed and verified against the pinned production certificate by the protected release workflow |
 | Final commit CI | Consult the exact commit's GitHub Actions record; local results are not CI evidence |
 
 
@@ -61,7 +63,9 @@ for private content and clearable in Settings.
 Player, controller hidden: Left/Right and Rewind/Fast Forward seek 10 s;
 Center/Up/Down/Menu show the controller; Play/Pause toggles playback. Controller
 visible: Menu hides it, Up opens the audio-track dialog, Down the subtitle
-dialog, other keys navigate the controller. Back hides the visible controller first; a subsequent Back leaves the player.
+dialog, other keys navigate the controller. Back hides the visible controller
+first; a subsequent Back leaves the player. The player closes by itself at the
+end of the media; a playback error offers Retry or Back.
 
 
 ## Legacy Flutter app (history only)

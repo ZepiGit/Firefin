@@ -3,12 +3,12 @@
 This document covers the native Kotlin app (`app/`). The legacy Flutter build
 is kept at the end as history; it is validation-only and is never published.
 
-Build status for implementation snapshot `c9da933aa2a331c760325b97e777b51be7d4980f`: local verification passed
-60 unit tests, strict lint (0 errors; current reports contain 118 warnings) and an R8 release build, and
-the debug APK installed and launched on an API 22 stock x86 emulator. Signed
-APKs come only from the protected release workflow (release `0.2.3-firefin` is
-published); there is no AFTT hardware result. The commit carrying these fixes
-is documented per commit; CI runs are listed in docs/FIREFIN_MIGRATION.md.
+Build status for `0.2.5-firefin`: local verification passed 83 JVM unit tests,
+strict lint (0 errors, 74 warnings), an R8 release build and the APK verifier,
+and two instrumented tests on an API 22 stock x86 emulator. Signed APKs come
+only from the protected release workflow; the newest published release is
+`0.2.4-firefin`. There is no AFTT hardware result. CI results are recorded per
+commit in GitHub Actions.
 
 ## Toolchain (native)
 
@@ -20,7 +20,7 @@ is documented per commit; CI runs are listed in docs/FIREFIN_MIGRATION.md.
 | Android SDK | `platforms;android-35`, `build-tools;35.0.0` |
 | App SDK levels | minSdk 21, targetSdk 34, compileSdk 35 |
 | Application ID | `zepigit.firefin.app` |
-| Version | `versionName=0.2.4-firefin`, `versionCode=3001004` (from `version.properties`) |
+| Version | `versionName=0.2.5-firefin`, `versionCode=3001005` (from `version.properties`) |
 
 `version.properties` is the single source of version identity. Keep the native
 version code above the legacy `3000028`.
@@ -88,13 +88,17 @@ adb shell dumpsys activity activities | grep -i resumed   # expect LoginActivity
 adb logcat -d | grep -E "FATAL|AndroidRuntime"            # expect no output
 ```
 
-The earlier recorded smoke was only an install/launch/package-identity check
-and is historical. The named implementation snapshot has a passing
-`:app:connectedDebugAndroidTest` login-focus test and a separate API-22
- evidence record in `docs/FIREFIN_MIGRATION.md`: authorized login, Home/library/detail/search/
-settings, Seerr discovery/search/detail/season confirmation, TMDB artwork,
-baseline playback, resume, track dialog and cleanup. This remains x86 emulator
-evidence, not AFTT hardware evidence.
+Instrumented tests run on the same emulator:
+
+```bash
+./gradlew :app:connectedDebugAndroidTest
+```
+
+They check the login screen and run the app's client against a local fixture
+server on the device: sign-in over HTTP, setting and clearing a favorite,
+paging through 125 episodes, sign-out and the prefilled sign-in screen. The
+manual API 22 records in `docs/FIREFIN_MIGRATION.md` cover the remaining flows.
+All of this is x86 emulator evidence, not AFTT hardware evidence.
 
 ## CI (`Native Android CI`, `.github/workflows/android.yml`)
 
@@ -107,18 +111,19 @@ upload (`if-no-files-found: error`).
 
 Artifacts: `firefin-candidate-<sha>` (both APKs and verification JSON) and
 `firefin-reports-<sha>` (test and lint reports). The candidate APKs are
-validation artifacts, not releases. Native CI results are recorded per commit in GitHub Actions. The local results
-above describe implementation snapshot `c9da933aa2a331c760325b97e777b51be7d4980f`, not a signed release.
+validation artifacts, not releases. Native CI results are recorded per commit
+in GitHub Actions; the local results above are not CI evidence.
 
 ## Protected release (`Firefin signed release`, `.github/workflows/release.yml`)
 
-Manual (`workflow_dispatch`) only. Release `0.2.3-firefin` was produced with it (run 37055114680).
+Manual (`workflow_dispatch`) only. Releases `0.2.3-firefin` (run 37055114680)
+and `0.2.4-firefin` (run 37067878548) were produced with it.
 
 Inputs:
 
 | Input | Requirement |
 |---|---|
-| `tag` | Existing tag `firefin-v<versionName>`, e.g. `firefin-v0.2.3-firefin`; must equal `firefin-v` plus `versionName` in `version.properties` |
+| `tag` | Existing tag `firefin-v<versionName>`, e.g. `firefin-v0.2.5-firefin`; must equal `firefin-v` plus `versionName` in `version.properties` |
 | `commit` | Full 40-character reviewed commit SHA; must be the tag's commit |
 
 Gates, all enforced by the workflow:

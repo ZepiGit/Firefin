@@ -1,0 +1,11 @@
+# The legacy Flutter app and its vendored packages stay in the tree until the
+# native app reaches parity; keep them out of GitHub's language statistics so
+# the repository is shown as the native Kotlin app it now is.
+lib/** linguist-vendored
+packages/** linguist-vendored
+android/** linguist-vendored
+ios/** linguist-vendored
+linux/** linguist-vendored
+macos/** linguist-vendored
+windows/** linguist-vendored
+test/** linguist-vendored

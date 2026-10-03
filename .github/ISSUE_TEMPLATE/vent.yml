@@ -1,7 +1,7 @@
 name: "Vent / Complaint"
 description: Just need to get something off your chest
 title: "[Vent] "
-labels: ["Venting"]
+labels: []
 body:
   - type: markdown
     attributes:
@@ -34,7 +34,7 @@ body:
     attributes:
       label: Who's at fault?
       options:
-        - Moonfin
+        - Firefin
         - My server
         - My network
         - My ISP
