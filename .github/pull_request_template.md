@@ -27,19 +27,18 @@ List the key changes included in this PR.
 - 
 - 
 
-## Platform
-- [ ] Android
-- [ ] iOS
-- [ ] macOS
-- [ ] Windows
-- [ ] Linux
-- [ ] All / Shared code
+## Area
+- [ ] Native app (`app/`)
+- [ ] Legacy Flutter app (`lib/`, `packages/`, `android/`)
+- [ ] Documentation
+- [ ] Build / CI
 
 ## Testing
 Describe how this change was tested.
 
-- [ ] Tested on emulator / simulator
-- [ ] Tested on physical device
+- [ ] Unit tests (`./gradlew :app:testDebugUnitTest`)
+- [ ] Tested on the API 22 emulator
+- [ ] Tested on a physical Fire TV device
 - [ ] Manual testing completed
 - [ ] Not tested (explain why):
 

@@ -6,7 +6,88 @@ preserved unchanged as history.
 
 ## Native Firefin
 
+### 0.2.5-firefin (versionCode 3001005)
+
+Not yet published as a signed release.
+
+Sign-in and connection:
+
+- A wrong user name or password is reported as such. Sign-in errors are now
+  classified by type instead of message text: rejected credentials, server error
+  with HTTP status, untrusted certificate, unknown host, unreachable server and
+  invalid address, each with an English and German message.
+- An address typed without a scheme is completed to `https://`. If that fails
+  with a TLS error, the message suggests entering the address with `http://`
+  (Jellyfin's default port 8096 serves plain HTTP); there is no silent fallback.
+- An `http://` address asks for confirmation on every sign-in. Cleartext is now
+  also permitted on Android 9 and newer, where it was blocked by the platform
+  default before.
+- Jellyfin connections (REST, media and playback snapshots) trust ISRG Root X1
+  (Let's Encrypt) in addition to the platform certificate store, which on
+  Android 5.1 does not contain it. Chain and hostname validation are unchanged.
+- Signing out revokes the access token on the server (best effort) and keeps the
+  server address and user name to prefill the next sign-in.
+
+Playback:
+
+- A media read that receives no data for 30 seconds now fails into Media3's
+  retry and error handling instead of buffering indefinitely; long streams are
+  not limited in total duration.
+- The natural end of playback closes the player and reports the stop once. A
+  fatal playback error ends the session and offers *Retry* (new negotiation at
+  the same position, new session) or *Back*, with a localized reason instead of
+  the Media3 error code.
+- Subtitles are chosen from the server's list during direct play too, so
+  external subtitle files can be switched on, changed and switched off. The
+  change renegotiates the stream at the current position and keeps the
+  play/pause state; audio tracks of a direct-played file still switch locally.
+- The screen is kept on only while playback is wanted, so the Fire TV
+  screensaver can start on a paused player. Holding a seek key on a non-HLS
+  transcode no longer restarts the transcode on every key repeat.
+
+Browsing:
+
+- Removing a favorite or watched mark sends `DELETE` to the item resource.
+  Before, the app sent `POST …/Delete`, which is not the route Jellyfin's API
+  defines for removing a mark (that is `DELETE` on the same path).
+- Season, collection and folder contents load in pages of 60 as the focus nears
+  the end, instead of stopping after 60 entries. A failed page keeps the loaded
+  entries and is requested again on the next focus move.
+- Episodes show their number (`E04` in a season, `S03E04` elsewhere). Series
+  offer a *Continue* button for the next episode.
+- The home preview shows the description for *Recently added* items. Home rows
+  load concurrently.
+- The library list shows only library types Firefin can play (movies, shows,
+  home videos, collections, mixed); search no longer lists music albums.
+- Settings show their current value. Library sort names are localized.
+- Seerr *My requests* loads title details with up to four concurrent requests.
+
+Maintenance:
+
+- Session-expired, server-status, oversized-response, unplayable-source and
+  incomplete sign-in errors are shown in the device language.
+- The artwork disk cache trims least recently used files first, and an
+  out-of-memory error while decoding one image no longer stops the shared
+  decode workers.
+- The unused `WAKE_LOCK` permission was removed.
+- `scripts/verify-native-apk.py` uses explicit checks instead of `assert`, so
+  it also fails closed under `python -O`.
+- Issue and pull request templates describe Firefin and Fire TV devices instead
+  of the Moonfin desktop and mobile platforms; GitHub's language statistics
+  exclude the legacy Flutter tree.
+
+Verification: 83 JVM unit tests; on the API 22 x86 emulator two instrumented
+tests (login screen, and sign-in over HTTP, mark/unmark, paging through 125
+episodes, sign-out and prefilled sign-in against a local fixture server) and a
+manual check of the sign-in error and cleartext dialog. Playback was not
+exercised on the emulator for this version, and there is still no result from
+physical AFTT hardware.
+
 ### 0.2.4-firefin (versionCode 3001004)
+
+Published on 2026-10-02 as a signed GitHub release (tag `firefin-v0.2.4-firefin`)
+by the protected release workflow (run 37067878548) from commit
+`503678d519950d74c4cfb6d3d93a08150716a3af`. No AFTT hardware result is recorded.
 
 - The interface now defaults to English. The previous German texts are kept as a
   German translation (`values-de`) and are used on devices set to German.
@@ -86,8 +167,8 @@ request submission are intentionally not claimed. See
 Earlier notes claimed clean lint, "all review findings fixed", protected
 signing, bounded disk decode, and completed API 22 validation. Those claims
 were not acceptance evidence and are withdrawn. The earlier figures of 18 or
-21 unit tests and the 5m25s CI run describe older trees, not the current one
-(60 unit tests).
+21 unit tests and the 5m25s CI run describe older trees, not the current one;
+each version entry above names its own test count.
 
 ## Legacy Flutter line (history)
 

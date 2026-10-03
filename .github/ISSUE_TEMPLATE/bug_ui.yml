@@ -1,44 +1,44 @@
 name: "Bug: UI"
 description: Report a UI/UX issue (navigation, screens, layout, etc.)
 title: "[UI] "
-labels: ["Bug", "UI"]
+labels: ["bug"]
 body:
   - type: input
     id: app_version
     attributes:
-      label: Moonfin version
-      description: The app version / release tag (e.g., 1.0.0)
-      placeholder: 1.0.0
+      label: Firefin version
+      description: Shown in Settings → About Firefin, or the release tag (e.g. 0.2.5-firefin)
+      placeholder: 0.2.5-firefin
     validations:
       required: true
 
   - type: dropdown
     id: platform
     attributes:
-      label: Platform
+      label: Device
       options:
-        - Android
-        - iOS
-        - macOS
-        - Windows
-        - Linux
+        - Fire TV Stick 2nd Generation (AFTT)
+        - Fire TV Stick Basic Edition (LY73PR)
+        - Fire TV Stick 1st Generation
+        - Other Fire TV device
+        - Other Android TV / Android 5+ device
     validations:
       required: true
 
   - type: input
     id: platform_version
     attributes:
-      label: OS version
-      description: "e.g. Android 14, iOS 17.4, macOS 15.1, Windows 11 23H2, Ubuntu 24.04"
-      placeholder: e.g. Android 14
+      label: Fire OS / Android version
+      description: "Settings → Device → About, e.g. Fire OS 5.2.9.5 (Android 5.1)"
+      placeholder: Fire OS 5.2.9.5
     validations:
       required: true
 
   - type: input
     id: device_model
     attributes:
-      label: Device model
-      description: "e.g. Pixel 8, iPhone 15, MacBook Air M2, etc."
+      label: Device model code
+      description: "Settings → Device → About, e.g. AFTT"
     validations:
       required: true
 
@@ -54,8 +54,7 @@ body:
         - Search
         - Library
         - Player UI (controls/OSD)
-        - Downloads
-        - Admin dashboard
+        - Media requests (Seerr)
         - Other
     validations:
       required: true
@@ -65,9 +64,9 @@ body:
     attributes:
       label: Input method
       options:
-        - Touch
-        - Mouse / trackpad
-        - Keyboard
+        - Fire TV remote
+        - Other remote / game controller
+        - Keyboard or mouse
         - Other / not sure
     validations:
       required: true

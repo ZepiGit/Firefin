@@ -1,7 +1,7 @@
 name: "Bug: Playback"
 description: Report a video/audio playback issue
 title: "[Playback] "
-labels: ["Bug", "Playback"]
+labels: ["bug"]
 body:
   - type: markdown
     attributes:
@@ -11,48 +11,48 @@ body:
   - type: input
     id: app_version
     attributes:
-      label: Moonfin version
-      description: The app version / release tag (e.g., 1.0.0)
-      placeholder: 1.0.0
+      label: Firefin version
+      description: Shown in Settings → About Firefin, or the release tag (e.g. 0.2.5-firefin)
+      placeholder: 0.2.5-firefin
     validations:
       required: true
 
   - type: dropdown
     id: platform
     attributes:
-      label: Platform
+      label: Device
       options:
-        - Android
-        - iOS
-        - macOS
-        - Windows
-        - Linux
+        - Fire TV Stick 2nd Generation (AFTT)
+        - Fire TV Stick Basic Edition (LY73PR)
+        - Fire TV Stick 1st Generation
+        - Other Fire TV device
+        - Other Android TV / Android 5+ device
     validations:
       required: true
 
   - type: input
     id: platform_version
     attributes:
-      label: OS version
-      description: "e.g. Android 14, iOS 17.4, macOS 15.1, Windows 11 23H2, Ubuntu 24.04"
-      placeholder: e.g. Android 14
+      label: Fire OS / Android version
+      description: "Settings → Device → About, e.g. Fire OS 5.2.9.5 (Android 5.1)"
+      placeholder: Fire OS 5.2.9.5
     validations:
       required: true
 
   - type: input
     id: device_model
     attributes:
-      label: Device model
-      description: "e.g. Pixel 8, iPhone 15, MacBook Air M2, etc."
+      label: Device model code
+      description: "Settings → Device → About, e.g. AFTT"
     validations:
       required: false
 
   - type: input
     id: server_version
     attributes:
-      label: Server type and version
-      description: "e.g. Jellyfin 10.10.0 or Emby 4.8.11.0"
-      placeholder: Jellyfin 10.x.x / Emby 4.x.x
+      label: Jellyfin server version
+      description: "Dashboard → About, e.g. Jellyfin 10.10.7"
+      placeholder: Jellyfin 10.x.x
     validations:
       required: true
 
@@ -63,26 +63,22 @@ body:
       options:
         - Movie
         - Episode
-        - Live TV
-        - Music
-        - Audiobook
-        - Other
+        - Other video
     validations:
       required: true
 
   - type: textarea
     id: media_info
     attributes:
-      label: Media details (as much as you know, check the info button at the bottom right of the player)
+      label: Media details (as much as you know, e.g. from the media info in the Jellyfin web interface)
       description: Container, resolution, HDR type, video codec/profile, audio codec/channels, subtitle type, bitrate
       placeholder: |
         Container: MKV
-        Resolution: 3840x2160
-        HDR: HDR10
-        Video: HEVC Main10@L5.1
-        Audio: EAC3 5.1
-        Subs: SRT (enabled)
-        Bitrate: ~25 Mbps
+        Resolution: 1920x1080
+        Video: H.264 High@L4.1
+        Audio: AC3 5.1
+        Subs: SRT (external)
+        Bitrate: ~8 Mbps
     validations:
       required: true
 
@@ -93,7 +89,6 @@ body:
       options:
         - Direct Play
         - Transcode
-        - Downloaded / Offline
         - Not sure
     validations:
       required: true

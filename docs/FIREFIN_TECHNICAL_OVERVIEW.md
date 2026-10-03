@@ -21,7 +21,7 @@ This document keeps implementation and verification details separate from the pu
 
 Jellyfin is the primary service. Firefin uses it for authentication, libraries, library search, media metadata, playback negotiation, resume state, watched state, audio tracks, subtitles and remote session controls.
 
-The app uses origin- and path-bound requests, header-based authentication and bounded response handling. It does not use a global certificate or hostname bypass.
+The app uses origin- and path-bound requests, header-based authentication and bounded response handling. TLS uses the platform trust store plus the bundled ISRG Root X1 (Let's Encrypt) anchor, which Android 5.1 lacks; there is no global certificate or hostname bypass. Plain `http://` servers are accepted after a confirmation on every sign-in.
 
 ### Moonbase / Seerr
 
@@ -35,7 +35,9 @@ The native profile negotiates up to 1920x1080 within a 4,000,000 bit/s total str
 
 The 1080p ceiling is a client negotiation limit, not a physical hardware guarantee. The API-22 x86 emulator uses a debug-compatible baseline H.264 profile; physical ARMv7 decoder, thermal and sustained playback behavior still require AFTT validation.
 
-Artwork requests use bounded poster, landscape and backdrop sizes. Jellyfin artwork and public TMDB artwork use separate caches; private cache keys include the account context.
+Media reads fail after 30 seconds without data, so a stalled connection reaches the retry and error path instead of buffering forever. The natural end, a fatal error, a track change that needs the server and leaving the player each finish the playback session once; a retry starts a new one. Subtitles are chosen from the server's list in every play method, so external subtitle files work during direct play.
+
+Artwork requests use bounded poster, landscape and backdrop sizes. Jellyfin artwork and public TMDB artwork use separate caches; private cache keys include the account context. Container contents (seasons, collections, folders) load in pages of 60 as the remote focus approaches the end.
 
 ## Build and verification
 
@@ -45,9 +47,9 @@ The standard local verification command is:
 ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug :app:lintRelease :app:assembleDebug :app:assembleRelease
 ```
 
-The implementation snapshot has local evidence of 60 JVM tests, strict debug/release lint with 0 errors, APK verification and debug/unsigned-release assembly. The API-22 x86 emulator was used for login, navigation, search, Seerr flows, artwork, playback controls and resume checks.
+Version `0.2.5-firefin` has local evidence of 83 JVM tests, strict debug/release lint with 0 errors, APK verification, debug/unsigned-release assembly and two instrumented tests on the API-22 x86 emulator. Earlier emulator records cover login, navigation, search, Seerr flows, artwork, playback controls and resume; see the [migration ledger](FIREFIN_MIGRATION.md).
 
-Signed releases are built only by the protected release workflow, which requires signing credentials stored outside this repository. Release `0.2.3-firefin` was built and verified against the pinned production certificate this way. It has not been validated on physical AFTT hardware.
+Signed releases are built only by the protected release workflow, which requires signing credentials stored outside this repository. Releases `0.2.3-firefin` and `0.2.4-firefin` were built and verified against the pinned production certificate this way. None has been validated on physical AFTT hardware.
 
 ## Known boundaries
 

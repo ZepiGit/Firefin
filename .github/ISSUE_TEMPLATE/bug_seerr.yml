@@ -1,63 +1,60 @@
 name: "Bug: Seerr"
 description: Report a Seerr integration issue
 title: "[Seerr] "
-labels: ["Bug", "Seer"]
+labels: ["bug"]
 body:
   - type: input
     id: app_version
     attributes:
-      label: Moonfin version
-      description: The app version / release tag (e.g., 1.0.0)
-      placeholder: 1.0.0
+      label: Firefin version
+      description: Shown in Settings → About Firefin, or the release tag (e.g. 0.2.5-firefin)
+      placeholder: 0.2.5-firefin
     validations:
       required: true
 
   - type: dropdown
     id: platform
     attributes:
-      label: Platform
+      label: Device
       options:
-        - Android
-        - iOS
-        - macOS
-        - Windows
-        - Linux
+        - Fire TV Stick 2nd Generation (AFTT)
+        - Fire TV Stick Basic Edition (LY73PR)
+        - Fire TV Stick 1st Generation
+        - Other Fire TV device
+        - Other Android TV / Android 5+ device
     validations:
       required: true
 
   - type: input
     id: platform_version
     attributes:
-      label: OS version
-      description: "e.g. Android 14, iOS 17.4, macOS 15.1, Windows 11 23H2, Ubuntu 24.04"
-      placeholder: e.g. Android 14
+      label: Fire OS / Android version
+      description: "Settings → Device → About, e.g. Fire OS 5.2.9.5 (Android 5.1)"
+      placeholder: Fire OS 5.2.9.5
     validations:
       required: true
 
   - type: input
     id: device_model
     attributes:
-      label: Device model
-      description: "e.g. Pixel 8, iPhone 15, MacBook Air M2, etc."
+      label: Device model code
+      description: "Settings → Device → About, e.g. AFTT"
     validations:
       required: false
 
-  - type: dropdown
+  - type: input
     id: connection_type
     attributes:
-      label: How are you connecting?
-      options:
-        - Local network (http://IP:5055)
-        - Domain + reverse proxy
-        - Remote access (port forward)
-        - Not sure
+      label: Moonbase and Jellyfin versions
+      description: Firefin reaches Seerr through the Moonbase plugin on the Jellyfin server.
+      placeholder: Moonbase 2.x / Jellyfin 10.x.x
     validations:
       required: true
 
   - type: dropdown
     id: https
     attributes:
-      label: Using HTTPS?
+      label: Is the Jellyfin address HTTPS?
       options:
         - "Yes"
         - "No"

@@ -1,7 +1,7 @@
 name: Feature request
 description: Suggest an improvement or new feature
 title: "[Feature] "
-labels: ["Feature Request"]
+labels: ["enhancement"]
 body:
   - type: textarea
     id: problem
@@ -16,24 +16,8 @@ body:
     id: proposal
     attributes:
       label: Proposed solution
-      description: How should Moonfin handle this?
+      description: How should Firefin handle this?
       placeholder: It would be great if...
-    validations:
-      required: true
-
-  - type: dropdown
-    id: platform
-    attributes:
-      label: Platform
-      description: Which platform(s) does this apply to?
-      multiple: true
-      options:
-        - Android
-        - iOS
-        - macOS
-        - Windows
-        - Linux
-        - All / Not platform-specific
     validations:
       required: true
 
