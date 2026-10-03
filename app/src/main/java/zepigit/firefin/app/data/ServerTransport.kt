@@ -13,23 +13,40 @@ import okhttp3.Request
 import okhttp3.Response
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.tls.HandshakeCertificates
+import zepigit.firefin.app.R
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-class SessionExpiredException : IOException("Your session has expired. Please sign in again.")
-class ServerResponseException(val status: Int) : IOException("Server request failed (HTTP $status).")
+class SessionExpiredException : LocalizedIOException(R.string.error_session_expired, "Your session has expired. Please sign in again.")
+class ServerResponseException(val status: Int) : LocalizedIOException(R.string.error_server_status, "Server request failed (HTTP $status).", listOf(status))
 
 class ServerCredentials(val serverUrl: String, val userId: String, val token: String)
 
-/** A single origin-bound, cancellable HTTP stack shared by REST, images and Media3. */
-class ServerTransport(initial: ServerCredentials, val deviceId: String, private val deviceName: String = "Fire TV", private val version: String = "0.1.0-firefin", private val shared: ServerTransport? = null) {
+/**
+ * A single origin-bound, cancellable HTTP stack shared by REST, images and Media3.
+ *
+ * [trust] adds public trust anchors to the platform store (see ServiceLocator);
+ * chain and hostname validation stay with the platform verifier. Snapshots
+ * inherit the trust and media read timeout of the transport they were taken from.
+ */
+class ServerTransport(
+    initial: ServerCredentials,
+    val deviceId: String,
+    private val deviceName: String = "Fire TV",
+    private val version: String = "0.1.0-firefin",
+    private val shared: ServerTransport? = null,
+    private val trust: HandshakeCertificates? = shared?.trust,
+    private val mediaReadTimeoutMs: Long = shared?.mediaReadTimeoutMs ?: MEDIA_READ_TIMEOUT_MS,
+) {
     @Volatile private var current = initial
     private val lock = Any()
 
     private fun baseBuilder() = OkHttpClient.Builder()
         .apply { shared?.let { dispatcher(it.http.dispatcher); connectionPool(it.http.connectionPool) } }
+        .apply { trust?.let { sslSocketFactory(it.sslSocketFactory(), it.trustManager) } }
         .connectTimeout(10, TimeUnit.SECONDS)
         .followRedirects(false)
         .followSslRedirects(false)
@@ -48,10 +65,15 @@ class ServerTransport(initial: ServerCredentials, val deviceId: String, private 
             chain.proceed(request)
         }).build()
 
-    /** Media3 keeps long-running VOD bodies open while sharing origin/auth policy. */
+    /**
+     * Media3 keeps long-running VOD bodies open while sharing origin/auth policy.
+     * The call itself is unbounded, but a single read that receives no bytes for
+     * [mediaReadTimeoutMs] fails, so a stalled connection reaches Media3's retry
+     * and error handling instead of buffering forever.
+     */
     val mediaHttp: OkHttpClient = baseBuilder()
         .callTimeout(0, TimeUnit.MILLISECONDS)
-        .readTimeout(0, TimeUnit.MILLISECONDS)
+        .readTimeout(mediaReadTimeoutMs, TimeUnit.MILLISECONDS)
         .addInterceptor(Interceptor { chain ->
             var request = chain.request()
             var redirects = 0
@@ -147,7 +169,7 @@ class ServerTransport(initial: ServerCredentials, val deviceId: String, private 
                         val text = response.use {
                             val body = it.body ?: return@use JsonResponse(it.code, "")
                             val limit = if (it.isSuccessful) MAX_JSON_BYTES else 64L * 1024
-                            if (it.isSuccessful && body.contentLength() > limit) throw IOException("Server response is too large.")
+                            if (it.isSuccessful && body.contentLength() > limit) throw LocalizedIOException(R.string.error_response_too_large, "Server response is too large.")
                             val buffer = java.io.ByteArrayOutputStream()
                             body.byteStream().use { stream ->
                                 val chunk = ByteArray(16 * 1024)
@@ -157,7 +179,7 @@ class ServerTransport(initial: ServerCredentials, val deviceId: String, private 
                                     if (read < 0) break
                                     total += read
                                     if (total > limit) {
-                                        if (it.isSuccessful) throw IOException("Server response is too large.")
+                                        if (it.isSuccessful) throw LocalizedIOException(R.string.error_response_too_large, "Server response is too large.")
                                         buffer.write(chunk, 0, (read - (total - limit)).toInt())
                                         break
                                     }
@@ -190,5 +212,8 @@ class ServerTransport(initial: ServerCredentials, val deviceId: String, private 
         val JSON = "application/json; charset=utf-8".toMediaType()
         val REDIRECTS = setOf(301, 302, 303, 307, 308)
         const val MAX_JSON_BYTES = 8L * 1024 * 1024
+        // Jellyfin can hold an HLS segment request until the transcoder has
+        // written it; 30 s stays well above that delay on slow servers.
+        const val MEDIA_READ_TIMEOUT_MS = 30_000L
     }
 }

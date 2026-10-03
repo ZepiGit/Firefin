@@ -40,11 +40,10 @@ class SessionStore(
 
     val isLoggedIn: Boolean get() = serverUrl.isNotEmpty() && accessToken.isNotEmpty() && userId.isNotEmpty()
 
+    /** Signs out: removes the account and token, keeps server address and user name to prefill the next sign-in. */
     fun clear() {
         prefs.edit()
-            .remove(KEY_SERVER)
             .remove(KEY_USER_ID)
-            .remove(KEY_USER_NAME)
             .remove(KEY_SERVER_NAME)
             .remove(KEY_TOKEN)
             .apply()

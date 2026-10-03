@@ -103,6 +103,8 @@ class ImageLoader(context: Context, http: okhttp3.OkHttpClient, cacheName: Strin
             val file = diskFile(load.key)
             if (!file.exists()) return null
             if (file.length() > MAX_IMAGE_BYTES) { file.delete(); return null }
+            // Touch on read so the size trim removes the least recently used files first.
+            file.setLastModified(System.currentTimeMillis())
             runCatching { readBounded(file.inputStream()) }.getOrNull()
         } ?: return null
         val bitmap = runCatching { decode(bytes, load.width) }.getOrNull()
@@ -140,6 +142,11 @@ class ImageLoader(context: Context, http: okhttp3.OkHttpClient, cacheName: Strin
         }
     } catch (failure: Exception) {
         if (zepigit.firefin.app.BuildConfig.DEBUG && !load.cancelled) android.util.Log.w("FirefinArtwork", failure.javaClass.simpleName)
+        if (!load.cancelled) failures.put(load.url, System.currentTimeMillis())
+        null
+    } catch (failure: OutOfMemoryError) {
+        // A single oversized artwork must not end the shared decode workers on a 1 GB device.
+        memCache.evictAll()
         if (!load.cancelled) failures.put(load.url, System.currentTimeMillis())
         null
     } finally { load.call = null }

@@ -8,7 +8,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.TextView
-import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -18,6 +18,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import zepigit.firefin.app.R
 import zepigit.firefin.app.ServiceLocator
+import zepigit.firefin.app.util.Urls
 
 class LoginActivity : AppCompatActivity() {
 
@@ -39,28 +40,54 @@ class LoginActivity : AppCompatActivity() {
         val progress = findViewById<ProgressBar>(R.id.progress)
         val error = findViewById<TextView>(R.id.error)
 
-        button.setOnClickListener {
+        // Sign-out keeps the address and user name, so returning users only type the password.
+        server.setText(ServiceLocator.session.serverUrl)
+        user.setText(ServiceLocator.session.userName)
+        if (server.text.isNotBlank() && user.text.isNotBlank()) password.requestFocus()
+
+        fun showError(message: String) {
+            error.text = message
+            error.visibility = View.VISIBLE
+            progress.visibility = View.GONE
+            button.isEnabled = true
+        }
+
+        fun signIn(address: String, explicitScheme: Boolean) {
             button.isEnabled = false
             progress.visibility = View.VISIBLE
             error.visibility = View.GONE
             scope.launch {
                 try {
-                    val loginPassword = password.text.toString()
-                    ServiceLocator.client.login(server.text.toString(), user.text.toString(), loginPassword)
+                    ServiceLocator.client.login(address, user.text.toString(), password.text.toString())
                     password.text.clear()
                     goHome()
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
-                    error.text = when {
-                        e.message?.contains("401") == true -> getString(R.string.login_error_credentials)
-                        e.message?.contains("HTTP") == true -> getString(R.string.login_error_server, e.message)
-                        else -> getString(R.string.login_error_connection, e.message)
-                    }
-                    error.visibility = View.VISIBLE
-                    progress.visibility = View.GONE
-                    button.isEnabled = true
+                    showError(loginErrorMessage(e, explicitScheme))
                 }
+            }
+        }
+
+        button.setOnClickListener {
+            val input = server.text.toString()
+            val explicitScheme = input.trim().contains("://")
+            val address = try {
+                Urls.normalizeServer(input)
+            } catch (e: IllegalArgumentException) {
+                showError(loginErrorMessage(e, explicitScheme))
+                return@setOnClickListener
+            }
+            if (address.startsWith("http://")) {
+                // Cleartext is the user's explicit choice for a trusted local network; confirm it every sign-in.
+                AlertDialog.Builder(this)
+                    .setTitle(R.string.cleartext_title)
+                    .setMessage(R.string.cleartext_message)
+                    .setPositiveButton(R.string.cleartext_continue) { _, _ -> signIn(address, explicitScheme) }
+                    .setNegativeButton(R.string.cancel, null)
+                    .show()
+            } else {
+                signIn(address, explicitScheme)
             }
         }
     }

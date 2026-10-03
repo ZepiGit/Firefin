@@ -12,6 +12,11 @@ import zepigit.firefin.app.data.ServerTransport
 import zepigit.firefin.app.data.SessionExpiredException
 import zepigit.firefin.app.util.Urls
 import java.util.concurrent.TimeUnit
+import javax.net.ssl.SSLException
+import javax.net.ssl.SSLPeerUnverifiedException
+import okhttp3.mockwebserver.SocketPolicy
+import okhttp3.tls.HandshakeCertificates
+import okhttp3.tls.HeldCertificate
 
 class TransportRegressionTest {
     @Test fun `bare host defaults to https without losing subpath`() {
@@ -113,6 +118,63 @@ class TransportRegressionTest {
             assertEquals(before + 1, origin.requestCount)
             assertEquals(0, other.requestCount)
         } }
+    }
+
+    private fun get(url: okhttp3.HttpUrl) = okhttp3.Request.Builder().url(url).build()
+
+    @Test fun `an added trust anchor validates its chain for REST, media and snapshots`() = runBlocking {
+        val root = HeldCertificate.Builder().certificateAuthority(0).commonName("Firefin Test Root").build()
+        MockWebServer().use { server ->
+            val leaf = HeldCertificate.Builder().signedBy(root).addSubjectAlternativeName(server.hostName).build()
+            server.useHttps(HandshakeCertificates.Builder().heldCertificate(leaf, root.certificate).build().sslSocketFactory(), false)
+            val trust = HandshakeCertificates.Builder().addTrustedCertificate(root.certificate).addPlatformTrustedCertificates().build()
+            val transport = ServerTransport(ServerCredentials(server.url("/").toString(), "u", "t"), "d", trust = trust)
+            server.enqueue(MockResponse().setBody("{}"))
+            assertEquals("{}", transport.json("System/Info"))
+            server.enqueue(MockResponse().setBody("segment"))
+            transport.snapshot().mediaHttp.newCall(get(server.url("videos/i1/seg.ts"))).execute().use { assertTrue(it.isSuccessful) }
+            // Platform trust alone does not know the test root, so the same chain is refused.
+            val platformOnly = ServerTransport(ServerCredentials(server.url("/").toString(), "u", "t"), "d")
+            assertTrue(runCatching { platformOnly.json("System/Info") }.exceptionOrNull() is SSLException)
+        }
+    }
+
+    @Test fun `added trust anchors keep hostname and unknown certificate checks`() = runBlocking {
+        val root = HeldCertificate.Builder().certificateAuthority(0).commonName("Firefin Test Root").build()
+        val trust = HandshakeCertificates.Builder().addTrustedCertificate(root.certificate).addPlatformTrustedCertificates().build()
+        MockWebServer().use { server ->
+            val wrongHost = HeldCertificate.Builder().signedBy(root).addSubjectAlternativeName("wrong.example").build()
+            server.useHttps(HandshakeCertificates.Builder().heldCertificate(wrongHost, root.certificate).build().sslSocketFactory(), false)
+            val transport = ServerTransport(ServerCredentials(server.url("/").toString(), "u", "t"), "d", trust = trust)
+            assertTrue(runCatching { transport.json("System/Info") }.exceptionOrNull() is SSLPeerUnverifiedException)
+        }
+        MockWebServer().use { server ->
+            val selfSigned = HeldCertificate.Builder().addSubjectAlternativeName(server.hostName).build()
+            server.useHttps(HandshakeCertificates.Builder().heldCertificate(selfSigned).build().sslSocketFactory(), false)
+            val transport = ServerTransport(ServerCredentials(server.url("/").toString(), "u", "t"), "d", trust = trust)
+            assertTrue(runCatching { transport.json("System/Info") }.exceptionOrNull() is SSLException)
+            assertEquals(0, server.requestCount)
+        }
+    }
+
+    @Test fun `media reads fail on a stalled connection but not on long slow streams`() {
+        MockWebServer().use { server ->
+            server.start()
+            val transport = ServerTransport(ServerCredentials(server.url("/").toString(), "u", "t"), "d", mediaReadTimeoutMs = 300)
+            assertEquals(0, transport.mediaHttp.callTimeoutMillis)
+            assertEquals(300, transport.snapshot().mediaHttp.readTimeoutMillis)
+            // The body starts, then the open connection delivers nothing more.
+            server.enqueue(MockResponse().setBody("0123456789").setHeader("Content-Length", "1000").setSocketPolicy(SocketPolicy.KEEP_OPEN))
+            val started = System.nanoTime()
+            val stalled = runCatching { transport.mediaHttp.newCall(get(server.url("videos/i1/stream"))).execute().use { it.body!!.bytes() } }
+            assertTrue(stalled.exceptionOrNull() is java.io.IOException)
+            assertTrue(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started) < 5_000)
+            // Ten chunks 100 ms apart take longer than the read timeout in total and still complete.
+            server.enqueue(MockResponse().setBody(okio.Buffer().write(ByteArray(2_000))).throttleBody(200, 100, TimeUnit.MILLISECONDS))
+            val bytes = transport.mediaHttp.newCall(get(server.url("videos/i1/stream"))).execute().use { it.body!!.bytes() }
+            assertEquals(2_000, bytes.size)
+        }
+        assertEquals(30_000, ServerTransport(ServerCredentials("https://example.test", "u", "t"), "d").mediaHttp.readTimeoutMillis)
     }
 
     @Test fun `cancelling request cancels its actual okhttp call`() = runBlocking {

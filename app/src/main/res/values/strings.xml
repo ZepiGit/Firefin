@@ -25,8 +25,16 @@
     <string name="password_hint">Password</string>
     <string name="login_button">Sign in</string>
     <string name="login_error_credentials">Sign-in failed: wrong username or password.</string>
-    <string name="login_error_server">Server unreachable or error: %1$s</string>
+    <string name="login_error_server">The server returned an error (HTTP %1$d).</string>
     <string name="login_error_connection">Connection failed: %1$s</string>
+    <string name="login_error_https_hint">The server did not accept a secure HTTPS connection. If it runs without HTTPS on your home network, enter the address with http://, for example http://192.168.1.10:8096.</string>
+    <string name="login_error_certificate">This device does not trust the server certificate. It must be valid, issued for this address and signed by a public certificate authority.</string>
+    <string name="login_error_unknown_host">Server address not found. Check the spelling.</string>
+    <string name="login_error_unreachable">The server cannot be reached. Check the address, port and network connection.</string>
+    <string name="login_error_address">Enter a valid server address, for example http://192.168.1.10:8096 or https://jellyfin.example.com.</string>
+    <string name="cleartext_title">Unencrypted connection</string>
+    <string name="cleartext_message">With http:// your password and media are sent unencrypted. Use it only on a trusted home network.</string>
+    <string name="cleartext_continue">Connect anyway</string>
 
     <!-- Home, libraries and search -->
     <string name="home_preview_default">Your library</string>
@@ -38,10 +46,20 @@
     <string name="search_in_library">In your library</string>
     <string name="search_in_seerr">Request via Seerr</string>
     <string name="error_generic">Something went wrong</string>
+    <string name="error_session_expired">Your session has expired. Please sign in again.</string>
+    <string name="error_server_status">Server request failed (HTTP %1$d).</string>
+    <string name="error_response_too_large">The server response is too large.</string>
+    <string name="error_no_playable_source">This title has no source this device can play.</string>
+    <string name="error_login_response">The server\'s sign-in response is incomplete.</string>
     <string name="empty_library">This library is empty</string>
     <string name="empty_search">No results</string>
     <string name="empty_remote">No controllable sessions</string>
     <string name="empty_home">No content available</string>
+    <string name="library_title">%1$s (%2$d · %3$s)</string>
+    <string name="sort_name">Name</string>
+    <string name="sort_date_added">Date added</string>
+    <string name="sort_year">Year</string>
+    <string name="sort_rating">Rating</string>
 
     <!-- Details -->
     <string name="detail_breadcrumb">FIREFIN / LIBRARY</string>
@@ -56,6 +74,8 @@
     <string name="children_episodes">Episodes</string>
     <string name="children_items">Items</string>
     <string name="load_error">Failed to load.</string>
+    <string name="continue_series">▶ Continue %1$s</string>
+    <string name="children_load_more_failed">More items could not be loaded. Move the focus again to retry.</string>
 
     <!-- Player -->
     <string name="track_audio">Audio track</string>
@@ -64,6 +84,13 @@
     <string name="subtitles_off">Off</string>
     <string name="track_switch_aborted">Track change cancelled: the playback session could not be ended.</string>
     <string name="track_switch_failed">Track change failed</string>
+    <string name="playback_error_title">Playback stopped</string>
+    <string name="playback_error_network">The connection to the server was lost or stopped responding.</string>
+    <string name="playback_error_server">The server refused the stream.</string>
+    <string name="playback_error_format">This device cannot play this media format.</string>
+    <string name="playback_error_other">Playback failed (%1$s).</string>
+    <string name="retry">Retry</string>
+    <string name="back">Back</string>
 
     <!-- Remote control -->
     <string name="remote_device_fallback">Device</string>
@@ -75,6 +102,10 @@
     <string name="logout">Sign out</string>
     <string name="about">About Firefin</string>
     <string name="about_text">Firefin %1$s\nIndependent native Kotlin Jellyfin client for legacy Fire TV devices, originally derived from Moonfin Core. Not affiliated with or supported by Moonfin.</string>
+    <string name="account_info">%1$s @ %2$s</string>
+    <string name="setting_value">%1$s: %2$s</string>
+    <string name="state_on">On</string>
+    <string name="state_off">Off</string>
     <string name="setting_quality">Playback quality</string>
     <string name="quality_dialog_title">Quality (device limit: 1080p / 4 Mbps)</string>
     <string-array name="quality_options">
@@ -83,9 +114,7 @@
         <item>720p · 2 Mbps</item>
         <item>480p · 1 Mbps</item>
     </string-array>
-    <string name="setting_backdrops">Toggle background images</string>
-    <string name="backdrops_on">Background images on</string>
-    <string name="backdrops_off">Background images off</string>
+    <string name="setting_backdrops">Background images</string>
     <string name="setting_audio_language">Preferred audio language</string>
     <string name="audio_language_title">Audio language</string>
     <string-array name="audio_language_options">

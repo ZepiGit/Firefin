@@ -6,6 +6,9 @@ import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
+import androidx.media3.common.Player
+import androidx.media3.common.TrackSelectionOverride
+import androidx.media3.common.Tracks
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
@@ -43,13 +46,32 @@ class PlaybackEngine(context: Context, okHttpClient: okhttp3.OkHttpClient) {
                 .setPreferredAudioLanguage(prefs.stored.audioLanguage.takeIf { it.isNotBlank() })
                 .setPreferredTextLanguage(prefs.stored.subtitleLanguage.takeIf { it.isNotBlank() })
                 .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, prefs.stored.subtitleLanguage.isBlank()).build()
+            addListener(object : Player.Listener {
+                override fun onTracksChanged(tracks: Tracks) = selectExternalSubtitle(tracks)
+            })
         }
+
+    /** True until the sideloaded subtitle of the current item has been selected explicitly. */
+    private var externalSubtitlePending = false
 
     var currentUrl: String? = null
         private set
 
+    /**
+     * Applies a negotiated subtitle choice: text on or off, preferring [language].
+     * Call before [prepare]; the sideloaded file is then pinned once its track appears.
+     */
+    fun applySubtitleChoice(enabled: Boolean, language: String?) {
+        player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+            .clearOverridesOfType(C.TRACK_TYPE_TEXT)
+            .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, !enabled)
+            .setPreferredTextLanguage(language?.takeIf { it.isNotBlank() })
+            .build()
+    }
+
     fun prepare(url: String, startMs: Long, subtitleUrl: String? = null, subtitleMime: String? = null) {
         currentUrl = url
+        externalSubtitlePending = subtitleUrl != null && subtitleMime != null
         val isHls = url.contains(".m3u8") || url.contains("/hls/")
         val mediaItem = MediaItem.Builder()
             .setUri(url)
@@ -57,12 +79,31 @@ class PlaybackEngine(context: Context, okHttpClient: okhttp3.OkHttpClient) {
             .apply {
                 if (subtitleUrl != null && subtitleMime != null) setSubtitleConfigurations(listOf(
                     MediaItem.SubtitleConfiguration.Builder(android.net.Uri.parse(subtitleUrl))
-                        .setMimeType(subtitleMime).setSelectionFlags(C.SELECTION_FLAG_DEFAULT).build(),
+                        .setId(EXTERNAL_SUBTITLE_ID).setMimeType(subtitleMime).setSelectionFlags(C.SELECTION_FLAG_DEFAULT).build(),
                 ))
             }.build()
         player.setMediaItem(mediaItem, startMs)
         player.prepare()
         player.playWhenReady = true
+    }
+
+    /**
+     * A direct-played file can carry embedded subtitles in the same language;
+     * the user picked the server-delivered file, so select that track by its id.
+     */
+    private fun selectExternalSubtitle(tracks: Tracks) {
+        if (!externalSubtitlePending) return
+        for (group in tracks.groups) {
+            if (group.type != C.TRACK_TYPE_TEXT) continue
+            for (index in 0 until group.length) {
+                if (group.getTrackFormat(index).id?.endsWith(EXTERNAL_SUBTITLE_ID) != true) continue
+                externalSubtitlePending = false
+                player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+                    .setOverrideForType(TrackSelectionOverride(group.mediaTrackGroup, index))
+                    .build()
+                return
+            }
+        }
     }
 
     fun attach(surface: SurfaceView) {
@@ -71,5 +112,9 @@ class PlaybackEngine(context: Context, okHttpClient: okhttp3.OkHttpClient) {
 
     fun release() {
         player.release()
+    }
+
+    private companion object {
+        const val EXTERNAL_SUBTITLE_ID = "firefin-external-subtitle"
     }
 }

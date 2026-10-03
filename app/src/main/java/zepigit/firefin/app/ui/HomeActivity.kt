@@ -14,7 +14,10 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import zepigit.firefin.app.R
 import zepigit.firefin.app.ServiceLocator
@@ -87,9 +90,11 @@ class HomeActivity : AppCompatActivity() {
         }
 
         findViewById<View>(R.id.libraryButton).setOnClickListener {
-            if (libraries.isNotEmpty()) androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle(R.string.libraries).setItems(libraries.map { it.name }.toTypedArray()) { _, index ->
-                    val library = libraries[index]
+            // Music, Live TV, books, photos and playlists have no native player yet; hide them instead of dead ends.
+            val browsable = libraries.filter { it.collectionType in BROWSABLE_LIBRARY_TYPES }
+            if (browsable.isNotEmpty()) androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle(R.string.libraries).setItems(browsable.map { it.name }.toTypedArray()) { _, index ->
+                    val library = browsable[index]
                     LibraryActivity.start(this, library.id, library.name, library.collectionType)
                 }.show()
         }
@@ -150,8 +155,15 @@ class HomeActivity : AppCompatActivity() {
         scope.launch {
             try {
                 val rows = mutableListOf<HomeRow>()
-                rows.add(HomeRow(getString(R.string.continue_watching), ServiceLocator.client.resume(), landscape = true))
-                rows.add(HomeRow(getString(R.string.next_up), ServiceLocator.client.nextUp(), landscape = true))
+                // Independent requests run concurrently; OkHttp still bounds connections per host.
+                val (resume, nextUp, views) = coroutineScope {
+                    val resume = async { ServiceLocator.client.resume() }
+                    val nextUp = async { ServiceLocator.client.nextUp() }
+                    val views = async { if (refreshOnly) libraries else ServiceLocator.client.views() }
+                    Triple(resume.await(), nextUp.await(), views.await())
+                }
+                rows.add(HomeRow(getString(R.string.continue_watching), resume, landscape = true))
+                rows.add(HomeRow(getString(R.string.next_up), nextUp, landscape = true))
                 if (refreshOnly) {
                     rows.addAll(latestRows)
                     rowsAdapter.submitRows(rows)
@@ -160,20 +172,22 @@ class HomeActivity : AppCompatActivity() {
                     emptyView.visibility = if (rowsAdapter.itemCount == 0) View.VISIBLE else View.GONE
                     return@launch
                 }
-                libraries = ServiceLocator.client.views()
+                libraries = views
                 val mediaViews = libraries.filter {
                     it.collectionType in setOf("movies", "tvshows", "mixed", "")
                 }
-                for (view in mediaViews) {
-                    rows.add(
-                        HomeRow(
-                            getString(R.string.latest_media) + " · " + view.name,
-                            ServiceLocator.client.latest(view.id),
-                            libraryId = view.id,
-                            libraryName = view.name,
-                            libraryType = view.collectionType,
-                        ),
-                    )
+                rows += coroutineScope {
+                    mediaViews.map { view ->
+                        async {
+                            HomeRow(
+                                getString(R.string.latest_media) + " · " + view.name,
+                                ServiceLocator.client.latest(view.id),
+                                libraryId = view.id,
+                                libraryName = view.name,
+                                libraryType = view.collectionType,
+                            )
+                        }
+                    }.awaitAll()
                 }
                 latestRows = rows.drop(2)
                 rowsAdapter.submitRows(rows)
@@ -202,5 +216,6 @@ class HomeActivity : AppCompatActivity() {
 
     private companion object {
         const val KEY_SCROLL = "home.scroll"
+        val BROWSABLE_LIBRARY_TYPES = setOf("movies", "tvshows", "homevideos", "boxsets", "mixed", "")
     }
 }

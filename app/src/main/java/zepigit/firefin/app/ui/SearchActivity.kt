@@ -65,15 +65,7 @@ class SearchActivity : AppCompatActivity() {
                     try {
                         val pair = kotlinx.coroutines.supervisorScope {
                             val jf = async(Dispatchers.IO) {
-                                try {
-                                    ServiceLocator.client.items(searchTerm = q, includeTypes = "Movie,Series,Episode,MusicAlbum").first
-                                } catch (e: CancellationException) {
-                                    throw e
-                                } catch (e: SessionExpiredException) {
-                                    throw e
-                                } catch (e: Exception) {
-                                    throw e
-                                }
+                                ServiceLocator.client.items(searchTerm = q, includeTypes = "Movie,Series,Episode").first
                             }
                             val seerr = async(Dispatchers.IO) {
                                 if (seerrProbeUnavailable) return@async emptyList()
