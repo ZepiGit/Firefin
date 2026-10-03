@@ -7,7 +7,7 @@ Build status for `0.2.5-firefin`: local verification passed 83 JVM unit tests,
 strict lint (0 errors, 74 warnings), an R8 release build and the APK verifier,
 and two instrumented tests on an API 22 stock x86 emulator. Signed APKs come
 only from the protected release workflow; the newest published release is
-`0.2.4-firefin`. There is no AFTT hardware result. CI results are recorded per
+`0.2.5-firefin`. There is no AFTT hardware result. CI results are recorded per
 commit in GitHub Actions.
 
 ## Toolchain (native)
@@ -117,7 +117,8 @@ in GitHub Actions; the local results above are not CI evidence.
 ## Protected release (`Firefin signed release`, `.github/workflows/release.yml`)
 
 Manual (`workflow_dispatch`) only. Releases `0.2.3-firefin` (run 37055114680)
-and `0.2.4-firefin` (run 37067878548) were produced with it.
+`0.2.4-firefin` (run 37067878548) and `0.2.5-firefin` (run 37095893231) were
+produced with it.
 
 Inputs:
 

@@ -49,7 +49,7 @@ The standard local verification command is:
 
 Version `0.2.5-firefin` has local evidence of 83 JVM tests, strict debug/release lint with 0 errors, APK verification, debug/unsigned-release assembly and two instrumented tests on the API-22 x86 emulator. Earlier emulator records cover login, navigation, search, Seerr flows, artwork, playback controls and resume; see the [migration ledger](FIREFIN_MIGRATION.md).
 
-Signed releases are built only by the protected release workflow, which requires signing credentials stored outside this repository. Releases `0.2.3-firefin` and `0.2.4-firefin` were built and verified against the pinned production certificate this way. None has been validated on physical AFTT hardware.
+Signed releases are built only by the protected release workflow, which requires signing credentials stored outside this repository. Releases `0.2.3-firefin`, `0.2.4-firefin` and `0.2.5-firefin` were built and verified against the pinned production certificate this way. None has been validated on physical AFTT hardware.
 
 ## Known boundaries
 
