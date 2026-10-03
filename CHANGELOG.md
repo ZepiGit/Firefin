@@ -8,7 +8,9 @@ preserved unchanged as history.
 
 ### 0.2.5-firefin (versionCode 3001005)
 
-Not yet published as a signed release.
+Published on 2026-10-03 as a signed GitHub release (tag `firefin-v0.2.5-firefin`)
+by the protected release workflow (run 37095893231) from commit
+`7bf3345a21f2731cf25dbfbcb38e7a4cd95d7f78`. No AFTT hardware result is recorded.
 
 Sign-in and connection:
 

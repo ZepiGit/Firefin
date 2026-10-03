@@ -71,8 +71,8 @@ only to release maintainers. The release workflow reads the key from the
 `FIREFIN_CERTIFICATE_SHA256` variable (see [BUILDING.md](BUILDING.md)); the key
 should be exposed only to the protected `firefin-release` job. The secrets and
 the variable are currently stored at repository level, not inside the
-`firefin-release` environment, and were used to publish `0.2.3-firefin` and
-`0.2.4-firefin`; the
+`firefin-release` environment, and were used to publish `0.2.3-firefin`,
+`0.2.4-firefin` and `0.2.5-firefin`; the
 reviewer and branch rules of the environment gate the release job, but moving
 the values into the environment is an open hardening step. No production key or
 fingerprint is stored in this repository, and there is no debug-key release

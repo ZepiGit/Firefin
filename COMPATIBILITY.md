@@ -22,7 +22,7 @@ servers work on all supported Android versions after a confirmation.
 | API 22 stock x86 emulator, `0.2.5-firefin` | Two instrumented tests pass (login screen; sign-in over HTTP, favorite set/clear, paging through 125 episodes, sign-out and prefilled sign-in against a local fixture server); sign-in error and cleartext dialog checked manually. Playback was not exercised for this version |
 | API 22 stock x86 emulator, snapshot `c9da933` (before 0.2.4) | Login, Moonfin-like Home/Library/Detail/Search/Settings, Seerr discovery/search/detail/season confirmation, TMDB artwork, baseline 480p playback up to 1080p, resume, D-pad controller, audio dialog and cleanup exercised |
 | Physical AFTT (ARMv7) | **Absent.** No hardware decoder/memory/thermal result |
-| Signed release APK | `0.2.3-firefin` (run 37055114680) and `0.2.4-firefin` (run 37067878548) were built, signed and verified against the pinned production certificate by the protected release workflow |
+| Signed release APK | `0.2.3-firefin` (run 37055114680), `0.2.4-firefin` (run 37067878548) and `0.2.5-firefin` (run 37095893231) were built, signed and verified against the pinned production certificate by the protected release workflow |
 | Final commit CI | Consult the exact commit's GitHub Actions record; local results are not CI evidence |
 
 
