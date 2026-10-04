@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--2.0-1f6feb.svg" alt="GPL-2.0" /></a>
-  <a href="COMPATIBILITY.md"><img src="https://img.shields.io/badge/Fire%20OS-5%20%2F%20API%2022-f59e0b.svg" alt="Fire OS 5 and API 22" /></a>
+  <a href="COMPATIBILITY.md"><img src="https://img.shields.io/badge/Fire%20OS/Android-5%20%2F%20API%2022-f59e0b.svg" alt="Fire OS 5 and API 22" /></a>
   <a href="COMPATIBILITY.md"><img src="https://img.shields.io/badge/architecture-ARMv7-64748b.svg" alt="ARMv7" /></a>
   <a href="docs/FIREFIN_TECHNICAL_OVERVIEW.md"><img src="https://img.shields.io/badge/status-development-8b5cf6.svg" alt="Development status" /></a>
 </p>
