@@ -120,7 +120,7 @@ To build Firefin yourself, start with [build guide](docs/BUILDING.md) and the te
 
 ## Project status
 
-Firefin 32bit is still in development and the native TV experience is actively being completed. It has been tested on an Android 5.1 (API 22) emulator; a run on physical Fire TV Stick hardware is still outstanding. Sending media requests to a live Seerr server has not been verified yet. Firefin does not claim support for Live TV/DVR, offline downloads, music or book readers, DLNA, administration or every modern Jellyfin client feature, but if you've got an old Fire TV or Android TV device lying around, it might be just for you.
+Firefin 32-bit is still in development and the native TV experience is actively being completed. It has been tested on an Android 5.1 (API 22) emulator; a run on physical Fire TV Stick hardware is still outstanding. Sending media requests to a live Seerr server has not been verified yet. Firefin does not claim support for Live TV/DVR, offline downloads, music or book readers, DLNA, administration or every modern Jellyfin client feature, but if you've got an old Fire TV or Android TV device lying around, it might be just for you.
 
 For compatibility boundaries, security notes and verification evidence, see:
 
