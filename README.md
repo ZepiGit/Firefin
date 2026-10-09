@@ -60,10 +60,6 @@ This project is not about being the best Jellyfin/Moonfin alternative. It doesn'
       <img src="docs/screenshots/login.png" alt="Firefin sign-in with light-gray wordmark and persistent field labels" />
       <p align="center"><sub><strong>Sign in</strong><br />Readable branding and labeled TV-friendly fields.</sub></p>
     </td>
-    <td width="50%">
-      <img src="docs/screenshots/settings.png" alt="Firefin settings with the developer GitHub link" />
-      <p align="center"><sub><strong>Settings</strong><br />Preferences and developer link.</sub></p>
-    </td>
   </tr>
 </table>
 
