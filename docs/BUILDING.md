@@ -20,10 +20,12 @@ commit in GitHub Actions.
 | Android SDK | `platforms;android-35`, `build-tools;35.0.0` |
 | App SDK levels | minSdk 21, targetSdk 34, compileSdk 35 |
 | Application ID | `zepigit.firefin.app` |
-| Version | `versionName=0.2.5-firefin`, `versionCode=3001005` (from `version.properties`) |
+| Version | `versionName=2.6.0`, `versionCode=3001006` (from `version.properties`) |
 
 `version.properties` is the single source of version identity. Keep the native
-version code above the legacy `3000028`.
+version code above the legacy `3000028`. The next signed release is titled
+`Firefin-v2.6.0` and uses tag `firefin-v2.6.0`. The older build results above
+remain historical evidence; publication status is recorded by GitHub Actions.
 
 Dependencies are pinned by version in `app/build.gradle.kts`. There is no
 Gradle lockfile or dependency-verification metadata yet; CI only validates the

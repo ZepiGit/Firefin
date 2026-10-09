@@ -57,7 +57,7 @@ they do not claim a new release or physical AFTT validation.
 
 ## Current verification snapshot
 
-Native identity: `zepigit.firefin.app`, `0.2.5-firefin`, versionCode `3001005`
+Native identity: `zepigit.firefin.app`, `2.6.0`, versionCode `3001006`
 (`version.properties`; above the legacy `3000028`), minSdk 21, targetSdk 34.
 
 Evidence is attributed to the version or commit it was produced on. A commit

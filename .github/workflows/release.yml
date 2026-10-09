@@ -120,4 +120,4 @@ jobs:
             printf 'Release already exists; refusing to overwrite.\n' >&2
             exit 1
           fi
-          gh release create "$RELEASE_TAG" artifacts/* --verify-tag --target "$RELEASE_COMMIT" --title "Firefin ${RELEASE_TAG#firefin-v}" --generate-notes
+          gh release create "$RELEASE_TAG" artifacts/* --verify-tag --target "$RELEASE_COMMIT" --title "Firefin-v${RELEASE_TAG#firefin-v}" --generate-notes

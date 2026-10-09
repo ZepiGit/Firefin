@@ -9,8 +9,8 @@
 | Fire TV Stick 1st Generation | Fire OS 5 / Android 5.1 | Expected to work (ARMv7), not tested |
 | Newer 64-bit Fire TV devices | Fire OS 6+ | Might work, not tested; not the intended target |
 
-Native app: minSdk 21, targetSdk 34, `zepigit.firefin.app`, `0.2.5-firefin`
-(versionCode `3001005`). Landscape only; touchscreen and Leanback are declared
+Native app: minSdk 21, targetSdk 34, `zepigit.firefin.app`, `2.6.0`
+(versionCode `3001006`). Landscape only; touchscreen and Leanback are declared
 optional; Leanback launcher and TV banner are present. Cleartext `http://`
 servers work on all supported Android versions after a confirmation.
 

@@ -6,7 +6,10 @@ preserved unchanged as history.
 
 ## Native Firefin
 
-### Unreleased
+### 2.6.0 (versionCode 3001006)
+
+Release title: `Firefin-v2.6.0`; tag: `firefin-v2.6.0`.
+Publication is performed by the protected signed-release workflow.
 
 - Supporting build, compatibility and attribution guides now live in `docs/`;
   legacy Flutter build helpers live in `scripts/legacy/`. CI and relative links
