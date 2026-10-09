@@ -99,9 +99,9 @@ class SeerrClient(private var transport: ServerTransport) {
         authenticated
     }
 
-    suspend fun login(username: String = "", password: String = "", quickConnect: Boolean = false, local: Boolean = false) = stateMutex.withLock {
-        val body = JSONObject().put("authType", if (quickConnect) "quickconnect" else if (local) "local" else "jellyfin")
-        if (!quickConnect) body.put("username", username).put("password", password)
+    /** Moonbase signs in to Seerr with the user's Jellyfin credentials; the password is only sent, never kept. */
+    suspend fun login(username: String, password: String) = stateMutex.withLock {
+        val body = JSONObject().put("authType", "jellyfin").put("username", username).put("password", password)
         val result = try { call("$prefix/Login", "POST", body)!! } catch (e: SeerrException) {
             if (e.status != 404) throw e
             prefix = if (prefix == "Moonfin/Jellyseerr") "Moonfin/Seerr" else "Moonfin/Jellyseerr"

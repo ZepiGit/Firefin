@@ -3,10 +3,10 @@ name: Legacy Flutter baseline (validation only)
 on:
   workflow_dispatch:
   pull_request:
-    paths: ['lib/**', 'packages/**', 'android/**', 'test/**', 'pubspec.*', 'build-android.sh', '.github/workflows/build.yml']
+    paths: ['lib/**', 'packages/**', 'android/**', 'test/**', 'pubspec.*', 'scripts/legacy/build-android.sh', '.github/workflows/build.yml']
   push:
     branches: [main, 'firefin/**']
-    paths: ['lib/**', 'packages/**', 'android/**', 'test/**', 'pubspec.*', 'build-android.sh', '.github/workflows/build.yml']
+    paths: ['lib/**', 'packages/**', 'android/**', 'test/**', 'pubspec.*', 'scripts/legacy/build-android.sh', '.github/workflows/build.yml']
 
 permissions:
   contents: read
@@ -34,7 +34,7 @@ jobs:
       - name: Run legacy tests
         run: flutter test
       - name: Build legacy validation APK (never published)
-        run: bash ./build-android.sh
+        run: bash ./scripts/legacy/build-android.sh
       - uses: actions/upload-artifact@v4
         with:
           name: legacy-validation-only-${{ github.sha }}

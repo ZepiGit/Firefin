@@ -4,9 +4,9 @@ set -euo pipefail
 # Builds both outputs with one command:
 # 1) unsigned IPA for local/user signing workflows
 # 2) signed App Store IPA for Transporter/App Store Connect upload
-# Optional local overrides can be placed in build-ios.private.env.
+# Optional local overrides can be placed in the repo root build-ios.private.env.
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 APP_NAME="Moonfin"
 ARCHIVE_DIR="$REPO_ROOT/build/ios/archive"
 IPA_DIR="$REPO_ROOT/build/ios/ipa"
@@ -55,7 +55,7 @@ IOS_EXPORT_OPTIONS_PLIST="${IOS_EXPORT_OPTIONS_PLIST:-}"
 
 if [ "$#" -gt 0 ]; then
   echo "Error: this script no longer accepts positional arguments." >&2
-  echo "Run: ./build-ios.sh" >&2
+  echo "Run: ./scripts/legacy/build-ios.sh" >&2
   exit 1
 fi
 

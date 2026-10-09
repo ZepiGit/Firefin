@@ -50,6 +50,7 @@ class Api22FlowTest {
                 val url = request.requestUrl!!
                 return when (url.encodedPath) {
                     "/Users/AuthenticateByName" -> MockResponse().setBody("""{"AccessToken":"tok","ServerId":"srv","User":{"Id":"u1","Name":"tester"}}""")
+                    "/Moonfin/Ping" -> MockResponse().setResponseCode(404)
                     "/Users/u1/Items" -> {
                         val start = url.queryParameter("StartIndex")!!.toInt()
                         val limit = url.queryParameter("Limit")!!.toInt()

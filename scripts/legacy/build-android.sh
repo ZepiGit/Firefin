@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 APP_NAME="Moonfin_FireTV32_Unofficial"
 APK_SOURCE="$REPO_ROOT/build/app/outputs/flutter-apk/app-release.apk"
 PAGE_SIZE_CHECKER="$REPO_ROOT/scripts/check-android-16kb-pages.sh"

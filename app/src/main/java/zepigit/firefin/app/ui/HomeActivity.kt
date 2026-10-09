@@ -2,8 +2,8 @@ package zepigit.firefin.app.ui
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.View
-import android.widget.Button
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
@@ -53,6 +53,26 @@ class HomeActivity : AppCompatActivity() {
             return
         }
         setContentView(R.layout.activity_home)
+
+        val toolbarActionLabel = findViewById<TextView>(R.id.toolbarActionLabel)
+        val toolbarButtons = listOf(
+            R.id.homeButton, R.id.searchButton, R.id.libraryButton,
+            R.id.mediaRequestsButton, R.id.randomButton, R.id.favoritesButton,
+            R.id.settingsButton,
+        ).map { findViewById<View>(it) }
+        for (button in toolbarButtons) {
+            button.setOnFocusChangeListener { view, hasFocus ->
+                toolbarActionLabel.text = if (hasFocus) view.contentDescription else ""
+                toolbarActionLabel.visibility = if (hasFocus) View.VISIBLE else View.INVISIBLE
+            }
+        }
+        toolbarButtons.firstOrNull { it.hasFocus() }?.let {
+            toolbarActionLabel.text = it.contentDescription
+            toolbarActionLabel.visibility = View.VISIBLE
+        }
+        // Self-targeted XML focus ids alone still allow Android's fallback focus search.
+        toolbarButtons.first().setOnKeyListener { _, keyCode, _ -> keyCode == KeyEvent.KEYCODE_DPAD_LEFT }
+        toolbarButtons.last().setOnKeyListener { _, keyCode, _ -> keyCode == KeyEvent.KEYCODE_DPAD_RIGHT }
 
         rowsView = findViewById(R.id.rows)
         progress = findViewById(R.id.progress)

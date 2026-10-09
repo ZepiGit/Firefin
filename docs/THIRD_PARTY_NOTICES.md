@@ -2,7 +2,7 @@
 
 This file records provenance and dependencies. It is not legal advice and makes
 no claim beyond the license files and upstream metadata named here. The only
-license text stored in this repository is [LICENSE](LICENSE) (GNU General
+license text stored in this repository is [LICENSE](../LICENSE) (GNU General
 Public License version 2).
 
 ## Upstream attribution (Moonfin)
@@ -16,7 +16,7 @@ Firefin descends from the Moonfin FireTV32 backport of Moonfin Core 1.1.0:
 
 The repaired git history preserves the upstream commits and their authors (the
 replayed SHAs and committer metadata are reconstructed; see
-[docs/FIREFIN_MIGRATION.md](docs/FIREFIN_MIGRATION.md)). Firefin is an
+[FIREFIN_MIGRATION.md](FIREFIN_MIGRATION.md)). Firefin is an
 independent project and is not affiliated with or endorsed by Moonfin.
 
 The native Kotlin app in `app/` is new code written for Firefin. The legacy

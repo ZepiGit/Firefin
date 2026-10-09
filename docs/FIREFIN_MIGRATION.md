@@ -16,6 +16,45 @@ decode and completed API-22 validation. Releases `0.2.3-firefin`,
 hardware approval is claimed. The Flutter sources stay in the repository while
 active features lack native parity.
 
+## Unreleased UI and Seerr follow-up (2026-10-09)
+
+This is local working-tree evidence, not a published release, CI result or
+physical AFTT approval. Version identity remains `0.2.5-firefin` / `3001005`.
+
+- Requests now uses the Moonfin-derived Seerr crescent and sits between
+  Libraries and Play random. The API-22 x86 emulator exercised the forward and
+  reverse D-pad chain, both toolbar boundaries, focused action labels and
+  moving down into content rows.
+- The dark bitmap wordmark was replaced by the unchanged colored Firefin mark
+  and native light-gray text. The actual login surface fits at 1920×1080 /
+  320 dpi, with persistent field labels and larger text.
+- Settings visibly exposes `github.com/ZepiGit`. Browser activation was
+  exercised without bypassing a certificate warning; with the emulator's
+  browser temporarily disabled, the fallback displayed the exact HTTPS URL
+  and its Copy link action completed. The browser was re-enabled afterward.
+- The baseline APK required a separate Seerr password prompt. The changed APK
+  established the session with one transient bridge Login POST against a local
+  synthetic fixture. The manual fallback's labeled fields, password focus,
+  sign-in button and keyboard Done were also exercised against that fixture.
+- With user-authorized live credentials, Jellyfin sign-in against the configured
+  HTTPS server opened Seerr discovery (`Page 1 / 500`) without a second password
+  dialog. The test account was then signed out. No live media request was sent.
+- Local verification passed 90 JVM tests and four instrumented API-22 tests,
+  strict debug/release lint with zero errors (74 warnings), debug and R8 unsigned-release
+  assembly, and the APK verifier. Password persistence, optional plugin
+  failures, cancellation, timeout and cross-origin credential leakage have
+  regression coverage. Full hardware/playback approval remains open.
+
+## Current repository presentation captures
+
+The seven PNGs in `docs/screenshots/` were captured directly from the updated
+local debug APK on 2026-10-09, using the Android 5.1/API-22 x86 emulator at
+1920×1080. They cover login, Home, combined search, season and episode details,
+Seerr discovery and Settings. UI labels are English; server metadata may be
+German. Settings was scrolled to omit account/server details, and login is
+shown without a password. These images replace the old standalone `docs/` PNGs;
+they do not claim a new release or physical AFTT validation.
+
 ## Current verification snapshot
 
 Native identity: `zepigit.firefin.app`, `0.2.5-firefin`, versionCode `3001005`
@@ -86,7 +125,7 @@ unproven or incomplete; HISTORICAL means evidence applies only to its named SHA.
 | Gate 6: trust chain/hostname, API22 CA policy, redirect/token isolation, stalled media | Transport TLS, timeout and redirect negative tests | Partial: platform trust plus ISRG Root X1 for Jellyfin and TMDB; JVM tests for an added anchor, wrong hostname, unknown self-signed certificate, stalled and slow media bodies, REST/media redirects and header-only tokens; no API22 CA test on hardware |
 | Gate 7: actionlint, wrapper/dependency verification, tests, strict debug/release lint, both builds | android.yml with mandatory reports/APKs | `0.2.5-firefin` local run: 83 tests, 0 lint errors, both APKs and verifier pass; CI per SHA; dependency-verification metadata open |
 | Gate 7: separate protected signing, required secrets, stable cert, tag/full SHA, v1, checksums/source | release.yml, verifier, protected environment and actual run/release | DONE for 0.2.3, 0.2.4 and 0.2.5: the protected `firefin-release` environment (required reviewer, `main` only), the production signing secrets and the pinned certificate fingerprint are configured; run 37055114680 published `firefin-v0.2.3-firefin` from `e9760aa62e71f5ddb1b7a7f806b0d26c0726c987`, run 37067878548 published `firefin-v0.2.4-firefin` from `503678d519950d74c4cfb6d3d93a08150716a3af`, run 37095893231 published `firefin-v0.2.5-firefin` from `7bf3345a21f2731cf25dbfbcb38e7a4cd95d7f78`. Earlier attempts failed for setup reasons (SDK path, keystore secret content, annotated tag) and were corrected; the tags `firefin-v0.2.0-firefin`, `firefin-v0.2.1-firefin` and `firefin-v0.2.2-firefin` exist without a release |
-| Gate 8: native-only cleanup after parity; updated public English docs/templates | README, BUILDING, COMPATIBILITY, CHANGELOG, SECURITY, notices/templates | Partial: English docs and issue/PR templates describe Firefin; `FIRETV32-README.md` and `RELEASE_NOTES_*` stay as legacy history; the UI is English by default with a German translation |
+| Gate 8: native-only cleanup after parity; updated public English docs/templates | README, BUILDING, COMPATIBILITY, CHANGELOG, SECURITY, notices/templates | Partial: English docs and issue/PR templates describe Firefin; redundant standalone legacy readme/verification/release-note files have been removed; legacy source and changelog history remain; the UI is English by default with a German translation |
 
 ## Actual feature matrix
 
@@ -182,10 +221,10 @@ Fixes in the native app, each with a regression test:
   dialog, terminal session cleanup. The release-profile 720p H.264 High stream
   exceeded the AOSP x86 software decoder; Debug uses a baseline test profile for
   emulator verification. This is not AFTT hardware evidence.
-- Native presentation captures are checked into `docs/firefin-home-current.png`,
-  `docs/firefin-seerr-current.png`, `docs/screenshots-southpark-search.png`,
-  `docs/southpark-season-two.png` and `docs/southpark-episode.png`; they contain
-  no credentials or tokens and show the German translation.
+- This snapshot originally included German-language presentation captures.
+  Those images have been superseded by the current local-build captures in
+  `docs/screenshots/`; the replacement images are not evidence for this
+  historical snapshot.
 
 ### Historical notes
 

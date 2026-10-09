@@ -6,6 +6,30 @@ preserved unchanged as history.
 
 ## Native Firefin
 
+### Unreleased
+
+- Supporting build, compatibility and attribution guides now live in `docs/`;
+  legacy Flutter build helpers live in `scripts/legacy/`. CI and relative links
+  use the new paths. Redundant standalone legacy version documents were removed;
+  legacy source and changelog history remain.
+- Replaced the old presentation images with seven current Android API-22
+  captures in `docs/screenshots/`, including login, settings and search. These
+  show the local unreleased build, not physical Fire TV validation.
+- Home places Media requests between Libraries and Play random, with the
+  Moonfin-derived Seerr crescent instead of a chat bubble. Remote focus follows
+  that order in both directions and shows the focused action's name.
+- Login uses a light-gray Firefin wordmark beside the unchanged colored mark.
+  Persistent server/user/password labels, larger field text, explicit focus
+  order and keyboard Done improve TV sign-in. Password view state is not saved.
+- Settings includes `github.com/ZepiGit`; devices without a browser show the
+  full address and offer Copy link.
+- A successful Jellyfin password sign-in also connects an enabled Moonbase/Seerr
+  integration with the transient credentials. No password, Seerr cookie or API
+  key is stored. Optional failures do not block Jellyfin sign-in; the bridge
+  step is bounded to ten seconds. Existing sessions need one fresh password
+  sign-in. The manual fallback has labeled, consistently styled fields and
+  keyboard Done support.
+
 ### 0.2.5-firefin (versionCode 3001005)
 
 Published on 2026-10-03 as a signed GitHub release (tag `firefin-v0.2.5-firefin`)

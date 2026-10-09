@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 FLUTTER_BIN="${FLUTTER_BIN:-flutter}"
 APK_SOURCE="$REPO_ROOT/build/app/outputs/flutter-apk/app-release.apk"
 APK_OUTPUT="$REPO_ROOT/Moonfin_FireTV32_Unofficial_1.1.0-r21.apk"

@@ -1,13 +1,66 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/login_gradient" android:fillViewport="true">
-<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:orientation="vertical" android:padding="24dp">
-<ImageView android:layout_width="240dp" android:layout_height="80dp" android:src="@drawable/firefin_wordmark" android:contentDescription="@string/app_name" android:scaleType="fitCenter" android:layout_marginBottom="20dp"/>
-<LinearLayout android:layout_width="540dp" android:layout_height="wrap_content" android:orientation="vertical" android:padding="24dp" android:gravity="center_horizontal" android:background="@drawable/panel_background">
-<TextView android:id="@+id/title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/login_title" android:textSize="20sp" android:layout_marginBottom="18dp"/>
-<EditText android:id="@+id/serverUrl" android:layout_width="match_parent" android:layout_height="48dp" android:background="@drawable/input_background" android:padding="12dp" android:hint="@string/server_url_hint" android:inputType="textUri" android:singleLine="true" android:imeOptions="actionNext" android:textSize="14sp"/>
-<EditText android:id="@+id/username" android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginTop="12dp" android:background="@drawable/input_background" android:padding="12dp" android:hint="@string/username_hint" android:inputType="text" android:singleLine="true" android:imeOptions="actionNext" android:textSize="14sp"/>
-<EditText android:id="@+id/password" android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginTop="12dp" android:background="@drawable/input_background" android:padding="12dp" android:hint="@string/password_hint" android:inputType="textPassword" android:singleLine="true" android:imeOptions="actionDone" android:textSize="14sp"/>
-<Button android:id="@+id/loginButton" android:layout_width="220dp" android:layout_height="48dp" android:layout_marginTop="18dp" android:text="@string/login_button"/>
-<ProgressBar android:id="@+id/progress" android:layout_width="32dp" android:layout_height="32dp" android:layout_marginTop="8dp" android:visibility="gone"/>
-<TextView android:id="@+id/error" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:textColor="@color/error" android:visibility="gone"/>
-</LinearLayout></LinearLayout></ScrollView>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@drawable/login_gradient" android:fillViewport="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:gravity="center" android:orientation="vertical" android:padding="20dp">
+        <LinearLayout android:layout_width="wrap_content" android:layout_height="64dp"
+            android:gravity="center_vertical" android:layout_marginBottom="12dp">
+            <ImageView android:layout_width="64dp" android:layout_height="64dp"
+                android:src="@drawable/firefin_mark" android:scaleType="fitCenter"
+                android:contentDescription="@null" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginStart="8dp" android:text="@string/app_name"
+                android:fontFamily="sans-serif-black" android:textSize="42sp"
+                android:textColor="#D9DCE3" />
+        </LinearLayout>
+        <LinearLayout android:layout_width="540dp" android:layout_height="wrap_content"
+            android:orientation="vertical" android:padding="24dp"
+            android:gravity="center_horizontal" android:background="@drawable/panel_background">
+            <TextView android:id="@+id/title" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:text="@string/login_title"
+                android:textSize="20sp" android:layout_marginBottom="12dp" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="@string/server_url_label" android:labelFor="@+id/serverUrl"
+                android:textColor="@color/text_secondary" android:textSize="14sp"
+                android:layout_marginBottom="4dp" />
+            <EditText android:id="@id/serverUrl" android:layout_width="match_parent"
+                android:layout_height="48dp" android:background="@drawable/input_background"
+                android:padding="12dp"
+                android:inputType="textUri" android:singleLine="true"
+                android:imeOptions="actionNext" android:textSize="18sp"
+                android:nextFocusDown="@id/username" android:nextFocusForward="@id/username" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="@string/username_label" android:labelFor="@+id/username"
+                android:textColor="@color/text_secondary" android:textSize="14sp"
+                android:layout_marginTop="8dp" android:layout_marginBottom="4dp" />
+            <EditText android:id="@id/username" android:layout_width="match_parent"
+                android:layout_height="48dp" android:background="@drawable/input_background"
+                android:padding="12dp" android:inputType="text"
+                android:singleLine="true" android:imeOptions="actionNext" android:textSize="18sp"
+                android:nextFocusUp="@id/serverUrl" android:nextFocusDown="@id/password"
+                android:nextFocusForward="@id/password" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="@string/password_label" android:labelFor="@+id/password"
+                android:textColor="@color/text_secondary" android:textSize="14sp"
+                android:layout_marginTop="8dp" android:layout_marginBottom="4dp" />
+            <EditText android:id="@id/password" android:layout_width="match_parent"
+                android:layout_height="48dp" android:background="@drawable/input_background"
+                android:padding="12dp"
+                android:inputType="textPassword" android:singleLine="true"
+                android:imeOptions="actionDone" android:textSize="18sp" android:saveEnabled="false"
+                android:nextFocusUp="@id/username" android:nextFocusDown="@id/loginButton"
+                android:nextFocusForward="@id/loginButton" />
+            <Button android:id="@+id/loginButton" android:layout_width="220dp"
+                android:layout_height="48dp" android:layout_marginTop="14dp"
+                android:text="@string/login_button" android:textSize="18sp"
+                android:nextFocusUp="@id/password" />
+            <ProgressBar android:id="@+id/progress" android:layout_width="32dp"
+                android:layout_height="32dp" android:layout_marginTop="8dp" android:visibility="gone" />
+            <TextView android:id="@+id/error" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:layout_marginTop="8dp"
+                android:textColor="@color/error" android:textSize="16sp"
+                android:accessibilityLiveRegion="polite" android:visibility="gone" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

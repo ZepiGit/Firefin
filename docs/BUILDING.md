@@ -164,16 +164,16 @@ keytool -genkeypair -v -keystore firefin-release.jks -alias firefin \
 For a local signed build, export the four `FIREFIN_*` variables above
 (`FIREFIN_KEYSTORE_FILE` is the keystore path) and add
 `-Pfirefin.productionSigning=true`. A locally signed APK is not a project
-release. See [SECURITY.md](SECURITY.md) for key handling rules.
+release. See [SECURITY.md](../SECURITY.md) for key handling rules.
 
 ## Legacy Flutter build (history, validation only)
 
 The Flutter sources (`lib/`, `packages/`, `android/`) remain until native
 parity is proven. The workflow `Legacy Flutter baseline (validation only)`
-(`build.yml`) runs `flutter test` and `./build-android.sh` and uploads
+(`build.yml`) runs `flutter test` and `bash scripts/legacy/build-android.sh` and uploads
 `legacy-validation-only-<sha>`; it never publishes. Package
 `org.moonfin.firetv32`, version `1.1.0+3000028` (`1.1.0-firetv32-r21`),
-Flutter 3.32.8, Dart 3.8.1, ARMv7 (`android-arm`) only. `build-android.sh`
+Flutter 3.32.8, Dart 3.8.1, ARMv7 (`android-arm`) only. `scripts/legacy/build-android.sh`
 writes `Moonfin_FireTV32_Unofficial_1.1.0-build3000028.apk`.
 
 Historical r21 validation commands:

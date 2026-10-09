@@ -3,11 +3,13 @@ package zepigit.firefin.app.data
 import android.os.Build
 import zepigit.firefin.app.BuildConfig
 import zepigit.firefin.app.R
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.tls.HandshakeCertificates
 import org.json.JSONArray
 import org.json.JSONObject
@@ -17,7 +19,7 @@ import java.io.IOException
 import java.net.URLEncoder
 
 /** Jellyfin REST client using one origin-bound, cancellable ServerTransport. */
-class JellyfinClient(private val session: SessionStore, trust: HandshakeCertificates? = null, private val preferences: () -> zepigit.firefin.app.preferences.EffectiveDevicePreferences = {
+class JellyfinClient(private val session: SessionStore, trust: HandshakeCertificates? = null, private val seerrBridgeTimeoutMs: Long = SEERR_BRIDGE_TIMEOUT_MS, private val preferences: () -> zepigit.firefin.app.preferences.EffectiveDevicePreferences = {
     zepigit.firefin.app.preferences.deriveEffective(zepigit.firefin.app.preferences.StoredPreferences(), DeviceProfile.MAX_WIDTH, DeviceProfile.MAX_HEIGHT, DeviceProfile.MAX_BITRATE)
 }) {
     private val transport = ServerTransport(
@@ -49,7 +51,33 @@ class JellyfinClient(private val session: SessionStore, trust: HandshakeCertific
         session.userName = user.optString("Name")
         session.serverName = json.optString("ServerId")
         transport.update(ServerCredentials(server, session.userId, token))
+        if (password.isNotEmpty()) connectSeerr(username, password)
         json
+    }
+
+    /**
+     * Legacy Moonfin parity: an explicit password sign-in also opens the
+     * Moonbase Seerr session, so Seerr works without a second prompt. Seerr is
+     * optional, so an absent, disabled or failing plugin never fails the
+     * Jellyfin sign-in, and the step is bounded so a stalled plugin cannot hold
+     * the login screen for several transport call timeouts. The password goes
+     * out once over the same origin-bound transport and is not kept.
+     */
+    private suspend fun connectSeerr(username: String, password: String) {
+        try {
+            withTimeoutOrNull(seerrBridgeTimeoutMs) {
+                val seerr = SeerrClient(transport.snapshot())
+                if (!seerr.connect()) seerr.login(username, password)
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: SessionExpiredException) {
+            // Jellyfin itself rejected the token it just issued; keeping it would only fail later.
+            session.clear()
+            throw e
+        } catch (_: Exception) {
+            // Optional: Seerr stays reachable through the fallback prompt in SeerrActivity.
+        }
     }
 
     suspend fun views(): List<UserView> = withContext(Dispatchers.IO) {
@@ -214,5 +242,7 @@ class JellyfinClient(private val session: SessionStore, trust: HandshakeCertific
     companion object {
         const val VERSION = BuildConfig.VERSION_NAME
         const val CHILD_PAGE_SIZE = 60
+        /** Upper bound for the whole optional Seerr step (probe plus sign-in) after a Jellyfin login. */
+        const val SEERR_BRIDGE_TIMEOUT_MS = 10_000L
     }
 }

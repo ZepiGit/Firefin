@@ -11,13 +11,13 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--2.0-1f6feb.svg" alt="GPL-2.0" /></a>
-  <a href="COMPATIBILITY.md"><img src="https://img.shields.io/badge/Fire%20OS/Android-5%20%2F%20API%2022-f59e0b.svg" alt="Fire OS 5 and API 22" /></a>
-  <a href="COMPATIBILITY.md"><img src="https://img.shields.io/badge/architecture-ARMv7-64748b.svg" alt="ARMv7" /></a>
+  <a href="docs/COMPATIBILITY.md"><img src="https://img.shields.io/badge/Fire%20OS/Android-5%20%2F%20API%2022-f59e0b.svg" alt="Fire OS 5 and API 22" /></a>
+  <a href="docs/COMPATIBILITY.md"><img src="https://img.shields.io/badge/architecture-ARMv7-64748b.svg" alt="ARMv7" /></a>
   <a href="docs/FIREFIN_TECHNICAL_OVERVIEW.md"><img src="https://img.shields.io/badge/status-released-8b5cf6.svg" alt="Development status" /></a>
 </p>
 
 
-Firefin is a 32-bit native Android TV application for watching, discovering and browsing media from a Jellyfin server. It is built around a simple idea: the living-room interface should stay readable from a sofa, with every important action reachable by remote control. Firefin is derived from the Moonfin Core codebase and is an independent project, not affiliated with Moonfin, Jellyfin, Emby or Amazon. See [third-party notices](THIRD_PARTY_NOTICES.md) for attribution and licensing details.
+Firefin is a 32-bit native Android TV application for watching, discovering and browsing media from a Jellyfin server. It is built around a simple idea: the living-room interface should stay readable from a sofa, with every important action reachable by remote control. Firefin is derived from the Moonfin Core codebase and is an independent project, not affiliated with Moonfin, Jellyfin, Emby or Amazon. See [third-party notices](docs/THIRD_PARTY_NOTICES.md) for attribution and licensing details.
 
 
 ## Main features
@@ -37,27 +37,43 @@ This project is not about being the best Jellyfin/Moonfin alternative. It doesn'
 <table>
   <tr>
     <td width="50%">
-      <img src="docs/firefin-home-current.png" alt="Firefin home screen in the German UI with icon navigation and Continue Watching row" />
-      <p align="center"><sub><strong>Home</strong><br />Icon navigation and continue watching.</sub></p>
+      <img src="docs/screenshots/home.png" alt="Current Firefin home screen with reordered icon navigation and Next up row" />
+      <p align="center"><sub><strong>Home</strong><br />Icon navigation and next-up browsing.</sub></p>
     </td>
     <td width="50%">
-      <img src="docs/southpark-season-two.png" alt="Season detail with episode list in the German Firefin UI" />
+      <img src="docs/screenshots/season.png" alt="Current Firefin season details and numbered episode list" />
       <p align="center"><sub><strong>Series</strong><br />Overview, watched state and season browsing.</sub></p>
     </td>
   </tr>
   <tr>
     <td width="50%">
-      <img src="docs/southpark-episode.png" alt="Episode details in the German Firefin UI with playback actions" />
+      <img src="docs/screenshots/episode.png" alt="Current Firefin episode details with playback actions" />
       <p align="center"><sub><strong>Episode details</strong><br />Playback, favourites and watched-state actions.</sub></p>
     </td>
     <td width="50%">
-      <img src="docs/firefin-seerr-current.png" alt="Seerr discovery screen in Firefin with Trending and request navigation" />
+      <img src="docs/screenshots/seerr.png" alt="Seerr discovery screen in Firefin with Trending and request navigation" />
       <p align="center"><sub><strong>Requests</strong><br />Seerr discovery and request browsing through Moonbase.</sub></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="docs/screenshots/login.png" alt="Firefin sign-in with light-gray wordmark and persistent field labels" />
+      <p align="center"><sub><strong>Sign in</strong><br />Readable branding and labeled TV-friendly fields.</sub></p>
+    </td>
+    <td width="50%">
+      <img src="docs/screenshots/settings.png" alt="Firefin settings with the developer GitHub link" />
+      <p align="center"><sub><strong>Settings</strong><br />Preferences and developer link.</sub></p>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2">
+      <img src="docs/screenshots/search.png" alt="Firefin combined library and Seerr search for South Park" />
+      <p align="center"><sub><strong>Search</strong><br />Library and Seerr discovery in one screen.</sub></p>
     </td>
   </tr>
 </table>
 
-<sub>The screenshots show the German translation; the interface follows the device language and defaults to English.</sub>
+<sub>Captured from the current local build on the Android 5.1/API-22 emulator at 1920×1080. Interface labels are English; server-provided titles and descriptions may be German. The interface follows the device language. These captures are not physical Fire TV validation or a new published release.</sub>
 
 ## Works with
 
@@ -97,6 +113,8 @@ Signed Firefin APKs are published on the [releases page](https://github.com/Zepi
    - Home network without HTTPS: `http://192.168.1.10:8096` (Firefin asks you to confirm the unencrypted connection).
    - HTTPS: `https://jellyfin.example.com`. Certificates from public authorities, including Let's Encrypt, are supported; self-signed certificates are not.
 
+**Media requests:** with an enabled Moonbase/Seerr integration, a fresh Jellyfin password sign-in also attempts to connect Seerr automatically without storing the password. After updating an existing session, sign out and sign in once to enable this. A separate Seerr sign-in remains available if the bridge cannot authenticate your account.
+
 **Updates:** install the new APK over the old one; sign-in and settings stay. The old *Moonfin FireTV32* app (`org.moonfin.firetv32`) is a separate app: it can stay installed next to Firefin, and its sign-in and settings are not taken over.
 
 ### Troubleshooting
@@ -108,7 +126,7 @@ Signed Firefin APKs are published on the [releases page](https://github.com/Zepi
 | "The server cannot be reached" | Address, port (Jellyfin default: 8096) and that the Fire TV is on the same network. |
 | Media requests are unavailable | Seerr is reached through the Moonbase plugin on the Jellyfin server; without Moonbase, requests stay hidden. |
 
-To build Firefin yourself, start with [BUILDING.md](BUILDING.md) and the technical overview in [docs/FIREFIN_TECHNICAL_OVERVIEW.md](docs/FIREFIN_TECHNICAL_OVERVIEW.md).
+To build Firefin yourself, start with [build guide](docs/BUILDING.md) and the technical overview in [docs/FIREFIN_TECHNICAL_OVERVIEW.md](docs/FIREFIN_TECHNICAL_OVERVIEW.md).
 
 ## Project status
 
@@ -116,11 +134,11 @@ Firefin 32bit is still in development and the native TV experience is actively b
 
 For compatibility boundaries, security notes and verification evidence, see:
 
-- [Compatibility](COMPATIBILITY.md)
+- [Compatibility](docs/COMPATIBILITY.md)
 - [Security](SECURITY.md)
 - [Technical overview](docs/FIREFIN_TECHNICAL_OVERVIEW.md)
 - [Changelog](CHANGELOG.md)
-- [Third-party notices](THIRD_PARTY_NOTICES.md)
+- [Third-party notices](docs/THIRD_PARTY_NOTICES.md)
 
 ## License
 

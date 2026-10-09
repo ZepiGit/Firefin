@@ -1,6 +1,11 @@
 package zepigit.firefin.app.ui
 
+import android.content.ActivityNotFoundException
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.widget.Button
 import android.widget.TextView
@@ -74,6 +79,15 @@ class SettingsActivity : AppCompatActivity() {
                 if (aboutText.visibility == android.view.View.VISIBLE) android.view.View.GONE
                 else android.view.View.VISIBLE
         }
+        findViewById<Button>(R.id.developerGithubButton).setOnClickListener {
+            try {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(DEVELOPER_GITHUB_URL)))
+            } catch (_: ActivityNotFoundException) {
+                showGithubLinkWithoutBrowser()
+            } catch (_: SecurityException) {
+                showGithubLinkWithoutBrowser()
+            }
+        }
         findViewById<Button>(R.id.logoutButton).setOnClickListener {
             ServiceLocator.client.logout()
             session.clear()
@@ -81,7 +95,25 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
+    private fun showGithubLinkWithoutBrowser() {
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(R.string.github_no_browser_title)
+            .setMessage(getString(R.string.github_no_browser_message, DEVELOPER_GITHUB_URL))
+            .setPositiveButton(R.string.copy_link) { _, _ ->
+                val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                clipboard.setPrimaryClip(ClipData.newPlainText(getString(R.string.developer_github), DEVELOPER_GITHUB_URL))
+                Toast.makeText(this, R.string.link_copied, Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton(R.string.ok, null)
+            .show()
+        dialog.findViewById<TextView>(android.R.id.message)?.apply {
+            textSize = 18f
+            setTextIsSelectable(true)
+        }
+    }
+
     private companion object {
+        const val DEVELOPER_GITHUB_URL = "https://github.com/ZepiGit"
         /** Height and total bitrate per entry of R.array.quality_options. */
         val QUALITIES = listOf(1080 to 4_000_000L, 720 to 4_000_000L, 720 to 2_000_000L, 480 to 1_000_000L)
         /** Stored language code per entry of the audio/subtitle language arrays. */

@@ -20,9 +20,9 @@
 
     <!-- Sign-in -->
     <string name="login_title">Mit deinem Jellyfin-Server verbinden</string>
-    <string name="server_url_hint">Server-Adresse (z. B. http://192.168.1.10:8096)</string>
-    <string name="username_hint">Benutzername</string>
-    <string name="password_hint">Passwort</string>
+    <string name="server_url_label">Server-Adresse</string>
+    <string name="username_label">Benutzername</string>
+    <string name="password_label">Passwort</string>
     <string name="login_button">Anmelden</string>
     <string name="login_error_credentials">Anmeldung fehlgeschlagen: Benutzer oder Passwort falsch.</string>
     <string name="login_error_server">Der Server meldet einen Fehler (HTTP %1$d).</string>
@@ -101,6 +101,11 @@
     <string name="clear_image_cache">Bildcache leeren</string>
     <string name="logout">Abmelden</string>
     <string name="about">Über Firefin</string>
+    <string name="developer_github">Entwickler · GitHub\ngithub.com/ZepiGit</string>
+    <string name="github_no_browser_title">Kein Browser verfügbar</string>
+    <string name="github_no_browser_message">Auf diesem Gerät kann kein Browser den Entwicklerlink öffnen. Du kannst die Adresse kopieren und auf einem anderen Gerät öffnen:\n\n%1$s</string>
+    <string name="copy_link">Link kopieren</string>
+    <string name="link_copied">Link kopiert</string>
     <string name="about_text">Firefin %1$s\nUnabhängiger nativer Kotlin-Jellyfin-Client für ältere Fire-TV-Geräte, ursprünglich von Moonfin Core abgeleitet. Steht in keiner Verbindung zu Moonfin und wird nicht von Moonfin unterstützt.</string>
     <string name="account_info">%1$s @ %2$s</string>
     <string name="setting_value">%1$s: %2$s</string>
@@ -144,7 +149,6 @@
     <string name="seerr_next_page">Nächste Seite</string>
     <string name="seerr_login_needed">Moonbase erkannt. Seerr benötigt eine Anmeldung.</string>
     <string name="seerr_connect_title">Seerr über Moonbase verbinden</string>
-    <string name="seerr_password_hint">Passwort (wird nicht gespeichert)</string>
     <string name="seerr_request_number">Anfrage #%1$d</string>
     <string name="seerr_search_status">Suche: %1$s</string>
     <string name="seerr_page_status">%1$s · Seite %2$d / %3$d</string>

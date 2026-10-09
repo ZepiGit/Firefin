@@ -44,7 +44,7 @@ completed security audit; open items are listed below.
   artwork) follows at most three GET redirects and only within the configured
   origin and path; anything else fails. The media client's redirect path has dedicated MockWebServer tests for hop
   limits, cross-origin refusal and non-GET refusal.
-- **Seerr credentials.** Jellyfin login never forwards the entered password to Seerr or Moonbase. Seerr authentication is a separate, explicit action from the Media Requests screen; credentials are sent only to the configured server transport after the user presses its sign-in button, and are not stored.
+- **Seerr credentials.** After a successful Jellyfin password sign-in, Firefin checks the optional Moonbase integration. If it is enabled and has no authenticated Seerr session, Firefin uses the transient sign-in credentials once for Moonbase's Jellyfin-authentication bridge. These requests use the same origin- and path-bound server transport; redirects remain disabled. No Jellyfin/Seerr password, Seerr cookie or Seerr API key is stored. Missing, disabled or unavailable Seerr does not prevent Jellyfin sign-in. The Media Requests screen retains an explicit password sign-in fallback for accounts that need it.
 - **Tokens.** The access token is sent in the `Authorization` header only.
   Firefin does not append it to image, stream or HLS URLs, so it does not
   appear in image cache keys. Cookies are removed from outgoing requests.
@@ -68,7 +68,7 @@ The APK update identity depends on the release certificate. Keep the keystore
 and its passwords outside the repository, encrypted in backup and accessible
 only to release maintainers. The release workflow reads the key from the
 `FIREFIN_*` secrets and pins the certificate through the
-`FIREFIN_CERTIFICATE_SHA256` variable (see [BUILDING.md](BUILDING.md)); the key
+`FIREFIN_CERTIFICATE_SHA256` variable (see [build guide](docs/BUILDING.md)); the key
 should be exposed only to the protected `firefin-release` job. The secrets and
 the variable are currently stored at repository level, not inside the
 `firefin-release` environment, and were used to publish `0.2.3-firefin`,

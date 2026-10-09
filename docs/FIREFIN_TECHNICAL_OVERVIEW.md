@@ -27,7 +27,7 @@ The app uses origin- and path-bound requests, header-based authentication and bo
 
 Moonbase/Seerr is optional. Moonbase must be installed with the Jellyfin server; it is the bridge through which Firefin reaches Seerr. Firefin detects the configured integration and provides discovery, combined search, title details, TV season selection, request history and a confirmation-based request flow.
 
-The Jellyfin login never forwards the Jellyfin password to Seerr automatically. Seerr sign-in is a separate user action in the Requests area.
+After successful Jellyfin password sign-in, Firefin probes Moonbase and automatically establishes an enabled, unauthenticated Seerr session using the transient username and password through the same-origin bridge. Existing Seerr sessions are reused. No password, Seerr cookie or Seerr API key is persisted; optional integration failures do not block Jellyfin sign-in. An older Jellyfin session created before this change needs one fresh password sign-in to use the automatic bridge; Requests retains a manual fallback.
 
 ## Playback profile
 

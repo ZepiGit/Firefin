@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
+import android.view.inputmethod.EditorInfo
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ProgressBar
@@ -56,9 +57,12 @@ class LoginActivity : AppCompatActivity() {
             button.isEnabled = false
             progress.visibility = View.VISIBLE
             error.visibility = View.GONE
+            val name = user.text.toString()
+            val secret = password.text.toString()
             scope.launch {
                 try {
-                    ServiceLocator.client.login(address, user.text.toString(), password.text.toString())
+                    // The same login also opens the optional Seerr session; its failures never surface here.
+                    ServiceLocator.client.login(address, name, secret)
                     password.text.clear()
                     goHome()
                 } catch (e: CancellationException) {
@@ -89,6 +93,12 @@ class LoginActivity : AppCompatActivity() {
             } else {
                 signIn(address, explicitScheme)
             }
+        }
+        password.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId != EditorInfo.IME_ACTION_DONE) return@setOnEditorActionListener false
+            // A sign-in in flight disables the button, so Done cannot submit twice.
+            if (button.isEnabled) button.performClick()
+            true
         }
     }
 

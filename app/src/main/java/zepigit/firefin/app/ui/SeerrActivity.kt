@@ -2,7 +2,9 @@ package zepigit.firefin.app.ui
 
 import android.content.Intent
 import android.os.Bundle
+import android.text.InputType
 import android.view.View
+import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.EditText
@@ -11,6 +13,7 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.CancellationException
@@ -107,34 +110,71 @@ class SeerrActivity : AppCompatActivity() {
 
     private fun loginDialog() {
         status.setText(R.string.seerr_login_needed)
-        val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(28, 16, 28, 16) }
-        val username = EditText(this).apply { setHint(R.string.username_hint); setText(ServiceLocator.session.userName); isSingleLine = true }
-        val password = EditText(this).apply {
-            setHint(R.string.seerr_password_hint)
-            isSingleLine = true
-            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
-            transformationMethod = android.text.method.PasswordTransformationMethod.getInstance()
+        val density = resources.displayMetrics.density
+        fun dp(value: Int) = (value * density).toInt()
+        val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(24), dp(16), dp(24), dp(8)) }
+        fun field(labelRes: Int, ime: Int, configure: EditText.() -> Unit): EditText {
+            val input = EditText(this).apply {
+                id = View.generateViewId()
+                isSingleLine = true
+                imeOptions = ime
+                textSize = 18f
+                minimumHeight = dp(48)
+                setBackgroundResource(R.drawable.input_background)
+                setPadding(dp(12), dp(12), dp(12), dp(12))
+                setTextColor(ContextCompat.getColor(this@SeerrActivity, R.color.text_primary))
+                setHintTextColor(ContextCompat.getColor(this@SeerrActivity, R.color.text_secondary))
+                configure()
+            }
+            box.addView(TextView(this).apply {
+                setText(labelRes)
+                labelFor = input.id
+                textSize = 14f
+                setTextColor(ContextCompat.getColor(this@SeerrActivity, R.color.text_secondary))
+                setPadding(0, if (box.childCount == 0) 0 else dp(8), 0, dp(4))
+            })
+            box.addView(input, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+            return input
         }
-        box.addView(username); box.addView(password)
+        val username = field(R.string.username_label, EditorInfo.IME_ACTION_NEXT) {
+            inputType = InputType.TYPE_CLASS_TEXT
+            setText(ServiceLocator.session.userName)
+        }
+        val password = field(R.string.password_label, EditorInfo.IME_ACTION_DONE) {
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+            // Never restore a typed password from saved instance state.
+            isSaveEnabled = false
+        }
+        username.nextFocusDownId = password.id
+        username.nextFocusForwardId = password.id
+        password.nextFocusUpId = username.id
         val dialog = AlertDialog.Builder(this).setTitle(R.string.seerr_connect_title).setView(box)
             .setPositiveButton(R.string.login_button, null).setNegativeButton(R.string.cancel, null).create()
+        dialog.setOnDismissListener { password.text.clear() }
         dialog.setOnShowListener {
-            fun login(quick: Boolean) {
+            val submit = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+            submit.setOnClickListener {
                 val name = username.text.toString()
                 val secret = password.text.toString()
                 password.text.clear()
                 dialog.dismiss()
+                requestJob?.cancel()
                 requestJob = scope.launch {
                     progress.visibility = View.VISIBLE
                     try {
-                        client.login(name, secret, quickConnect = quick)
+                        client.login(name, secret)
                         connected = true; load()
                     } catch (e: CancellationException) { throw e }
                     catch (e: Exception) { showError(e) }
                     finally { progress.visibility = View.GONE }
                 }
             }
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener { login(false) }
+            password.setOnEditorActionListener { _, actionId, _ ->
+                if (actionId != EditorInfo.IME_ACTION_DONE) return@setOnEditorActionListener false
+                submit.performClick()
+                true
+            }
+            if (username.text.isNotEmpty()) password.requestFocus() else username.requestFocus()
         }
         dialog.show()
     }

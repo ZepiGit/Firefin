@@ -16,7 +16,7 @@ INSTALLER_ID="${INSTALLER_ID:-}"
 
 ENTITLEMENTS="macos/Runner/Release.entitlements"
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 APP_NAME="Moonfin"
 APP_PATH="$REPO_ROOT/build/macos/Build/Products/Release/${APP_NAME}.app"
 STAGING_DIR="$REPO_ROOT/build/macos/dmg-staging"
@@ -25,7 +25,7 @@ PKG_OUTPUT=""
 
 if [ "$#" -gt 0 ]; then
   echo "Error: this script no longer accepts positional arguments." >&2
-  echo "Run: ./build-macos.sh" >&2
+  echo "Run: ./scripts/legacy/build-macos.sh" >&2
   exit 1
 fi
 

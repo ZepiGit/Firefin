@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Continue'
 
-$repoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$repoRoot = (Resolve-Path (Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) '..\..')).Path
 
 function Get-IsccPath {
   $candidates = @(

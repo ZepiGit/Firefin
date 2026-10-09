@@ -39,6 +39,17 @@
             android:text="@string/about" />
 
         <Button
+            android:id="@+id/developerGithubButton"
+            android:layout_width="320dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:minHeight="48dp"
+            android:focusable="true"
+            android:text="@string/developer_github"
+            android:textAllCaps="false"
+            android:textSize="18sp" />
+
+        <Button
             android:id="@+id/logoutButton"
             android:layout_width="320dp"
             android:layout_height="wrap_content"

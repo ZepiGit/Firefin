@@ -20,9 +20,9 @@
 
     <!-- Sign-in -->
     <string name="login_title">Connect to your Jellyfin server</string>
-    <string name="server_url_hint">Server address (e.g. http://192.168.1.10:8096)</string>
-    <string name="username_hint">Username</string>
-    <string name="password_hint">Password</string>
+    <string name="server_url_label">Server address</string>
+    <string name="username_label">Username</string>
+    <string name="password_label">Password</string>
     <string name="login_button">Sign in</string>
     <string name="login_error_credentials">Sign-in failed: wrong username or password.</string>
     <string name="login_error_server">The server returned an error (HTTP %1$d).</string>
@@ -101,6 +101,11 @@
     <string name="clear_image_cache">Clear image cache</string>
     <string name="logout">Sign out</string>
     <string name="about">About Firefin</string>
+    <string name="developer_github">Developer · GitHub\ngithub.com/ZepiGit</string>
+    <string name="github_no_browser_title">No browser available</string>
+    <string name="github_no_browser_message">No browser on this device can open the developer link. You can copy the address and open it on another device:\n\n%1$s</string>
+    <string name="copy_link">Copy link</string>
+    <string name="link_copied">Link copied</string>
     <string name="about_text">Firefin %1$s\nIndependent native Kotlin Jellyfin client for legacy Fire TV devices, originally derived from Moonfin Core. Not affiliated with or supported by Moonfin.</string>
     <string name="account_info">%1$s @ %2$s</string>
     <string name="setting_value">%1$s: %2$s</string>
@@ -144,7 +149,6 @@
     <string name="seerr_next_page">Next page</string>
     <string name="seerr_login_needed">Moonbase detected. Seerr requires sign-in.</string>
     <string name="seerr_connect_title">Connect Seerr via Moonbase</string>
-    <string name="seerr_password_hint">Password (not stored)</string>
     <string name="seerr_request_number">Request #%1$d</string>
     <string name="seerr_search_status">Search: %1$s</string>
     <string name="seerr_page_status">%1$s · Page %2$d / %3$d</string>
