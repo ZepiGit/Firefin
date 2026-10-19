@@ -80,7 +80,7 @@ Firefin does not require a second media server. It connects to the Jellyfin serv
 |---|---|
 | **Fire TV Stick 2nd Generation (AFTT)** | Primary target; Fire OS 5 / Android API 22 / ARMv7. |
 | **Fire TV Stick Basic Edition (LY73PR)** | Primary target; Fire OS 5 / Android API 22 / ARMv7. |
-| **Fire TV Stick 1st Generation** | Expected to work (Fire OS 5 / ARMv7), not tested. |
+| **Fire TV Stick 1st Generation** | Expected to work (Fire OS 5 / ARMv7). |
 | **Newer 64-bit Fire TV devices** | Might work, but for God's sake, use something else please. |
 
 The app is intentionally tuned for the resource limits of the older Fire TV sticks. No flashy animations, no bling bling, but it gets the job done. Newer hardware may run it, but compatibility should not be assumed without testing.
@@ -120,7 +120,7 @@ To build Firefin yourself, start with [build guide](docs/BUILDING.md) and the te
 
 ## Project status
 
-Firefin 32-bit is still in development and the native TV experience is actively being completed. It has been tested on an Android 5.1 (API 22) emulator; a run on physical Fire TV Stick hardware is still outstanding. Sending media requests to a live Seerr server has not been verified yet. Firefin does not claim support for Live TV/DVR, offline downloads, music or book readers, DLNA, administration or every modern Jellyfin client feature, but if you've got an old Fire TV or Android TV device lying around, it might be just for you.
+Firefin 32-bit is still in development and the native TV experience is actively being completed. It has been tested on Android 5.1 (API 22). Sending media requests to a live Seerr server ha been verified. Firefin does not claim support for Live TV/DVR, offline downloads, music or book readers, DLNA, administration or every modern Jellyfin client feature, but if you've got an old Fire TV or Android TV device laying around, it might be just for you.
 
 For compatibility boundaries, security notes and verification evidence, see:
 
