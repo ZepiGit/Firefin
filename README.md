@@ -63,7 +63,6 @@ This project is not about being the best Jellyfin/Moonfin alternative. It doesn'
   </tr>
 </table>
 
-<sub>Captured from the current local build on the Android 5.1/API-22 emulator at 1920×1080. Interface labels are English; server-provided titles and descriptions may be German. The interface follows the device language. These captures are not physical Fire TV validation or a new published release.</sub>
 
 ## Works with
 
