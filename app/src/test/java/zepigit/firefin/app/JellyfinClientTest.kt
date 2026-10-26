@@ -104,26 +104,63 @@ class JellyfinClientTest {
         client = JellyfinClient(session) {
             zepigit.firefin.app.preferences.deriveEffective(zepigit.firefin.app.preferences.StoredPreferences(audioLanguage = "de", subtitleLanguage = "de"), 1280, 720, 4_000_000)
         }
-        server.enqueue(MockResponse().setBody("""{"Version":"10.11.0"}"""))
-        server.enqueue(MockResponse().setBody("""{"MediaSources":[{"MediaStreams":[{"Type":"Audio","Index":1,"Language":"eng"},{"Type":"Audio","Index":2,"Language":"ger"},{"Type":"Subtitle","Index":4,"Language":"deu"}]}]}"""))
-        server.enqueue(MockResponse().setBody("""{"PlaySessionId":"ps","MediaSources":[{"Id":"s","TranscodingUrl":"/v.m3u8","MediaStreams":[{"Type":"Subtitle","Index":4,"Codec":"srt","DeliveryUrl":"/sub.srt"}]}]}"""))
+        val streams = """[{"Type":"Audio","Index":1,"Language":"eng"},{"Type":"Audio","Index":2,"Language":"ger"},{"Type":"Subtitle","Index":4,"Language":"deu","Codec":"srt","DeliveryUrl":"/sub.srt"}]"""
+        server.enqueue(MockResponse().setBody("""{"PlaySessionId":"ps","MediaSources":[{"Id":"s","TranscodingUrl":"/v.m3u8","DefaultAudioStreamIndex":1,"MediaStreams":$streams}]}"""))
+        server.enqueue(MockResponse().setBody("""{"PlaySessionId":"ps","MediaSources":[{"Id":"s","TranscodingUrl":"/v.m3u8?a=2","DefaultAudioStreamIndex":2,"DefaultSubtitleStreamIndex":4,"MediaStreams":$streams}]}"""))
         val source = client.playbackInfo("i1")
-        assertEquals("/System/Info/Public", server.takeRequest().path)
-        assertEquals("/Items/i1?userId=u1", server.takeRequest().path)
-        val body = org.json.JSONObject(server.takeRequest().body.readUtf8())
-        assertEquals(2, body.getInt("AudioStreamIndex"))
-        assertEquals(4, body.getInt("SubtitleStreamIndex"))
+        val first = org.json.JSONObject(server.takeRequest().body.readUtf8())
+        assertFalse(first.has("MediaSourceId") || first.has("AudioStreamIndex"))
+        val second = org.json.JSONObject(server.takeRequest().body.readUtf8())
+        assertEquals("s", second.getString("MediaSourceId"))
+        assertEquals(2, second.getInt("AudioStreamIndex"))
+        assertEquals(4, second.getInt("SubtitleStreamIndex"))
+        assertEquals(server.url("/v.m3u8?a=2").toString(), source.url)
         assertEquals(server.url("/sub.srt").toString(), source.subtitleUrl)
         assertEquals("application/x-subrip", source.subtitleMime)
     }
 
-    @Test fun `direct stream uses negotiated remux URL not static original`() = runBlocking {
+    @Test fun `language preferences already matching the server defaults need no second negotiation`() = runBlocking {
         session.serverUrl = server.url("/").toString().trimEnd('/')
         session.userId = "u1"; session.accessToken = "tok"
-        server.enqueue(MockResponse().setBody("""{"PlaySessionId":"ps","MediaSources":[{"Id":"s","SupportsDirectPlay":false,"SupportsDirectStream":true,"DirectStreamUrl":"/remux.ts"}]}"""))
+        client = JellyfinClient(session) {
+            zepigit.firefin.app.preferences.deriveEffective(zepigit.firefin.app.preferences.StoredPreferences(audioLanguage = "de"), 1280, 720, 4_000_000)
+        }
+        server.enqueue(MockResponse().setBody("""{"PlaySessionId":"ps","MediaSources":[{"Id":"s","SupportsDirectPlay":true,"DefaultAudioStreamIndex":2,"MediaStreams":[{"Type":"Audio","Index":2,"Language":"ger"}]}]}"""))
         val source = client.playbackInfo("i1")
-        assertEquals(server.url("/remux.ts").toString(), source.url)
+        assertEquals(1, server.requestCount)
+        assertEquals(2, source.audioIndex)
+        assertEquals("DirectPlay", source.playMethod)
+    }
+
+    @Test fun `direct stream uses the negotiated remux URL not the static original`() = runBlocking {
+        session.serverUrl = server.url("/").toString().trimEnd('/')
+        session.userId = "u1"; session.accessToken = "tok"
+        server.enqueue(MockResponse().setBody("""{"PlaySessionId":"ps","MediaSources":[{"Id":"s","SupportsDirectPlay":false,"SupportsDirectStream":true,"TranscodingUrl":"/remux.m3u8"}]}"""))
+        val source = client.playbackInfo("i1")
+        assertEquals(server.url("/remux.m3u8").toString(), source.url)
         assertEquals("DirectStream", source.playMethod)
+    }
+
+    @Test fun `the version that direct-plays wins over a transcoding one listed first`() = runBlocking {
+        session.serverUrl = server.url("/").toString().trimEnd('/')
+        session.userId = "u1"; session.accessToken = "tok"
+        server.enqueue(MockResponse().setBody("""{"PlaySessionId":"ps","MediaSources":[{"Id":"4k","SupportsDirectPlay":false,"SupportsTranscoding":true,"TranscodingUrl":"/4k.m3u8"},{"Id":"1080","SupportsDirectPlay":true}]}"""))
+        val source = client.playbackInfo("i1")
+        assertEquals("1080", source.mediaSourceId)
+        assertEquals("DirectPlay", source.playMethod)
+        assertTrue(source.url, source.url.endsWith("/Videos/i1/stream?static=true&MediaSourceId=1080"))
+    }
+
+    @Test fun `an explicit source pin is kept and flag-only sources are skipped for ones with a URL`() = runBlocking {
+        session.serverUrl = server.url("/").toString().trimEnd('/')
+        session.userId = "u1"; session.accessToken = "tok"
+        server.enqueue(MockResponse().setBody("""{"PlaySessionId":"ps","MediaSources":[{"Id":"4k","SupportsTranscoding":true,"TranscodingUrl":"/4k.m3u8"},{"Id":"1080","SupportsDirectPlay":true}]}"""))
+        val pinned = client.playbackInfo("i1", mediaSourceId = "4k")
+        assertEquals("4k", pinned.mediaSourceId)
+        assertTrue(org.json.JSONObject(server.takeRequest().body.readUtf8()).getString("MediaSourceId") == "4k")
+
+        server.enqueue(MockResponse().setBody("""{"PlaySessionId":"ps","MediaSources":[{"Id":"a","SupportsDirectStream":true},{"Id":"b","TranscodingUrl":"/b.m3u8"}]}"""))
+        assertEquals("b", client.playbackInfo("i1").mediaSourceId)
     }
 
     /** Signed-in session on a 10.11 server; the version probe answer is queued first. */

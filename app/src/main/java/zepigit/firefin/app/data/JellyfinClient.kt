@@ -189,41 +189,48 @@ class JellyfinClient(private val session: SessionStore, trust: Lazy<HandshakeCer
         }
     }
 
+    /**
+     * Negotiates playback. The first PlaybackInfo carries no source pin, so every
+     * version of the item is on the table and the one that direct-plays wins over
+     * one that needs the server; language preferences are then resolved against
+     * that source's own streams and sent in a second negotiation only when they
+     * differ from the server's defaults.
+     */
     suspend fun playbackInfo(itemId: String, audioIndex: Int? = null, subtitleIndex: Int? = null, pinnedTransport: ServerTransport? = null, mediaSourceId: String? = null): PlaybackSource = withContext(Dispatchers.IO) {
         val bound = pinnedTransport ?: transportSnapshot()
         val credentials = bound.credentials()
-        suspend fun request(path: String, method: String = "GET", body: String? = null) = JSONObject(bound.json(path, method, body))
         val effective = preferences()
-        val body = JSONObject().put("DeviceProfile", DeviceProfile.build(effective.maxStreamingBitrate, effective.maxVideoWidth, effective.maxVideoHeight, baselineOnly = zepigit.firefin.app.BuildConfig.DEBUG && Build.FINGERPRINT.orEmpty().startsWith("generic")))
-            .put("MaxStreamingBitrate", effective.maxStreamingBitrate).put("AutoOpenLiveStream", false)
+        val profile = DeviceProfile.build(effective.maxStreamingBitrate, effective.maxVideoWidth, effective.maxVideoHeight, baselineOnly = zepigit.firefin.app.BuildConfig.DEBUG && Build.FINGERPRINT.orEmpty().startsWith("generic"))
+        suspend fun negotiate(sourceId: String?, audio: Int?, subtitle: Int?): JSONObject {
+            val body = JSONObject().put("DeviceProfile", profile).put("MaxStreamingBitrate", effective.maxStreamingBitrate).put("AutoOpenLiveStream", false)
+            sourceId?.let { body.put("MediaSourceId", it) }
+            audio?.let { body.put("AudioStreamIndex", it) }
+            subtitle?.let { body.put("SubtitleStreamIndex", it) }
+            return JSONObject(bound.json("Items/${urlEncode(itemId)}/PlaybackInfo?UserId=${urlEncode(credentials.userId)}&AutoOpenLiveStream=false&MaxStreamingBitrate=${effective.maxStreamingBitrate}", "POST", body.toString()))
+        }
         var selectedAudio = audioIndex
         var selectedSubtitle = subtitleIndex
-        if (selectedAudio == null && effective.stored.audioLanguage.isNotBlank() || selectedSubtitle == null && effective.stored.subtitleLanguage.isNotBlank()) {
-            val metadata = userJson("Items/${urlEncode(itemId)}?userId=${urlEncode(credentials.userId)}", "Users/${urlEncode(credentials.userId)}/Items/${urlEncode(itemId)}", bound = bound)
-            val sources = metadata.optJSONArray("MediaSources")
-            val selected = sources?.let { array -> (0 until array.length()).mapNotNull { array.optJSONObject(it) }.firstOrNull { mediaSourceId == null || it.optString("Id") == mediaSourceId } }
-            val streams = selected?.optJSONArray("MediaStreams") ?: metadata.optJSONArray("MediaStreams") ?: JSONArray()
-            selected?.optString("Id")?.takeIf { it.isNotBlank() }?.let { body.put("MediaSourceId", it) }
-            val tracks = zepigit.firefin.app.playback.StreamSelection.tracks(streams)
-            if (selectedAudio == null) selectedAudio = zepigit.firefin.app.playback.StreamSelection.index(tracks, "Audio", effective.stored.audioLanguage)
-            if (selectedSubtitle == null) selectedSubtitle = zepigit.firefin.app.playback.StreamSelection.index(tracks, "Subtitle", effective.stored.subtitleLanguage)
-        }
-        selectedAudio?.let { body.put("AudioStreamIndex", it) }
         if (effective.stored.subtitleLanguage.isBlank() && selectedSubtitle == null) selectedSubtitle = -1
-        selectedSubtitle?.let { body.put("SubtitleStreamIndex", it) }
-        mediaSourceId?.let { body.put("MediaSourceId", it) }
-        val json = request("Items/${urlEncode(itemId)}/PlaybackInfo?UserId=${urlEncode(credentials.userId)}&AutoOpenLiveStream=false&MaxStreamingBitrate=${effective.maxStreamingBitrate}", "POST", body.toString())
-        val sources = json.optJSONArray("MediaSources") ?: JSONArray()
-        val source = (0 until sources.length()).mapNotNull { sources.optJSONObject(it) }.filter { mediaSourceId == null || it.optString("Id") == mediaSourceId }.firstOrNull { source ->
-            source.optBoolean("SupportsDirectPlay", false) || source.optBoolean("SupportsDirectStream", false) || source.optBoolean("SupportsTranscoding", false) || source.optString("TranscodingUrl").isNotBlank()
-        } ?: throw LocalizedIOException(R.string.error_no_playable_source, "No playable media source.")
+        var json = negotiate(mediaSourceId, selectedAudio, selectedSubtitle)
+        var source = pickSource(json, mediaSourceId) ?: throw LocalizedIOException(R.string.error_no_playable_source, "No playable media source.")
         val id = source.optString("Id").takeIf { it.isNotBlank() } ?: itemId
+        val wantsAudio = selectedAudio == null && effective.stored.audioLanguage.isNotBlank()
+        val wantsSubtitle = selectedSubtitle == null && effective.stored.subtitleLanguage.isNotBlank()
+        if (wantsAudio || wantsSubtitle) {
+            val tracks = zepigit.firefin.app.playback.StreamSelection.tracks(source.optJSONArray("MediaStreams") ?: JSONArray())
+            if (wantsAudio) selectedAudio = zepigit.firefin.app.playback.StreamSelection.index(tracks, "Audio", effective.stored.audioLanguage)
+            if (wantsSubtitle) selectedSubtitle = zepigit.firefin.app.playback.StreamSelection.index(tracks, "Subtitle", effective.stored.subtitleLanguage)
+            val serverAudio = if (source.has("DefaultAudioStreamIndex")) source.optInt("DefaultAudioStreamIndex") else null
+            val serverSubtitle = if (source.has("DefaultSubtitleStreamIndex")) source.optInt("DefaultSubtitleStreamIndex") else -1
+            if (wantsAudio && selectedAudio != null && selectedAudio != serverAudio || wantsSubtitle && selectedSubtitle != null && selectedSubtitle != serverSubtitle) {
+                json = negotiate(id, selectedAudio, selectedSubtitle)
+                source = pickSource(json, id) ?: throw LocalizedIOException(R.string.error_no_playable_source, "No playable media source.")
+            }
+        }
         val transcode = source.optString("TranscodingUrl").takeIf { it.isNotBlank() }
-        val directStream = source.optString("DirectStreamUrl").takeIf { it.isNotBlank() }
         val url = when {
             source.optBoolean("SupportsDirectPlay") && transcode == null -> Urls.directStreamUrl(credentials.serverUrl, itemId, id)
             transcode != null -> Urls.resolveRelative(credentials.serverUrl, transcode)
-            directStream != null -> Urls.resolveRelative(credentials.serverUrl, directStream)
             source.optBoolean("SupportsDirectStream") || source.optBoolean("SupportsTranscoding") -> throw LocalizedIOException(R.string.error_no_playable_source, "Server did not supply a negotiated media URL.")
             else -> throw LocalizedIOException(R.string.error_no_playable_source, "Media source is not playable on this device.")
         }
@@ -238,10 +245,19 @@ class JellyfinClient(private val session: SessionStore, trust: Lazy<HandshakeCer
             tracks = zepigit.firefin.app.playback.StreamSelection.tracks(streams),
             subtitleUrl = subtitlePath?.let { Urls.resolveRelative(credentials.serverUrl, it) },
             subtitleMime = when (subtitle?.optString("Codec")) { "srt" -> "application/x-subrip"; "vtt", "webvtt" -> "text/vtt"; else -> null },
-            playMethod = if (transcode != null) "Transcode" else if (directStream != null && !source.optBoolean("SupportsDirectPlay")) "DirectStream" else "DirectPlay",
+            playMethod = if (transcode == null) "DirectPlay" else if (source.optBoolean("SupportsDirectStream") && !source.optBoolean("SupportsDirectPlay")) "DirectStream" else "Transcode",
             audioIndex = selectedAudio,
             subtitleIndex = selectedSubtitle,
         )
+    }
+
+    /** Direct play first, then any source the server negotiated a URL for; flag-only sources come last so the URL error names them. */
+    private fun pickSource(json: JSONObject, pinned: String?): JSONObject? {
+        val sources = json.optJSONArray("MediaSources") ?: JSONArray()
+        val candidates = (0 until sources.length()).mapNotNull { sources.optJSONObject(it) }.filter { pinned == null || it.optString("Id") == pinned }
+        return candidates.firstOrNull { it.optBoolean("SupportsDirectPlay") }
+            ?: candidates.firstOrNull { it.optString("TranscodingUrl").isNotBlank() }
+            ?: candidates.firstOrNull { it.optBoolean("SupportsDirectStream") || it.optBoolean("SupportsTranscoding") }
     }
 
     suspend fun sessions(): List<RemoteSession> = withContext(Dispatchers.IO) {
