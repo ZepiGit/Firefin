@@ -56,11 +56,15 @@ class SettingsActivity : AppCompatActivity() {
             ServiceLocator.preferences.save(stored.copy(backdropEnabled = !stored.backdropEnabled))
             refresh()
         }
-        setting(R.id.audioLanguageButton, R.string.setting_audio_language, { stored -> audioLabels[LANGUAGES.indexOf(stored.audioLanguage).coerceAtLeast(0)] }) { refresh ->
-            choose(R.string.audio_language_title, R.array.audio_language_options, refresh) { stored, index -> stored.copy(audioLanguage = LANGUAGES[index]) }
+        setting(R.id.audioLanguageButton, R.string.setting_audio_language, { stored -> audioLabels[zepigit.firefin.app.preferences.Languages.CODES.indexOf(stored.audioLanguage).coerceAtLeast(0)] }) { refresh ->
+            choose(R.string.audio_language_title, R.array.audio_language_options, refresh) { stored, index -> stored.copy(audioLanguage = zepigit.firefin.app.preferences.Languages.CODES[index]) }
         }
-        setting(R.id.subtitleLanguageButton, R.string.setting_subtitle_language, { stored -> subtitleLabels[LANGUAGES.indexOf(stored.subtitleLanguage).coerceAtLeast(0)] }) { refresh ->
-            choose(R.string.subtitle_language_title, R.array.subtitle_language_options, refresh) { stored, index -> stored.copy(subtitleLanguage = LANGUAGES[index]) }
+        setting(R.id.subtitleLanguageButton, R.string.setting_subtitle_language, { stored -> subtitleLabels[zepigit.firefin.app.preferences.Languages.CODES.indexOf(stored.subtitleLanguage).coerceAtLeast(0)] }) { refresh ->
+            choose(R.string.subtitle_language_title, R.array.subtitle_language_options, refresh) { stored, index -> stored.copy(subtitleLanguage = zepigit.firefin.app.preferences.Languages.CODES[index]) }
+        }
+        val sizeLabels = resources.getStringArray(R.array.subtitle_size_options)
+        setting(R.id.subtitleSizeButton, R.string.setting_subtitle_size, { sizeLabels[it.subtitleSize.coerceIn(0, 2)] }) { refresh ->
+            choose(R.string.setting_subtitle_size, R.array.subtitle_size_options, refresh) { stored, index -> stored.copy(subtitleSize = index) }
         }
         val homeLabels = resources.getStringArray(R.array.home_order_options)
         setting(R.id.homeOrderButton, R.string.setting_home_order, { stored ->
@@ -114,7 +118,5 @@ class SettingsActivity : AppCompatActivity() {
         const val DEVELOPER_GITHUB_URL = "https://github.com/ZepiGit"
         /** Height and total bitrate per entry of R.array.quality_options. */
         val QUALITIES = listOf(1080 to 4_000_000L, 720 to 4_000_000L, 720 to 2_000_000L, 480 to 1_000_000L)
-        /** Stored language code per entry of the audio/subtitle language arrays. */
-        val LANGUAGES = listOf("", "de", "en")
     }
 }

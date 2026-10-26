@@ -108,6 +108,14 @@ class PlayerActivity : AppCompatActivity() {
             url
         }
         playerView = findViewById(R.id.playerView)
+        playerView.subtitleView?.apply {
+            setFixedTextSize(android.util.TypedValue.COMPLEX_UNIT_SP,
+                listOf(20f, 26f, 32f)[ServiceLocator.preferences.stored().subtitleSize.coerceIn(0, 2)])
+            setStyle(androidx.media3.ui.CaptionStyleCompat(android.graphics.Color.WHITE, 0x99000000.toInt(),
+                android.graphics.Color.TRANSPARENT, androidx.media3.ui.CaptionStyleCompat.EDGE_TYPE_NONE,
+                android.graphics.Color.BLACK, null))
+            setApplyEmbeddedStyles(false)
+        }
         // The controller's settings popup (speed, audio) duplicates the top bar and is awkward with a D-pad.
         playerView.findViewById<android.view.View>(androidx.media3.ui.R.id.exo_settings)?.visibility = android.view.View.GONE
         findViewById<android.widget.TextView>(R.id.playerTitle).text = name

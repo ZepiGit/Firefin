@@ -45,6 +45,16 @@
             android:id="@+id/subtitleLanguageButton"
             style="@style/Firefin.Button.Setting" />
 
+        <Button
+            android:id="@+id/subtitleSizeButton"
+            style="@style/Firefin.Button.Setting" />
+
+        <TextView
+            style="@style/Firefin.Text.Label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/subtitle_size_hint" />
+
         <TextView
             style="@style/Firefin.Text.Subheading"
             android:layout_width="wrap_content"

@@ -14,7 +14,7 @@ object StreamSelection {
     }
     fun index(tracks: List<SourceTrack>, type: String, language: String): Int? {
         if (language.isBlank()) return if (type == "Subtitle") -1 else null
-        val aliases = when (language.lowercase()) { "de", "deu", "ger" -> setOf("de", "deu", "ger"); "en", "eng" -> setOf("en", "eng"); else -> setOf(language.lowercase()) }
-        return tracks.firstOrNull { it.type == type && it.language.lowercase() in aliases }?.index
+        val preferred = zepigit.firefin.app.preferences.Languages.canonical(language)
+        return tracks.firstOrNull { it.type == type && zepigit.firefin.app.preferences.Languages.canonical(it.language) == preferred }?.index
     }
 }

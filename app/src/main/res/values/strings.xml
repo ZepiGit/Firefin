@@ -142,6 +142,12 @@
         <item>Automatic</item>
         <item>German</item>
         <item>English</item>
+        <item>French</item>
+        <item>Spanish</item>
+        <item>Italian</item>
+        <item>Dutch</item>
+        <item>Portuguese</item>
+        <item>Japanese</item>
     </string-array>
     <string name="setting_subtitle_language">Preferred subtitle language</string>
     <string name="subtitle_language_title">Subtitles</string>
@@ -149,6 +155,12 @@
         <item>Off</item>
         <item>German</item>
         <item>English</item>
+        <item>French</item>
+        <item>Spanish</item>
+        <item>Italian</item>
+        <item>Dutch</item>
+        <item>Portuguese</item>
+        <item>Japanese</item>
     </string-array>
     <string name="cache_cleared">Image cache cleared (%1$d KiB)</string>
 
@@ -244,5 +256,12 @@
         <item>Unwatched</item>
         <item>Watched</item>
         <item>Favorites</item>
+    </string-array>
+    <string name="setting_subtitle_size">Subtitle size</string>
+    <string name="subtitle_size_hint">Applies to text subtitles. Burned-in subtitles keep their original size.</string>
+    <string-array name="subtitle_size_options">
+        <item>Normal</item>
+        <item>Large</item>
+        <item>Very large</item>
     </string-array>
 </resources>

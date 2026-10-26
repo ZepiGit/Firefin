@@ -19,12 +19,14 @@ class PreferenceStore(private val prefs: android.content.SharedPreferences, priv
         prefs.getInt(key("preferredHeight"), DeviceProfile.MAX_HEIGHT),
         prefs.getString(key("audioLanguage"), "").orEmpty(),
         prefs.getString(key("subtitleLanguage"), "").orEmpty(),
+        prefs.getInt(key("subtitleSize"), 0).coerceIn(0, 2),
     )
     fun effective() = deriveEffective(stored(), DeviceProfile.MAX_WIDTH, DeviceProfile.MAX_HEIGHT, DeviceProfile.MAX_BITRATE)
     fun save(value: StoredPreferences) {
         prefs.edit().putBoolean(key("backdropEnabled"), value.backdropEnabled)
             .putString(key("homeSectionOrder"), value.homeSectionOrder.joinToString(","))
             .putLong(key("preferredBitrate"), value.preferredBitrate).putInt(key("preferredHeight"), value.preferredHeight)
-            .putString(key("audioLanguage"), value.audioLanguage).putString(key("subtitleLanguage"), value.subtitleLanguage).apply()
+            .putString(key("audioLanguage"), value.audioLanguage).putString(key("subtitleLanguage"), value.subtitleLanguage)
+            .putInt(key("subtitleSize"), value.subtitleSize.coerceIn(0, 2)).apply()
     }
 }

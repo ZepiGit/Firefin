@@ -63,4 +63,11 @@ class LocalizationParityTest {
             assertEquals("$key placeholders", placeholders(values), placeholders(translated))
         }
     }
+    @Test fun `language arrays match the selectable language codes`() {
+        for (path in listOf("src/main/res/values/strings.xml", "src/main/res/values-de/strings.xml")) {
+            val entries = load(path)
+            for (key in listOf("audio_language_options", "subtitle_language_options"))
+                assertEquals(zepigit.firefin.app.preferences.Languages.CODES.size, entries.getValue("string-array:$key").size)
+        }
+    }
 }

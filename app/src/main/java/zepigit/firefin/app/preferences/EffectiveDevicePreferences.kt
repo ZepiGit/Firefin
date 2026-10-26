@@ -14,6 +14,7 @@ data class StoredPreferences(
     val preferredHeight: Int = 1080,
     val audioLanguage: String = "",
     val subtitleLanguage: String = "",
+    val subtitleSize: Int = 0,
 )
 
 data class EffectiveDevicePreferences(
@@ -51,4 +52,5 @@ fun serializeStored(prefs: StoredPreferences): Map<String, String> = mapOf(
     "preferredHeight" to prefs.preferredHeight.toString(),
     "audioLanguage" to prefs.audioLanguage,
     "subtitleLanguage" to prefs.subtitleLanguage,
+    "subtitleSize" to prefs.subtitleSize.toString(),
 )
