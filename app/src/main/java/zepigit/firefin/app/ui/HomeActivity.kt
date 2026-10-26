@@ -47,6 +47,8 @@ class HomeActivity : AppCompatActivity() {
     private var pendingScroll: Int? = null
     private var homeLoaded = false
     private var loadingHome = false
+    /** A card changed while a load was running; the rows are refreshed once it finishes. */
+    private var pendingRefresh = false
     private var libraries = emptyList<UserView>()
     private var previewJob: Job? = null
     private var latestRows = emptyList<HomeRow>()
@@ -225,7 +227,7 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun loadHome(refreshOnly: Boolean = false) {
-        if (loadingHome) return
+        if (loadingHome) { pendingRefresh = pendingRefresh || refreshOnly; return }
         loadingHome = true
         progress.visibility = View.VISIBLE
         scope.launch {
@@ -286,6 +288,7 @@ class HomeActivity : AppCompatActivity() {
             } finally {
                 loadingHome = false
                 progress.visibility = View.GONE
+                if (pendingRefresh && !isDestroyed) { pendingRefresh = false; loadHome(refreshOnly = true) }
             }
         }
     }

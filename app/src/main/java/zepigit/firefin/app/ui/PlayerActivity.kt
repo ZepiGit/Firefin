@@ -182,6 +182,9 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun seekTo(targetPlayerMs: Long) {
         val player = engine?.player ?: return
+        // The cue was sampled up to a second ago; after a seek it is stale until the poller re-evaluates.
+        currentSegment = null
+        if (::skipButton.isInitialized) skipButton.visibility = android.view.View.GONE
         if (!isTranscode || isHls) {
             player.seekTo(targetPlayerMs.coerceAtLeast(0))
             return
@@ -298,9 +301,11 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun cancelCountdown() {
-        countdown?.cancel()
+        val running = countdown ?: return
+        running.cancel()
         countdown = null
-        if (::nextPlay.isInitialized) nextPlay.setText(R.string.play_now)
+        // Only a running countdown relabelled the button; "Continue" in confirmation mode stays.
+        nextPlay.setText(R.string.play_now)
     }
 
     private fun switchEpisode(next: zepigit.firefin.app.data.MediaItem, automatic: Boolean) {
@@ -405,7 +410,7 @@ class PlayerActivity : AppCompatActivity() {
             }
             return super.dispatchKeyEvent(event)
         }
-        if (!controllerVisible && currentSegment != null && event.action == KeyEvent.ACTION_DOWN) {
+        if (!controllerVisible && currentSegment != null && event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
             when (keyCode) {
                 KeyEvent.KEYCODE_DPAD_CENTER -> { consumedCenter = true; skipSegment(); return true }
                 KeyEvent.KEYCODE_BACK -> { consumedBack = true; dismissSegment(); return true }

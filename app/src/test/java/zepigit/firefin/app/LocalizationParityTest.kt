@@ -63,11 +63,16 @@ class LocalizationParityTest {
             assertEquals("$key placeholders", placeholders(values), placeholders(translated))
         }
     }
-    @Test fun `language arrays match the selectable language codes`() {
+    /** The option arrays are indexed by code tables; a missing item would throw at the index. */
+    @Test fun `option arrays match the code tables that index them`() {
         for (path in listOf("src/main/res/values/strings.xml", "src/main/res/values-de/strings.xml")) {
             val entries = load(path)
+            fun size(key: String) = entries.getValue("string-array:$key").size
             for (key in listOf("audio_language_options", "subtitle_language_options"))
-                assertEquals(zepigit.firefin.app.preferences.Languages.CODES.size, entries.getValue("string-array:$key").size)
+                assertEquals(key, zepigit.firefin.app.preferences.Languages.CODES.size, size(key))
+            assertEquals("home_order_options", zepigit.firefin.app.ui.HomeSections.presets.size, size("home_order_options"))
+            assertEquals("subtitle_size_options", 3, size("subtitle_size_options")) // SettingsActivity clamps subtitleSize to 0..2
+            assertEquals("library_filter_options", 4, size("library_filter_options")) // LibraryActivity.filters has four entries
         }
     }
 }
