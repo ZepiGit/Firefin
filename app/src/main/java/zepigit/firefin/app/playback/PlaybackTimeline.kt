@@ -19,6 +19,8 @@ object PlaybackTimeline {
 
     fun absolute(playerPositionMs: Long, offsetMs: Long): Long = playerPositionMs + offsetMs
 
+    fun relative(absoluteMs: Long, offsetMs: Long): Long = absoluteMs - offsetMs
+
     fun targetAbsolute(currentAbsoluteMs: Long, seekDeltaMs: Long, durationMs: Long): Long =
         (currentAbsoluteMs + seekDeltaMs).coerceIn(0L, if (durationMs > 0) durationMs else Long.MAX_VALUE)
 }

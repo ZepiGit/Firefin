@@ -55,6 +55,13 @@ class PlayerActivity : AppCompatActivity() {
     private var countdown: Job? = null
     private var pendingTerminal: SessionReporter? = null
     private var automaticPending = false
+    private var segmentJob: Job? = null
+    private val dismissedSegments = mutableSetOf<Long>()
+    private var currentSegment: zepigit.firefin.app.playback.MediaSegment? = null
+    private var subtitleUrl: String? = null
+    private var subtitleMime: String? = null
+    private var consumedCenter = false
+    private lateinit var skipButton: android.widget.Button
     private lateinit var nextOverlay: android.view.View
     private lateinit var nextPlay: android.widget.Button
     private var isTranscode = false
@@ -131,6 +138,10 @@ class PlayerActivity : AppCompatActivity() {
                 android.graphics.Color.BLACK, null))
             setApplyEmbeddedStyles(false)
         }
+        subtitleUrl = intent.getStringExtra(EXTRA_SUBTITLE_URL)
+        subtitleMime = intent.getStringExtra(EXTRA_SUBTITLE_MIME)
+        skipButton = findViewById(R.id.skipSegment)
+        skipButton.setOnClickListener { skipSegment() }
         nextOverlay = findViewById(R.id.nextOverlay)
         nextPlay = findViewById(R.id.nextPlay)
         nextPlay.setOnClickListener { nextEpisode?.let { switchEpisode(it, automatic = false) } }
@@ -151,10 +162,11 @@ class PlayerActivity : AppCompatActivity() {
             playerView.player = e.player
             e.player.addListener(playerListener)
             subtitleIndex?.let { e.applySubtitleChoice(it >= 0, subtitleLanguage(sourceTracks, it)) }
-            e.prepare(playbackUrl, timeline.preparePositionMs, intent.getStringExtra(EXTRA_SUBTITLE_URL), intent.getStringExtra(EXTRA_SUBTITLE_MIME))
+            e.prepare(playbackUrl, timeline.preparePositionMs, subtitleUrl, subtitleMime)
         }
 
         loadNextEpisode()
+        loadSegments()
         scope.launch {
             while (isActive) {
                 delay(10_000)
@@ -185,12 +197,58 @@ class PlayerActivity : AppCompatActivity() {
         val url = engine?.currentUrl ?: return
         val rebuilt = Urls.withStartTimeTicks(url, Ticks.fromMs(targetAbsolute))
         transcodeOffsetMs = targetAbsolute
-        player.setMediaItem(androidx.media3.common.MediaItem.fromUri(rebuilt), 0L)
-        player.prepare()
-        player.playWhenReady = true
+        val playing = player.playWhenReady
+        engine?.prepare(rebuilt, 0L, subtitleUrl, subtitleMime)
+        player.playWhenReady = playing && resumed
+    }
+
+    private fun seekAbsolute(absoluteMs: Long) = seekTo(PlaybackTimeline.relative(absoluteMs, transcodeOffsetMs))
+
+    private fun loadSegments() {
+        segmentJob?.cancel()
+        currentSegment = null
+        skipButton.visibility = android.view.View.GONE
+        val ownAttempt = attempt
+        val ownItem = itemId
+        segmentJob = scope.launch {
+            try {
+                val segments = ServiceLocator.client.mediaSegments(ownItem, playbackTransport)
+                if (ownAttempt != attempt || segments.isEmpty()) return@launch
+                while (isActive && ownAttempt == attempt) {
+                    val p = engine?.player ?: break
+                    currentSegment = if (session.active && !switching && !playerView.isControllerFullyVisible)
+                        zepigit.firefin.app.playback.SegmentCue.active(segments, actualPositionMs(p), dismissedSegments) else null
+                    val cue = currentSegment
+                    skipButton.visibility = if (cue == null) android.view.View.GONE else android.view.View.VISIBLE
+                    if (cue != null) skipButton.setText(when (cue.type) {
+                        "Recap" -> R.string.skip_recap
+                        "Preview" -> R.string.skip_preview
+                        "Commercial" -> R.string.skip_commercial
+                        else -> R.string.skip_intro
+                    })
+                    delay(1_000)
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+            catch (_: Exception) { /* Missing segment metadata does not interrupt playback. */ }
+        }
+    }
+
+    private fun dismissSegment() {
+        currentSegment?.let { dismissedSegments += it.startMs }
+        currentSegment = null
+        skipButton.visibility = android.view.View.GONE
+    }
+
+    private fun skipSegment() {
+        val cue = currentSegment ?: return
+        dismissSegment()
+        seekAbsolute(cue.endMs)
     }
 
     private fun finishAttempt(positionMs: Long): SessionReporter? {
+        segmentJob?.cancel()
+        currentSegment = null
+        if (::skipButton.isInitialized) skipButton.visibility = android.view.View.GONE
         session.finish(Ticks.fromMs(positionMs))?.let { pendingTerminal = it }
         return pendingTerminal
     }
@@ -325,6 +383,10 @@ class PlayerActivity : AppCompatActivity() {
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (!::playerView.isInitialized) return super.dispatchKeyEvent(event)
         val keyCode = event.keyCode
+        if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER && event.action == KeyEvent.ACTION_UP && consumedCenter) {
+            consumedCenter = false
+            return true
+        }
         if (event.action == KeyEvent.ACTION_DOWN) {
             nextGate.input()
             automaticPending = false
@@ -342,6 +404,12 @@ class PlayerActivity : AppCompatActivity() {
                 return true
             }
             return super.dispatchKeyEvent(event)
+        }
+        if (!controllerVisible && currentSegment != null && event.action == KeyEvent.ACTION_DOWN) {
+            when (keyCode) {
+                KeyEvent.KEYCODE_DPAD_CENTER -> { consumedCenter = true; skipSegment(); return true }
+                KeyEvent.KEYCODE_BACK -> { consumedBack = true; dismissSegment(); return true }
+            }
         }
         if (event.action == KeyEvent.ACTION_DOWN) {
             val player = engine?.player
@@ -463,6 +531,7 @@ class PlayerActivity : AppCompatActivity() {
                     return@launch
                 }
                 if (next != null) {
+                    dismissedSegments.clear()
                     itemId = next.id
                     seriesId = next.seriesId ?: seriesId
                     title = listOf(next.seriesName, next.episodeCode.orEmpty(), next.name).filter { it.isNotBlank() }.joinToString(" · ")
@@ -482,9 +551,12 @@ class PlayerActivity : AppCompatActivity() {
                 engine?.applySubtitleChoice(chosenSubtitle >= 0, subtitleLanguage(sourceTracks, chosenSubtitle))
                 session.start(SessionReporter(playbackTransport, targetId, source.playSessionId, source.mediaSourceId, source.playMethod, source.liveStreamId, ServiceLocator.client.cleanupEncodings()))
                 automaticPending = automatic
+                subtitleUrl = source.subtitleUrl
+                subtitleMime = source.subtitleMime
                 engine?.prepare(url, timeline.preparePositionMs, source.subtitleUrl, source.subtitleMime)
                 player.playWhenReady = resumePlaying && resumed
                 loadNextEpisode()
+                loadSegments()
             } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
                 Toast.makeText(this@PlayerActivity, R.string.track_switch_aborted, Toast.LENGTH_LONG).show()
                 finish()

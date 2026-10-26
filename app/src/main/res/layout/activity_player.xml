@@ -60,6 +60,15 @@
             android:layout_marginLeft="@dimen/space_s"
             android:text="@string/track_video" />
     </LinearLayout>
+    <Button
+        android:id="@+id/skipSegment"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|right"
+        android:layout_margin="@dimen/page_margin"
+        android:text="@string/skip_intro"
+        android:visibility="gone" />
+
     <LinearLayout
         android:id="@+id/nextOverlay"
         android:layout_width="480dp"

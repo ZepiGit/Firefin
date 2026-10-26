@@ -271,4 +271,8 @@
     <string name="play_now">Jetzt abspielen</string>
     <string name="play_next_countdown">Jetzt abspielen (%1$d)</string>
     <string name="stop_playback">Player schließen</string>
+    <string name="skip_intro">Intro überspringen</string>
+    <string name="skip_recap">Rückblick überspringen</string>
+    <string name="skip_preview">Vorschau überspringen</string>
+    <string name="skip_commercial">Werbung überspringen</string>
 </resources>

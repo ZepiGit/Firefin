@@ -473,4 +473,13 @@ class JellyfinClientTest {
         server.enqueue(MockResponse().setBody("""{"Items":[{"Id":"e1","Type":"Episode"}]}"""))
         assertEquals(null, client.nextEpisode("s1", "e1", bound))
     }
+    @Test fun `segments return empty on missing route and retain valid cues`() = runBlocking {
+        session.serverUrl = address(); session.userId = "u1"; session.accessToken = "tok"
+        val bound = client.transportSnapshot()
+        server.enqueue(MockResponse().setResponseCode(404))
+        assertTrue(client.mediaSegments("e1", bound).isEmpty())
+        server.enqueue(MockResponse().setBody("""{"Items":[{"Type":"Intro","StartTicks":0,"EndTicks":20000000}]}"""))
+        assertEquals(2000L, client.mediaSegments("e1", bound).single().endMs)
+        assertEquals("/MediaSegments/e1", server.takeRequest(2, TimeUnit.SECONDS)!!.path)
+    }
 }

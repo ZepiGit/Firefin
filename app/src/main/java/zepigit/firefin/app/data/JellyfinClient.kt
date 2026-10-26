@@ -168,6 +168,11 @@ class JellyfinClient(private val session: SessionStore, trust: Lazy<HandshakeCer
         parseItems(getJson(path))
     }
 
+    suspend fun mediaSegments(itemId: String, bound: ServerTransport): List<zepigit.firefin.app.playback.MediaSegment> = withContext(Dispatchers.IO) {
+        try { zepigit.firefin.app.playback.SegmentCue.parse(JSONObject(bound.json("MediaSegments/${urlEncode(itemId)}"))) }
+        catch (e: ServerResponseException) { if (e.status == 404) emptyList() else throw e }
+    }
+
     suspend fun nextEpisode(seriesId: String, itemId: String, bound: ServerTransport): MediaItem? = withContext(Dispatchers.IO) {
         val path = "Shows/${urlEncode(seriesId)}/Episodes?userId=${urlEncode(bound.credentials().userId)}&startItemId=${urlEncode(itemId)}&limit=2&isMissing=false&fields=Overview"
         val items = parseItems(JSONObject(bound.json(path)))

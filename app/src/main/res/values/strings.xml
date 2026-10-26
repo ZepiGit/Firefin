@@ -271,4 +271,8 @@
     <string name="play_now">Play now</string>
     <string name="play_next_countdown">Play now (%1$d)</string>
     <string name="stop_playback">Close player</string>
+    <string name="skip_intro">Skip intro</string>
+    <string name="skip_recap">Skip recap</string>
+    <string name="skip_preview">Skip preview</string>
+    <string name="skip_commercial">Skip commercial</string>
 </resources>
