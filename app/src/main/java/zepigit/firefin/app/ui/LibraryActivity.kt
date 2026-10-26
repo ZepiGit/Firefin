@@ -34,6 +34,17 @@ class LibraryActivity : AppCompatActivity() {
     private var total = -1
     private var loading = false
     private var sortByIndex = 0
+    private var filterIndex = 0
+    private var genre: zepigit.firefin.app.data.UserView? = null
+    private var genres: List<zepigit.firefin.app.data.UserView>? = null
+    private var genresLoading = false
+    private val filters = listOf(null, "IsUnplayed", "IsPlayed", "IsFavorite")
+    private val favoritesGrid get() = intent.getBooleanExtra("library.favorites", false)
+    private val includeTypes get() = when (intent.getStringExtra("library.type")) {
+        "movies" -> "Movie,BoxSet"
+        "tvshows" -> "Series"
+        else -> if (favoritesGrid) "Movie,Series,Episode" else null
+    }
     private var generation = 0
     private var requestJob: kotlinx.coroutines.Job? = null
 
@@ -58,12 +69,25 @@ class LibraryActivity : AppCompatActivity() {
         stateText = findViewById(R.id.stateText)
         stateRetry = findViewById(R.id.stateRetry)
         stateRetry.setOnClickListener { loadMore() }
-        val favoritesGrid = intent.getBooleanExtra("library.favorites", false)
         adapter = MediaCardAdapter(
             onMenu = { item ->
                 CardMenu.show(this, scope, item) { fresh ->
-                    // An un-favorited card has no place in the favorites grid any more.
-                    if (favoritesGrid && !fresh.favorite) { adapter.remove(fresh.id); if (total > 0) total-- } else adapter.replace(fresh)
+                    val matches = when (if (favoritesGrid) "IsFavorite" else filters[filterIndex]) {
+                        "IsFavorite" -> fresh.favorite
+                        "IsUnplayed" -> !fresh.played
+                        "IsPlayed" -> fresh.played
+                        else -> true
+                    }
+                    if (matches) adapter.replace(fresh) else {
+                        adapter.remove(fresh.id)
+                        if (total > 0) total--
+                        if (adapter.itemCount == 0 && total > 0) loadMore()
+                        else if (adapter.itemCount == 0) {
+                            showState(getString(R.string.empty_library), retry = false)
+                            findViewById<Button>(R.id.sortButton).requestFocus()
+                        }
+                    }
+                    updateTitle()
                 }
             },
             onClick = { DetailActivity.start(this, it.id) },
@@ -81,14 +105,51 @@ class LibraryActivity : AppCompatActivity() {
         })
         findViewById<Button>(R.id.sortButton).setOnClickListener {
             sortByIndex = (sortByIndex + 1) % sortOptions.size
-            generation++
-            requestJob?.cancel()
-            loading = false
-            adapter.submit(emptyList())
-            total = -1
-            loadMore()
+            reload()
+        }
+        findViewById<Button>(R.id.filterButton).apply {
+            visibility = if (favoritesGrid) View.GONE else View.VISIBLE
+            setOnClickListener { filterIndex = (filterIndex + 1) % filters.size; reload() }
+        }
+        findViewById<Button>(R.id.genreButton).apply {
+            visibility = if (favoritesGrid) View.GONE else View.VISIBLE
+            setOnClickListener { showGenres() }
         }
         loadMore()
+    }
+
+    private fun reload() {
+        generation++
+        requestJob?.cancel()
+        loading = false
+        adapter.submit(emptyList())
+        total = -1
+        updateTitle()
+        loadMore()
+    }
+
+    private fun updateTitle() {
+        val labels = resources.getStringArray(R.array.library_filter_options)
+        val details = listOfNotNull(getString(sortOptions[sortByIndex].label),
+            labels[filterIndex].takeUnless { favoritesGrid }, genre?.name).joinToString(" · ")
+        titleView.text = getString(R.string.library_title, intent.getStringExtra(EXTRA_TITLE).orEmpty(), total.coerceAtLeast(0), details)
+        findViewById<Button>(R.id.filterButton).text = labels[filterIndex]
+    }
+
+    private fun showGenres() {
+        if (genresLoading) return
+        genresLoading = true
+        scope.launch {
+            try {
+                val choices = genres ?: ServiceLocator.client.genres(libraryId, includeTypes).also { genres = it }
+                if (isFinishing || isDestroyed) return@launch
+                val labels = listOf(getString(R.string.genre_all)) + choices.map { it.name }
+                androidx.appcompat.app.AlertDialog.Builder(this@LibraryActivity).setTitle(R.string.genre_button)
+                    .setItems(labels.toTypedArray()) { _, index -> genre = choices.getOrNull(index - 1); reload() }.show()
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+            catch (e: Exception) { Toast.makeText(this@LibraryActivity, errorMessage(e), Toast.LENGTH_LONG).show() }
+            finally { genresLoading = false }
+        }
     }
 
     override fun onDestroy() {
@@ -111,17 +172,14 @@ class LibraryActivity : AppCompatActivity() {
                     startIndex = if (total < 0) 0 else start,
                     sortBy = sort.by,
                     sortOrder = sort.order,
-                    includeTypes = when (intent.getStringExtra("library.type")) {
-                        "movies" -> "Movie,BoxSet"
-                        "tvshows" -> "Series"
-                        else -> if (intent.getBooleanExtra("library.favorites", false)) "Movie,Series,Episode" else null
-                    },
-                    recursive = intent.getStringExtra("library.type") in setOf("movies", "tvshows") || intent.getBooleanExtra("library.favorites", false),
-                    favorites = intent.getBooleanExtra("library.favorites", false),
+                    includeTypes = includeTypes,
+                    recursive = intent.getStringExtra("library.type") in setOf("movies", "tvshows") || favoritesGrid,
+                    filters = if (favoritesGrid) "IsFavorite" else filters[filterIndex],
+                    genreIds = genre?.id,
                 )
                 if (gen != generation) return@launch
                 total = totalCount
-                titleView.text = getString(R.string.library_title, intent.getStringExtra(EXTRA_TITLE) ?: "", total, getString(sort.label))
+                updateTitle()
                 adapter.appendItems(items)
                 if (adapter.itemCount == 0) showState(getString(R.string.empty_library), retry = false)
             } catch (e: kotlinx.coroutines.CancellationException) {

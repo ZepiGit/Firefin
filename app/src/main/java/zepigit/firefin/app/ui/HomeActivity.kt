@@ -235,7 +235,7 @@ class HomeActivity : AppCompatActivity() {
                     val resume = async { if ("resume" in order) ServiceLocator.client.resume() else emptyList() }
                     val nextUp = async { if ("nextUp" in order) ServiceLocator.client.nextUp() else emptyList() }
                     val favorites = async {
-                        if ("favorites" in order) ServiceLocator.client.items(favorites = true, includeTypes = "Movie,Series", sortBy = "DateCreated", sortOrder = "Descending", limit = 12).first
+                        if ("favorites" in order) ServiceLocator.client.items(filters = "IsFavorite", includeTypes = "Movie,Series", sortBy = "DateCreated", sortOrder = "Descending", limit = 12).first
                         else emptyList()
                     }
                     if (!refreshOnly) {

@@ -236,4 +236,13 @@
         <item>Favoriten zuerst</item>
         <item>Ohne Favoriten</item>
     </string-array>
+    <string name="filter_button">Filter</string>
+    <string name="genre_button">Genre</string>
+    <string name="genre_all">Alle Genres</string>
+    <string-array name="library_filter_options">
+        <item>Alle</item>
+        <item>Ungesehen</item>
+        <item>Gesehen</item>
+        <item>Favoriten</item>
+    </string-array>
 </resources>

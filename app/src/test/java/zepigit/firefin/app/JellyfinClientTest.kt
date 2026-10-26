@@ -439,4 +439,23 @@ class JellyfinClientTest {
         assertFalse(session.isLoggedIn)
     }
 
+    @Test fun `library filters genres and latest exclusions use server configuration`() = runBlocking {
+        session.serverUrl = address(); session.userId = "u1"; session.accessToken = "tok"
+        routes(
+            "GET /System/Info/Public" to MockResponse().setBody("""{"Version":"10.11.0"}"""),
+            "GET /Items" to MockResponse().setBody("""{"Items":[],"TotalRecordCount":0}"""),
+            "GET /Genres" to MockResponse().setBody("""{"Items":[{"Id":"g1","Name":"Drama"}, {"Name":"Broken"}]}"""),
+            "GET /Users/Me" to MockResponse().setBody("""{"Configuration":{"LatestItemsExcludes":["lib2"]}}"""),
+        )
+        client.items(parentId = "lib1", filters = "IsUnplayed", genreIds = "g1")
+        server.takeRequest(2, TimeUnit.SECONDS)!!
+        val query = server.takeRequest(2, TimeUnit.SECONDS)!!.requestUrl!!
+        assertEquals("IsUnplayed", query.queryParameter("Filters"))
+        assertEquals("g1", query.queryParameter("GenreIds"))
+        assertEquals("Drama", client.genres("lib1", "Movie,BoxSet").single().name)
+        val genres = server.takeRequest(2, TimeUnit.SECONDS)!!.requestUrl!!
+        assertEquals("lib1", genres.queryParameter("parentId"))
+        assertEquals("Movie,BoxSet", genres.queryParameter("includeItemTypes"))
+        assertEquals(setOf("lib2"), client.latestExcludes())
+    }
 }

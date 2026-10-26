@@ -178,7 +178,7 @@ class JellyfinClient(private val session: SessionStore, trust: Lazy<HandshakeCer
         parseArray(userText("Items/Latest?userId=${user()}&$query", "Users/${user()}/Items/Latest?$query"))
     }
 
-    suspend fun items(parentId: String? = null, startIndex: Int = 0, limit: Int = 60, sortBy: String = "SortName", sortOrder: String = "Ascending", searchTerm: String? = null, includeTypes: String? = null, recursive: Boolean = true, favorites: Boolean = false): Pair<List<MediaItem>, Int> = withContext(Dispatchers.IO) {
+    suspend fun items(parentId: String? = null, startIndex: Int = 0, limit: Int = 60, sortBy: String = "SortName", sortOrder: String = "Ascending", searchTerm: String? = null, includeTypes: String? = null, recursive: Boolean = true, filters: String? = null, genreIds: String? = null): Pair<List<MediaItem>, Int> = withContext(Dispatchers.IO) {
         val query = buildString {
             append("StartIndex=$startIndex&Limit=$limit&SortBy=${urlEncode(sortBy)}&SortOrder=${urlEncode(sortOrder)}&Recursive=$recursive")
             // Grids, children and search show cards only; Overview stays on the home rows that preview it.
@@ -186,10 +186,24 @@ class JellyfinClient(private val session: SessionStore, trust: Lazy<HandshakeCer
             if (!parentId.isNullOrBlank()) append("&ParentId=").append(urlEncode(parentId))
             if (!searchTerm.isNullOrBlank()) append("&searchTerm=").append(urlEncode(searchTerm))
             if (!includeTypes.isNullOrBlank()) append("&IncludeItemTypes=").append(urlEncode(includeTypes))
-            if (favorites) append("&Filters=IsFavorite")
+            if (!filters.isNullOrBlank()) append("&Filters=").append(urlEncode(filters))
+            if (!genreIds.isNullOrBlank()) append("&GenreIds=").append(urlEncode(genreIds))
         }
         val json = userJson("Items?userId=${user()}&$query", "Users/${user()}/Items?$query")
         parseItems(json) to json.optInt("TotalRecordCount", 0)
+    }
+
+    suspend fun genres(parentId: String, includeTypes: String?): List<UserView> = withContext(Dispatchers.IO) {
+        val query = "Genres?parentId=${urlEncode(parentId)}&userId=${user()}&sortBy=SortName" +
+            (includeTypes?.let { "&includeItemTypes=${urlEncode(it)}" } ?: "")
+        val values = getJson(query).optJSONArray("Items") ?: JSONArray()
+        (0 until values.length()).mapNotNull { i ->
+            values.optJSONObject(i)?.let { json ->
+                val id = json.optString("Id")
+                val name = json.optString("Name")
+                if (id.isBlank() || name.isBlank()) null else UserView(id, name, "")
+            }
+        }
     }
 
     suspend fun item(itemId: String): MediaItem = withContext(Dispatchers.IO) {
