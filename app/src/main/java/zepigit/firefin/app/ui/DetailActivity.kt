@@ -124,20 +124,8 @@ class DetailActivity : AppCompatActivity() {
                 restart.setOnClickListener { startPlayback(loaded, 0L) }
                 favorite.text = if (loaded.favorite) "★ " + getString(R.string.favorite) else getString(R.string.favorite)
                 watched.text = if (loaded.played) "✓ " + getString(R.string.mark_watched) else getString(R.string.mark_watched)
-                favorite.setOnClickListener {
-                    scope.launch {
-                        try { ServiceLocator.client.setFavorite(loaded.id, !loaded.favorite); refreshUserData() }
-                        catch (e: CancellationException) { throw e }
-                        catch (e: Exception) { Toast.makeText(this@DetailActivity, errorMessage(e), Toast.LENGTH_LONG).show() }
-                    }
-                }
-                watched.setOnClickListener {
-                    scope.launch {
-                        try { ServiceLocator.client.setPlayed(loaded.id, !loaded.played); refreshUserData() }
-                        catch (e: CancellationException) { throw e }
-                        catch (e: Exception) { Toast.makeText(this@DetailActivity, errorMessage(e), Toast.LENGTH_LONG).show() }
-                    }
-                }
+                favorite.setOnClickListener { toggleUserData { ServiceLocator.client.setFavorite(loaded.id, !loaded.favorite) } }
+                watched.setOnClickListener { toggleUserData { ServiceLocator.client.setPlayed(loaded.id, !loaded.played) } }
                 val backdropUrl = Urls.imageUrl(
                     ServiceLocator.client.baseUrl,
                     loaded.id,
@@ -159,6 +147,19 @@ class DetailActivity : AppCompatActivity() {
             } finally {
                 progress.visibility = View.GONE
             }
+        }
+    }
+
+    /** One mark request at a time: a second OK press while the first is in flight would undo it. */
+    private fun toggleUserData(request: suspend () -> Unit) {
+        if (!favorite.isEnabled) return
+        favorite.isEnabled = false
+        watched.isEnabled = false
+        scope.launch {
+            try { request(); refreshUserData() }
+            catch (e: CancellationException) { throw e }
+            catch (e: Exception) { Toast.makeText(this@DetailActivity, errorMessage(e), Toast.LENGTH_LONG).show() }
+            finally { favorite.isEnabled = true; watched.isEnabled = true }
         }
     }
 
