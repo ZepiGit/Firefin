@@ -21,8 +21,6 @@ object ServiceLocator {
     lateinit var preferences: zepigit.firefin.app.preferences.PreferenceStore
         private set
 
-    fun isReady(): Boolean = ::session.isInitialized && ::client.isInitialized
-
     fun init(context: Context) {
         session = SessionStore(context.applicationContext)
         preferences = zepigit.firefin.app.preferences.PreferenceStore(context.applicationContext, session)

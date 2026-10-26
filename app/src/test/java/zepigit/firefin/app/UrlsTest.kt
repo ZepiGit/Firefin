@@ -21,15 +21,15 @@ class UrlsTest {
     }
 
     @Test
-    fun `image url carries class width, tag and token`() {
-        val url = Urls.imageUrl("http://s:8096", "item1", "Primary", 320, "tagA", "tok")
-        assertEquals("http://s:8096/Items/item1/Images/Primary?maxWidth=320&quality=90&tag=tagA", url)
+    fun `image url carries class width and tag but never a token`() {
+        val url = Urls.imageUrl("http://s:8096", "item1", "Primary", 320, "tagA")
+        assertEquals("http://s:8096/Items/item1/Images/Primary?maxWidth=320&quality=80&tag=tagA", url)
     }
 
     @Test
     fun `poster image url can carry maxHeight`() {
-        val url = Urls.imageUrl("http://s", "i", "Primary", 320, null, "t", maxHeight = 480)
-        assertEquals("http://s/Items/i/Images/Primary?maxWidth=320&maxHeight=480&quality=90", url)
+        val url = Urls.imageUrl("http://s", "i", "Primary", 320, null, maxHeight = 480)
+        assertEquals("http://s/Items/i/Images/Primary?maxWidth=320&maxHeight=480&quality=80", url)
     }
 
     @Test

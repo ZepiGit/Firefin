@@ -49,7 +49,6 @@ class JellyfinClient(private val session: SessionStore, trust: HandshakeCertific
         session.accessToken = token
         session.userId = user.optString("Id")
         session.userName = user.optString("Name")
-        session.serverName = json.optString("ServerId")
         transport.update(ServerCredentials(server, session.userId, token))
         if (password.isNotEmpty()) connectSeerr(username, password)
         json
@@ -188,16 +187,6 @@ class JellyfinClient(private val session: SessionStore, trust: HandshakeCertific
         )
     }
 
-    suspend fun reportPlaying(itemId: String, playSessionId: String, mediaSourceId: String = "", playMethod: String = "DirectPlay") = postSessionEvent("Sessions/Playing", itemId, playSessionId) {
-        put("MediaSourceId", mediaSourceId); put("PlayMethod", playMethod); put("CanSeek", true)
-    }
-    suspend fun reportProgress(itemId: String, playSessionId: String, positionTicks: Long, paused: Boolean, mediaSourceId: String = "") = postSessionEvent("Sessions/Playing/Progress", itemId, playSessionId) {
-        put("PositionTicks", positionTicks); put("IsPaused", paused); put("MediaSourceId", mediaSourceId); put("CanSeek", true)
-    }
-    suspend fun reportStopped(itemId: String, playSessionId: String, positionTicks: Long, mediaSourceId: String = "") = postSessionEvent("Sessions/Playing/Stopped", itemId, playSessionId) {
-        put("PositionTicks", positionTicks); put("MediaSourceId", mediaSourceId)
-    }
-
     suspend fun sessions(): List<RemoteSession> = withContext(Dispatchers.IO) {
         val arr = JSONArray(transportText("Sessions"))
         (0 until arr.length()).mapNotNull { i ->
@@ -229,10 +218,6 @@ class JellyfinClient(private val session: SessionStore, trust: HandshakeCertific
     }
 
     private suspend fun getJson(path: String, method: String = "GET", body: String? = null): JSONObject = JSONObject(transportText(path, method, body))
-    private suspend fun postSessionEvent(path: String, itemId: String, playSessionId: String, extra: JSONObject.() -> Unit) = withContext(Dispatchers.IO) {
-        val body = JSONObject().put("ItemId", itemId).put("PlaySessionId", playSessionId).apply(extra)
-        transportText(path, "POST", body.toString())
-    }
     private suspend fun transportText(path: String, method: String = "GET", body: String? = null): String { syncTransport(); return transport.json(path, method, body) }
     private fun parseItems(json: JSONObject): List<MediaItem> { val arr = json.optJSONArray("Items") ?: return emptyList(); return (0 until arr.length()).mapNotNull { arr.optJSONObject(it)?.let(MediaItem::from) } }
     private fun parseArray(value: String): List<MediaItem> { val arr = JSONArray(value); return (0 until arr.length()).mapNotNull { arr.optJSONObject(it)?.let(MediaItem::from) } }

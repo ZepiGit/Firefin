@@ -62,9 +62,6 @@ class SessionReporter(
         scope.cancel()
     }
 
-    /** Playing is sent by the worker before any progress; this is kept for call-site symmetry. */
-    fun playing() = Unit
-
     fun progress(ticks: Long, paused: Boolean) {
         synchronized(lock) {
             if (closed) return

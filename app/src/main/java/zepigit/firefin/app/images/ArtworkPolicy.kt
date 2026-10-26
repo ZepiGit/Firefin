@@ -16,7 +16,6 @@ object ArtworkPolicy {
     const val POSTER_MAX_HEIGHT = 480
     const val LANDSCAPE_WIDTH = 640
     const val BACKDROP_WIDTH = 960
-    const val NON_TV_BACKDROP_WIDTH = 1920
 
     val DECODE_BUCKETS = intArrayOf(160, 240, 320, 480, 640, 960)
 

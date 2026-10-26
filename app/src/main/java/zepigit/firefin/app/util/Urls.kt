@@ -17,19 +17,19 @@ object Urls {
 
     fun imageUrl(
         baseUrl: String, itemId: String, imageType: String, maxWidth: Int,
-        tag: String?, accessToken: String = "", maxHeight: Int? = null,
+        tag: String?, maxHeight: Int? = null,
     ): String {
         val builder = (normalizeServer(baseUrl) + "/").toHttpUrl().newBuilder()
             .addPathSegment("Items").addPathSegment(itemId).addPathSegment("Images").addPathSegment(imageType)
             .addQueryParameter("maxWidth", maxWidth.coerceIn(1, 960).toString())
         maxHeight?.let { builder.addQueryParameter("maxHeight", it.coerceIn(1, 960).toString()) }
-        builder.addQueryParameter("quality", "90")
+        builder.addQueryParameter("quality", "80")
         if (!tag.isNullOrBlank()) builder.addQueryParameter("tag", tag)
         // Authentication belongs to the origin-bound HTTP client, never a cache key or URI.
         return builder.build().toString()
     }
 
-    fun directStreamUrl(baseUrl: String, itemId: String, mediaSourceId: String, accessToken: String = ""): String =
+    fun directStreamUrl(baseUrl: String, itemId: String, mediaSourceId: String): String =
         (normalizeServer(baseUrl) + "/").toHttpUrl().newBuilder()
             .addPathSegment("Videos").addPathSegment(itemId).addPathSegment("stream")
             .addQueryParameter("static", "true").addQueryParameter("MediaSourceId", mediaSourceId).build().toString()
@@ -43,14 +43,6 @@ object Urls {
         val builder = url.newBuilder()
         url.queryParameterNames.filter { it.equals(key, ignoreCase = true) }.forEach(builder::removeAllQueryParameters)
         return builder.addQueryParameter(key, value).build()
-    }
-
-    fun stripCredentials(url: String): String {
-        val parsed = url.toHttpUrl()
-        val builder = parsed.newBuilder()
-        parsed.queryParameterNames.filter { it.lowercase() in setOf("api_key", "apikey", "access_token", "token") }
-            .forEach(builder::removeAllQueryParameters)
-        return builder.build().toString()
     }
 
     fun resolveRelative(baseUrl: String, path: String): String {

@@ -25,10 +25,6 @@ class SessionStore(
         get() = prefs.getString(KEY_USER_NAME, "") ?: ""
         set(value) = prefs.edit().putString(KEY_USER_NAME, value).apply()
 
-    var serverName: String
-        get() = prefs.getString(KEY_SERVER_NAME, "") ?: ""
-        set(value) = prefs.edit().putString(KEY_SERVER_NAME, value).apply()
-
     var accessToken: String
         get() = prefs.getString(KEY_TOKEN, "") ?: ""
         set(value) = prefs.edit().putString(KEY_TOKEN, value).apply()
@@ -44,7 +40,7 @@ class SessionStore(
     fun clear() {
         prefs.edit()
             .remove(KEY_USER_ID)
-            .remove(KEY_SERVER_NAME)
+            .remove("serverName") // written by versions before 2.7
             .remove(KEY_TOKEN)
             .apply()
     }
@@ -53,7 +49,6 @@ class SessionStore(
         const val KEY_SERVER = "serverUrl"
         const val KEY_USER_ID = "userId"
         const val KEY_USER_NAME = "userName"
-        const val KEY_SERVER_NAME = "serverName"
         const val KEY_TOKEN = "accessToken"
         const val KEY_DEVICE_ID = "deviceId"
     }

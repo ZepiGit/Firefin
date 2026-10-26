@@ -21,7 +21,6 @@ data class EffectiveDevicePreferences(
     // Device-enforced runtime limits — deliberately NOT stored and NOT synced.
     val cardFocusExpansion: Boolean = false,
     val mediaBarEnabled: Boolean = false,
-    val episodePreviewEnabled: Boolean = false,
     val blurAmount: Int = 0,
     val maxVideoWidth: Int,
     val maxVideoHeight: Int,
