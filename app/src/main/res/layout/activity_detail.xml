@@ -16,7 +16,7 @@
 <Button android:id="@+id/retryButton" android:layout_width="wrap_content" android:layout_height="48dp" android:layout_marginStart="10dp" android:text="@string/reload" android:visibility="gone"/>
 </LinearLayout>
 <TextView android:id="@+id/childrenTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp" android:textSize="18sp"/>
-<androidx.recyclerview.widget.RecyclerView android:id="@+id/children" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:clipToPadding="false" android:padding="6dp"/>
+<zepigit.firefin.app.ui.TvRecyclerView android:id="@+id/children" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:clipToPadding="false" android:padding="6dp"/>
 </LinearLayout></ScrollView>
 <ProgressBar android:id="@+id/progress" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center" android:visibility="gone"/>
 </FrameLayout>

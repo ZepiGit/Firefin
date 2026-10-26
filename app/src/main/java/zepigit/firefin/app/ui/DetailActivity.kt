@@ -217,7 +217,8 @@ class DetailActivity : AppCompatActivity() {
                 if (cursor !== childCursor) return@launch
                 cursor.received(page.size, total)
                 childAdapter?.appendItems(page)
-                if (focusFirst && page.isNotEmpty()) children.post { children.getChildAt(0)?.requestFocus() }
+                // The inserted cards exist only after the next layout pass; a plain post() runs before it.
+                if (focusFirst && page.isNotEmpty()) children.afterNextLayout { children.getChildAt(0)?.requestFocus() }
             } catch (e: CancellationException) {
                 cursor.failed()
                 throw e

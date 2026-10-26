@@ -38,6 +38,7 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var rowsAdapter: HomeRowsAdapter
     private lateinit var progress: ProgressBar
     private lateinit var emptyView: TextView
+    private lateinit var retryButton: View
     private var pendingScroll: Int? = null
     private var homeLoaded = false
     private var loadingHome = false
@@ -77,6 +78,8 @@ class HomeActivity : AppCompatActivity() {
         rowsView = findViewById(R.id.rows)
         progress = findViewById(R.id.progress)
         emptyView = findViewById(R.id.empty)
+        retryButton = findViewById(R.id.retryButton)
+        retryButton.setOnClickListener { loadHome() }
         rowsAdapter = HomeRowsAdapter(
             onItem = { item -> DetailActivity.start(this, item.id) },
             onFocus = ::preview,
@@ -112,7 +115,8 @@ class HomeActivity : AppCompatActivity() {
         findViewById<View>(R.id.libraryButton).setOnClickListener {
             // Music, Live TV, books, photos and playlists have no native player yet; hide them instead of dead ends.
             val browsable = libraries.filter { it.collectionType in BROWSABLE_LIBRARY_TYPES }
-            if (browsable.isNotEmpty()) androidx.appcompat.app.AlertDialog.Builder(this)
+            if (browsable.isEmpty()) Toast.makeText(this, R.string.empty_library, Toast.LENGTH_SHORT).show()
+            else androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle(R.string.libraries).setItems(browsable.map { it.name }.toTypedArray()) { _, index ->
                     val library = browsable[index]
                     LibraryActivity.start(this, library.id, library.name, library.collectionType)
@@ -168,6 +172,23 @@ class HomeActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
+    /**
+     * Rebinds the rows and keeps a usable focus: when the focused card's row
+     * vanished (a finished film leaves "Continue watching"), the framework
+     * drops focus entirely, so the first card takes it after the layout pass.
+     */
+    private fun showRows(rows: List<HomeRow>) {
+        val hadRowFocus = rowsView.hasFocus()
+        rowsAdapter.submitRows(rows)
+        val empty = rowsAdapter.itemCount == 0
+        emptyView.text = if (empty) getString(R.string.empty_home) else ""
+        emptyView.visibility = if (empty) View.VISIBLE else View.GONE
+        retryButton.visibility = View.GONE
+        if (hadRowFocus) rowsView.afterNextLayout {
+            if (currentFocus == null) rowsView.getChildAt(0)?.findViewById<RecyclerView>(R.id.rowItems)?.getChildAt(0)?.requestFocus()
+        }
+    }
+
     private fun loadHome(refreshOnly: Boolean = false) {
         if (loadingHome) return
         loadingHome = true
@@ -186,10 +207,8 @@ class HomeActivity : AppCompatActivity() {
                 rows.add(HomeRow(getString(R.string.next_up), nextUp, landscape = true))
                 if (refreshOnly) {
                     rows.addAll(latestRows)
-                    rowsAdapter.submitRows(rows)
+                    showRows(rows)
                     homeLoaded = true
-                    emptyView.text = if (rowsAdapter.itemCount == 0) getString(R.string.empty_home) else ""
-                    emptyView.visibility = if (rowsAdapter.itemCount == 0) View.VISIBLE else View.GONE
                     return@launch
                 }
                 libraries = views
@@ -210,11 +229,9 @@ class HomeActivity : AppCompatActivity() {
                     }.awaitAll()
                 }
                 latestRows = rows.drop(2)
-                rowsAdapter.submitRows(rows)
+                showRows(rows)
                 if (!homeLoaded) rows.firstOrNull { it.items.isNotEmpty() }?.items?.firstOrNull()?.let(::preview)
                 homeLoaded = true
-                emptyView.text = if (rowsAdapter.itemCount == 0) getString(R.string.empty_home) else ""
-                emptyView.visibility = if (rowsAdapter.itemCount == 0) View.VISIBLE else View.GONE
                 pendingScroll?.let {
                     (rowsView.layoutManager as LinearLayoutManager).scrollToPosition(it)
                     pendingScroll = null
@@ -227,6 +244,8 @@ class HomeActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 emptyView.text = errorMessage(e)
                 emptyView.visibility = View.VISIBLE
+                retryButton.visibility = View.VISIBLE
+                if (!rowsView.hasFocus()) retryButton.requestFocus()
             } finally {
                 loadingHome = false
                 progress.visibility = View.GONE
