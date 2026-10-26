@@ -32,7 +32,7 @@ class RemoteActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_remote)
         val list = findViewById<RecyclerView>(R.id.sessions)
-        val empty = findViewById<TextView>(R.id.empty)
+        findViewById<Button>(R.id.stateRetry).setOnClickListener { refresh() }
         adapter = SessionsAdapter { session, command ->
             scope.launch {
                 try {
@@ -50,19 +50,26 @@ class RemoteActivity : AppCompatActivity() {
         refresh()
     }
 
+    private fun showState(message: String?, retry: Boolean) {
+        findViewById<View>(R.id.stateView).visibility = if (message == null) View.GONE else View.VISIBLE
+        findViewById<TextView>(R.id.stateText).text = message.orEmpty()
+        findViewById<Button>(R.id.stateRetry).visibility = if (retry) View.VISIBLE else View.GONE
+        if (message != null && retry) findViewById<Button>(R.id.stateRetry).requestFocus()
+    }
+
     private fun refresh() {
         scope.launch {
+            findViewById<View>(R.id.stateView).visibility = View.GONE
             findViewById<android.widget.ProgressBar>(R.id.progress).visibility = View.VISIBLE
             try {
                 val sessions = ServiceLocator.client.sessions()
                     .filter { it.controllable && it.deviceId != ServiceLocator.session.deviceId }
                 adapter.submit(sessions)
-                findViewById<TextView>(R.id.empty).visibility =
-                    if (sessions.isEmpty()) View.VISIBLE else View.GONE
+                showState(if (sessions.isEmpty()) getString(R.string.empty_remote) else null, retry = sessions.isEmpty())
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                Toast.makeText(this@RemoteActivity, errorMessage(e), Toast.LENGTH_LONG).show()
+                showState(errorMessage(e), retry = true)
             } finally {
                 findViewById<android.widget.ProgressBar>(R.id.progress).visibility = View.GONE
             }

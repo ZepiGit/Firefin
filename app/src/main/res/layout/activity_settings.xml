@@ -1,67 +1,104 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/background">
+    android:layout_height="match_parent">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="48dp">
+        android:paddingLeft="@dimen/page_margin"
+        android:paddingTop="@dimen/space_xl"
+        android:paddingRight="@dimen/page_margin"
+        android:paddingBottom="@dimen/space_xl">
+
+        <TextView
+            style="@style/Firefin.Text.Heading"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/settings" />
 
         <TextView
             android:id="@+id/accountInfo"
+            style="@style/Firefin.Text.Label"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="#F5F5F5"
-            android:textSize="18sp" />
+            android:layout_marginTop="@dimen/space_xs" />
+
+        <TextView
+            style="@style/Firefin.Text.Subheading"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_l"
+            android:text="@string/section_playback" />
 
         <Button
-            android:id="@+id/remoteButton"
-            android:layout_width="320dp"
+            android:id="@+id/qualityButton"
+            style="@style/Firefin.Button.Setting"
+            android:layout_marginTop="@dimen/space_s" />
+
+        <Button
+            android:id="@+id/audioLanguageButton"
+            style="@style/Firefin.Button.Setting" />
+
+        <Button
+            android:id="@+id/subtitleLanguageButton"
+            style="@style/Firefin.Button.Setting" />
+
+        <TextView
+            style="@style/Firefin.Text.Subheading"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="@string/remote_control" />
+            android:layout_marginTop="@dimen/space_l"
+            android:text="@string/section_interface" />
+
+        <Button
+            android:id="@+id/backdropsButton"
+            style="@style/Firefin.Button.Setting"
+            android:layout_marginTop="@dimen/space_s" />
 
         <Button
             android:id="@+id/clearCacheButton"
-            android:layout_width="320dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            style="@style/Firefin.Button.Setting"
             android:text="@string/clear_image_cache" />
 
-        <Button
-            android:id="@+id/aboutButton"
-            android:layout_width="320dp"
+        <TextView
+            style="@style/Firefin.Text.Subheading"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="@string/about" />
+            android:layout_marginTop="@dimen/space_l"
+            android:text="@string/section_account" />
 
         <Button
-            android:id="@+id/developerGithubButton"
-            android:layout_width="320dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:minHeight="48dp"
-            android:focusable="true"
-            android:text="@string/developer_github"
-            android:textAllCaps="false"
-            android:textSize="18sp" />
+            android:id="@+id/remoteButton"
+            style="@style/Firefin.Button.Setting"
+            android:layout_marginTop="@dimen/space_s"
+            android:text="@string/remote_control" />
 
         <Button
             android:id="@+id/logoutButton"
-            android:layout_width="320dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            style="@style/Firefin.Button.Setting"
             android:text="@string/logout" />
 
         <TextView
+            style="@style/Firefin.Text.Subheading"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_l"
+            android:text="@string/about" />
+
+        <TextView
             android:id="@+id/aboutText"
+            style="@style/Firefin.Text.Label"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:textColor="@color/text_secondary"
-            android:textSize="13sp" />
+            android:layout_marginTop="@dimen/space_xs"
+            android:maxWidth="720dp" />
+
+        <Button
+            android:id="@+id/developerGithubButton"
+            style="@style/Firefin.Button.Setting"
+            android:layout_marginTop="@dimen/space_s"
+            android:text="@string/developer_github" />
     </LinearLayout>
 </ScrollView>

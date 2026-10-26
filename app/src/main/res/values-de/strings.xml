@@ -62,7 +62,14 @@
     <string name="sort_rating">Bewertung</string>
 
     <!-- Details -->
-    <string name="detail_breadcrumb">FIREFIN / MEDIATHEK</string>
+    <string name="type_movie">Film</string>
+    <string name="type_series">Serie</string>
+    <string name="type_season">Staffel</string>
+    <string name="type_episode">Episode</string>
+    <string name="type_collection">Sammlung</string>
+    <string name="type_folder">Ordner</string>
+    <string name="children_count">%1$s · %2$d</string>
+    <string name="seerr_context">Seerr · %1$s</string>
     <string name="play">Abspielen</string>
     <string name="play_with_icon">▶ Abspielen</string>
     <string name="resume">Fortsetzen</string>
@@ -98,6 +105,9 @@
     <string name="remote_stop">Stop</string>
 
     <!-- Settings -->
+    <string name="section_playback">Wiedergabe</string>
+    <string name="section_interface">Oberfläche</string>
+    <string name="section_account">Konto</string>
     <string name="clear_image_cache">Bildcache leeren</string>
     <string name="logout">Abmelden</string>
     <string name="about">Über Firefin</string>

@@ -37,14 +37,21 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var rowsView: RecyclerView
     private lateinit var rowsAdapter: HomeRowsAdapter
     private lateinit var progress: ProgressBar
+    private lateinit var stateView: View
     private lateinit var emptyView: TextView
     private lateinit var retryButton: View
+    private lateinit var previewName: TextView
+    private lateinit var previewMeta: TextView
+    private lateinit var previewOverview: TextView
+    private lateinit var previewImage: android.widget.ImageView
     private var pendingScroll: Int? = null
     private var homeLoaded = false
     private var loadingHome = false
     private var libraries = emptyList<UserView>()
     private var previewJob: Job? = null
     private var latestRows = emptyList<HomeRow>()
+    /** Read once per resume instead of hashing the account key on every focus change. */
+    private var backdropsEnabled = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -77,9 +84,14 @@ class HomeActivity : AppCompatActivity() {
 
         rowsView = findViewById(R.id.rows)
         progress = findViewById(R.id.progress)
-        emptyView = findViewById(R.id.empty)
-        retryButton = findViewById(R.id.retryButton)
+        stateView = findViewById(R.id.stateView)
+        emptyView = findViewById(R.id.stateText)
+        retryButton = findViewById(R.id.stateRetry)
         retryButton.setOnClickListener { loadHome() }
+        previewName = findViewById(R.id.previewName)
+        previewMeta = findViewById(R.id.previewMeta)
+        previewOverview = findViewById(R.id.previewOverview)
+        previewImage = findViewById(R.id.previewImage)
         rowsAdapter = HomeRowsAdapter(
             onItem = { item -> DetailActivity.start(this, item.id) },
             onFocus = ::preview,
@@ -132,13 +144,16 @@ class HomeActivity : AppCompatActivity() {
         previewJob?.cancel()
         previewJob = scope.launch {
             kotlinx.coroutines.delay(150)
-            findViewById<TextView>(R.id.previewName).text = item.seriesName.takeIf { item.isEpisode && it.isNotBlank() } ?: item.name
-            findViewById<TextView>(R.id.previewMeta).text = listOfNotNull(item.year.takeIf { it > 0 }?.toString(), if (item.resumeTicks > 0) getString(R.string.resume) else null).joinToString(" · ")
-            findViewById<TextView>(R.id.previewOverview).text = item.overview
+            previewName.text = item.seriesName.takeIf { item.isEpisode && it.isNotBlank() } ?: item.name
+            previewMeta.text = listOfNotNull(
+                item.episodeCode?.let { code -> listOf(code, item.name).joinToString(" · ") },
+                item.year.takeIf { it > 0 }?.toString(),
+                if (item.resumeTicks > 0) getString(R.string.resume) else null,
+            ).joinToString(" · ")
+            previewOverview.text = item.overview
             val type = if (item.backdropTag != null) "Backdrop" else if (item.thumbTag != null) "Thumb" else "Primary"
             val tag = when (type) { "Backdrop" -> item.backdropTag; "Thumb" -> item.thumbTag; else -> item.posterTag }
-            val previewImage = findViewById<android.widget.ImageView>(R.id.previewImage)
-            if (ServiceLocator.preferences.effective().stored.backdropEnabled) {
+            if (backdropsEnabled) {
                 val width = if (type == "Primary") 320 else 960
                 ServiceLocator.images.load(zepigit.firefin.app.util.Urls.imageUrl(ServiceLocator.client.baseUrl, item.id, type, width, tag), width, previewImage)
             } else ServiceLocator.images.cancel(previewImage)
@@ -158,9 +173,8 @@ class HomeActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (::rowsAdapter.isInitialized && !ServiceLocator.preferences.effective().stored.backdropEnabled) {
-            ServiceLocator.images.cancel(findViewById(R.id.previewImage))
-        }
+        backdropsEnabled = ServiceLocator.preferences.effective().stored.backdropEnabled
+        if (::rowsAdapter.isInitialized && !backdropsEnabled) ServiceLocator.images.cancel(previewImage)
         // Refresh resume/next-up after returning from Detail or Player. The adapter
         // preserves stable row/card ids and the saved vertical position.
         if (::rowsAdapter.isInitialized && homeLoaded && !loadingHome) loadHome(refreshOnly = true)
@@ -182,7 +196,7 @@ class HomeActivity : AppCompatActivity() {
         rowsAdapter.submitRows(rows)
         val empty = rowsAdapter.itemCount == 0
         emptyView.text = if (empty) getString(R.string.empty_home) else ""
-        emptyView.visibility = if (empty) View.VISIBLE else View.GONE
+        stateView.visibility = if (empty) View.VISIBLE else View.GONE
         retryButton.visibility = View.GONE
         if (hadRowFocus) rowsView.afterNextLayout {
             if (currentFocus == null) rowsView.getChildAt(0)?.findViewById<RecyclerView>(R.id.rowItems)?.getChildAt(0)?.requestFocus()
@@ -243,7 +257,7 @@ class HomeActivity : AppCompatActivity() {
                 LoginActivity.startFresh(this@HomeActivity)
             } catch (e: Exception) {
                 emptyView.text = errorMessage(e)
-                emptyView.visibility = View.VISIBLE
+                stateView.visibility = View.VISIBLE
                 retryButton.visibility = View.VISIBLE
                 if (!rowsView.hasFocus()) retryButton.requestFocus()
             } finally {

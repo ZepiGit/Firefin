@@ -39,6 +39,8 @@ class DetailActivity : AppCompatActivity() {
     private var childAdapter: MediaCardAdapter? = null
 
     private lateinit var backdrop: ImageView
+    private lateinit var contextLabel: TextView
+    private lateinit var childrenTitle: TextView
     private lateinit var name: TextView
     private lateinit var meta: TextView
     private lateinit var overview: TextView
@@ -55,6 +57,8 @@ class DetailActivity : AppCompatActivity() {
         setContentView(R.layout.activity_detail)
         itemId = intent.getStringExtra(EXTRA_ID) ?: return finish()
         backdrop = findViewById(R.id.backdrop)
+        contextLabel = findViewById(R.id.contextLabel)
+        childrenTitle = findViewById(R.id.childrenTitle)
         name = findViewById(R.id.name)
         meta = findViewById(R.id.meta)
         overview = findViewById(R.id.overview)
@@ -96,7 +100,8 @@ class DetailActivity : AppCompatActivity() {
             try {
                 val loaded = ServiceLocator.client.item(itemId)
                 item = loaded
-                name.text = displayName(loaded)
+                contextLabel.text = contextOf(loaded)
+                name.text = if (loaded.isEpisode) listOfNotNull(loaded.episodeCode, loaded.name).joinToString(" · ") else loaded.name
                 meta.text = buildString {
                     if (loaded.year > 0) append(loaded.year)
                     if (loaded.runTimeTicks > 0) {
@@ -203,10 +208,22 @@ class DetailActivity : AppCompatActivity() {
         childAdapter = adapter
         children.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
         children.adapter = adapter
-        findViewById<TextView>(R.id.childrenTitle).setText(
-            if (container.isSeries) R.string.children_seasons else if (container.type == "Season") R.string.children_episodes else R.string.children_items,
-        )
+        childrenTitle.setText(childrenLabel(container))
         loadChildPage(container, cursor, focusFirst = true)
+    }
+
+    private fun childrenLabel(container: MediaItem) =
+        if (container.isSeries) R.string.children_seasons else if (container.type == "Season") R.string.children_episodes else R.string.children_items
+
+    /** Where the item lives: its series for episodes and seasons, otherwise its type. */
+    private fun contextOf(item: MediaItem): String = when {
+        (item.isEpisode || item.type == "Season") && item.seriesName.isNotBlank() -> item.seriesName
+        item.type == "Movie" -> getString(R.string.type_movie)
+        item.isSeries -> getString(R.string.type_series)
+        item.type == "Season" -> getString(R.string.type_season)
+        item.isEpisode -> getString(R.string.type_episode)
+        item.type == "BoxSet" -> getString(R.string.type_collection)
+        else -> getString(R.string.type_folder)
     }
 
     private fun loadChildPage(container: MediaItem, cursor: PageCursor, focusFirst: Boolean = false) {
@@ -218,6 +235,7 @@ class DetailActivity : AppCompatActivity() {
                 if (cursor !== childCursor) return@launch
                 cursor.received(page.size, total)
                 childAdapter?.appendItems(page)
+                childrenTitle.text = getString(R.string.children_count, getString(childrenLabel(container)), cursor.total)
                 // The inserted cards exist only after the next layout pass; a plain post() runs before it.
                 if (focusFirst && page.isNotEmpty()) children.afterNextLayout { children.getChildAt(0)?.requestFocus() }
             } catch (e: CancellationException) {
@@ -232,6 +250,7 @@ class DetailActivity : AppCompatActivity() {
         }
     }
 
+    /** Full name for the player title; the detail headline itself omits the series, which the context label shows. */
     private fun displayName(item: MediaItem): String =
         if (item.isEpisode && item.seriesName.isNotEmpty()) listOfNotNull(item.seriesName, item.episodeCode, item.name).joinToString(" · ")
         else item.name

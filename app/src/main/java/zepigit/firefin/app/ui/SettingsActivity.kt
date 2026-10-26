@@ -27,15 +27,12 @@ class SettingsActivity : AppCompatActivity() {
         accountInfo.text = getString(R.string.account_info, session.userName, session.serverUrl)
         aboutText.text = getString(R.string.about_text, JellyfinClient.VERSION)
 
-        val container = accountInfo.parent as android.widget.LinearLayout
-        var position = 1
         // Each button shows its current value, so a change is visible without reopening the dialog.
-        fun setting(label: Int, value: (StoredPreferences) -> String, action: (refresh: () -> Unit) -> Unit) {
-            val button = Button(this)
+        fun setting(id: Int, label: Int, value: (StoredPreferences) -> String, action: (refresh: () -> Unit) -> Unit) {
+            val button = findViewById<Button>(id)
             val refresh = { button.text = getString(R.string.setting_value, getString(label), value(ServiceLocator.preferences.stored())) }
             refresh()
             button.setOnClickListener { action(refresh) }
-            container.addView(button, position++, android.widget.LinearLayout.LayoutParams((320 * resources.displayMetrics.density).toInt(), (44 * resources.displayMetrics.density).toInt()).apply { topMargin = (12 * resources.displayMetrics.density).toInt() })
         }
         fun choose(title: Int, options: Int, refresh: () -> Unit, apply: (StoredPreferences, Int) -> StoredPreferences) {
             androidx.appcompat.app.AlertDialog.Builder(this).setTitle(title).setItems(options) { _, index ->
@@ -47,22 +44,22 @@ class SettingsActivity : AppCompatActivity() {
         val qualityLabels = resources.getStringArray(R.array.quality_options)
         val audioLabels = resources.getStringArray(R.array.audio_language_options)
         val subtitleLabels = resources.getStringArray(R.array.subtitle_language_options)
-        setting(R.string.setting_quality, { stored ->
+        setting(R.id.qualityButton, R.string.setting_quality, { stored ->
             QUALITIES.indexOf(stored.preferredHeight to stored.preferredBitrate).let { if (it >= 0) qualityLabels[it] else "${stored.preferredHeight}p" }
         }) { refresh ->
             choose(R.string.quality_dialog_title, R.array.quality_options, refresh) { stored, index ->
                 stored.copy(preferredHeight = QUALITIES[index].first, preferredBitrate = QUALITIES[index].second)
             }
         }
-        setting(R.string.setting_backdrops, { stored -> getString(if (stored.backdropEnabled) R.string.state_on else R.string.state_off) }) { refresh ->
+        setting(R.id.backdropsButton, R.string.setting_backdrops, { stored -> getString(if (stored.backdropEnabled) R.string.state_on else R.string.state_off) }) { refresh ->
             val stored = ServiceLocator.preferences.stored()
             ServiceLocator.preferences.save(stored.copy(backdropEnabled = !stored.backdropEnabled))
             refresh()
         }
-        setting(R.string.setting_audio_language, { stored -> audioLabels[LANGUAGES.indexOf(stored.audioLanguage).coerceAtLeast(0)] }) { refresh ->
+        setting(R.id.audioLanguageButton, R.string.setting_audio_language, { stored -> audioLabels[LANGUAGES.indexOf(stored.audioLanguage).coerceAtLeast(0)] }) { refresh ->
             choose(R.string.audio_language_title, R.array.audio_language_options, refresh) { stored, index -> stored.copy(audioLanguage = LANGUAGES[index]) }
         }
-        setting(R.string.setting_subtitle_language, { stored -> subtitleLabels[LANGUAGES.indexOf(stored.subtitleLanguage).coerceAtLeast(0)] }) { refresh ->
+        setting(R.id.subtitleLanguageButton, R.string.setting_subtitle_language, { stored -> subtitleLabels[LANGUAGES.indexOf(stored.subtitleLanguage).coerceAtLeast(0)] }) { refresh ->
             choose(R.string.subtitle_language_title, R.array.subtitle_language_options, refresh) { stored, index -> stored.copy(subtitleLanguage = LANGUAGES[index]) }
         }
         findViewById<Button>(R.id.remoteButton).setOnClickListener {
@@ -73,11 +70,6 @@ class SettingsActivity : AppCompatActivity() {
             ServiceLocator.images.clearCache()
             ServiceLocator.discoveryImages.clearCache()
             Toast.makeText(this, getString(R.string.cache_cleared, before / 1024), Toast.LENGTH_SHORT).show()
-        }
-        findViewById<Button>(R.id.aboutButton).setOnClickListener {
-            aboutText.visibility =
-                if (aboutText.visibility == android.view.View.VISIBLE) android.view.View.GONE
-                else android.view.View.VISIBLE
         }
         findViewById<Button>(R.id.developerGithubButton).setOnClickListener {
             try {

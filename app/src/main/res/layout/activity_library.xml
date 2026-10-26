@@ -4,42 +4,38 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="68dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingStart="32dp"
-        android:paddingEnd="32dp">
+    <LinearLayout style="@style/Firefin.Header">
 
         <TextView
             android:id="@+id/libraryTitle"
+            style="@style/Firefin.Text.Heading"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:textColor="#F5F5F5"
-            android:textSize="22sp"
-            android:textStyle="bold" />
+            android:ellipsize="end"
+            android:maxLines="1" />
 
         <Button
             android:id="@+id/sortButton"
             android:layout_width="wrap_content"
-            android:layout_height="40dp"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="@dimen/space_m"
             android:text="@string/sort_button" />
     </LinearLayout>
 
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
         <zepigit.firefin.app.ui.TvRecyclerView
             android:id="@+id/grid"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
-            android:paddingStart="32dp"
-            android:paddingEnd="32dp"
-            android:paddingBottom="24dp" />
+            android:paddingLeft="40dp"
+            android:paddingRight="40dp"
+            android:paddingBottom="@dimen/space_l" />
 
         <ProgressBar
             android:id="@+id/progress"
@@ -48,13 +44,6 @@
             android:layout_gravity="center"
             android:visibility="gone" />
 
-        <TextView
-            android:id="@+id/empty"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:text="@string/empty_library"
-            android:textColor="@color/text_secondary"
-            android:visibility="gone" />
+        <include layout="@layout/view_state" />
     </FrameLayout>
 </LinearLayout>

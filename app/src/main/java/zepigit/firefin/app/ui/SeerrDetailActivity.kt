@@ -69,7 +69,8 @@ class SeerrDetailActivity : AppCompatActivity() {
         media = loaded
         findViewById<TextView>(R.id.name).text = loaded.title
         val typeLabel = getString(if (type == "tv") R.string.seerr_type_series else R.string.seerr_type_movie)
-        findViewById<TextView>(R.id.meta).text = "${if (loaded.year > 0) "${loaded.year} · " else ""}$typeLabel · ${getString(loaded.statusLabelRes)}"
+        findViewById<TextView>(R.id.contextLabel).text = getString(R.string.seerr_context, typeLabel)
+        findViewById<TextView>(R.id.meta).text = listOfNotNull(loaded.year.takeIf { it > 0 }?.toString(), getString(loaded.statusLabelRes)).joinToString(" · ")
         findViewById<TextView>(R.id.overview).text = loaded.overview
         TmdbArtwork.url(loaded.backdrop ?: loaded.poster, backdrop = loaded.backdrop != null)?.let {
             ServiceLocator.discoveryImages.load(it, 960, findViewById(R.id.backdrop))

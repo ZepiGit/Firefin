@@ -26,6 +26,9 @@ class LibraryActivity : AppCompatActivity() {
     private lateinit var adapter: MediaCardAdapter
     private lateinit var progress: ProgressBar
     private lateinit var titleView: TextView
+    private lateinit var stateView: View
+    private lateinit var stateText: TextView
+    private lateinit var stateRetry: Button
 
     private var libraryId: String = ""
     private var total = -1
@@ -51,6 +54,10 @@ class LibraryActivity : AppCompatActivity() {
         progress = findViewById(R.id.progress)
         titleView.text = intent.getStringExtra(EXTRA_TITLE) ?: ""
 
+        stateView = findViewById(R.id.stateView)
+        stateText = findViewById(R.id.stateText)
+        stateRetry = findViewById(R.id.stateRetry)
+        stateRetry.setOnClickListener { loadMore() }
         adapter = MediaCardAdapter(onClick = { DetailActivity.start(this, it.id) })
         val grid = findViewById<RecyclerView>(R.id.grid)
         grid.layoutManager = GridLayoutManager(this, GRID_SPAN)
@@ -84,6 +91,7 @@ class LibraryActivity : AppCompatActivity() {
         if (loading) return
         loading = true
         progress.visibility = View.VISIBLE
+        stateView.visibility = View.GONE
         val gen = generation
         val start = adapter.itemCount
         val sort = sortOptions[sortByIndex]
@@ -106,11 +114,13 @@ class LibraryActivity : AppCompatActivity() {
                 total = totalCount
                 titleView.text = getString(R.string.library_title, intent.getStringExtra(EXTRA_TITLE) ?: "", total, getString(sort.label))
                 adapter.appendItems(items)
-                findViewById<TextView>(R.id.empty).visibility = if (adapter.itemCount == 0) View.VISIBLE else View.GONE
+                if (adapter.itemCount == 0) showState(getString(R.string.empty_library), retry = false)
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                Toast.makeText(this@LibraryActivity, errorMessage(e), Toast.LENGTH_LONG).show()
+                // A failed first page gets a focusable Reload; a failed later page keeps the grid and tells the user.
+                if (adapter.itemCount == 0) showState(errorMessage(e), retry = true)
+                else Toast.makeText(this@LibraryActivity, errorMessage(e), Toast.LENGTH_LONG).show()
             } finally {
                 if (gen == generation) {
                     loading = false
@@ -118,6 +128,13 @@ class LibraryActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    private fun showState(message: String, retry: Boolean) {
+        stateText.text = message
+        stateRetry.visibility = if (retry) View.VISIBLE else View.GONE
+        stateView.visibility = View.VISIBLE
+        if (retry) stateRetry.requestFocus()
     }
 
     companion object {

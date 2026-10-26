@@ -59,6 +59,7 @@ class PlayerActivity : AppCompatActivity() {
     private var sourceId = ""
     private var directPlay = false
     private var dialog: android.app.Dialog? = null
+    private lateinit var playerView: PlayerView
     private lateinit var playbackTransport: zepigit.firefin.app.data.ServerTransport
 
     private val playerListener = object : Player.Listener {
@@ -71,7 +72,7 @@ class PlayerActivity : AppCompatActivity() {
         override fun onEvents(player: Player, events: Player.Events) {
             // Keep the screen on only while playback is wanted, so the Fire TV
             // screensaver can start on a paused, ended or failed player.
-            findViewById<PlayerView>(R.id.playerView).keepScreenOn = player.playWhenReady &&
+            playerView.keepScreenOn = player.playWhenReady &&
                 player.playbackState != Player.STATE_ENDED && player.playbackState != Player.STATE_IDLE
         }
     }
@@ -106,7 +107,9 @@ class PlayerActivity : AppCompatActivity() {
         } else {
             url
         }
-        val playerView = findViewById<PlayerView>(R.id.playerView)
+        playerView = findViewById(R.id.playerView)
+        // The controller's settings popup (speed, audio) duplicates the top bar and is awkward with a D-pad.
+        playerView.findViewById<android.view.View>(androidx.media3.ui.R.id.exo_settings)?.visibility = android.view.View.GONE
         findViewById<android.widget.TextView>(R.id.playerTitle).text = name
         findViewById<android.widget.Button>(R.id.playerAudio).setOnClickListener { showTrackDialog(C.TRACK_TYPE_AUDIO, getString(R.string.track_audio)) }
         findViewById<android.widget.Button>(R.id.playerSubtitles).setOnClickListener { showTrackDialog(C.TRACK_TYPE_TEXT, getString(R.string.track_subtitles)) }
@@ -236,7 +239,6 @@ class PlayerActivity : AppCompatActivity() {
      * are consumed; everything else (notably BACK) reaches the framework.
      */
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        val playerView = findViewById<PlayerView>(R.id.playerView)
         val controllerVisible = playerView.isControllerFullyVisible
         val keyCode = event.keyCode
         if (switching && keyCode != KeyEvent.KEYCODE_BACK) return true

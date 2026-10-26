@@ -37,7 +37,8 @@ class SearchActivity : AppCompatActivity() {
         setContentView(R.layout.activity_search)
         val box = findViewById<EditText>(R.id.searchBox)
         val results = findViewById<RecyclerView>(R.id.results)
-        val empty = findViewById<TextView>(R.id.empty)
+        val stateView = findViewById<View>(R.id.stateView)
+        val empty = findViewById<TextView>(R.id.stateText)
         val progress = findViewById<android.widget.ProgressBar>(R.id.progress)
         val seerrClient = SeerrClient(ServiceLocator.client.transportSnapshot())
         val rows = SearchRowsAdapter(
@@ -55,7 +56,7 @@ class SearchActivity : AppCompatActivity() {
                 val q = s?.toString()?.trim().orEmpty()
                 if (q.length < 2) {
                     rows.submit(emptyList(), emptyList())
-                    empty.visibility = View.GONE
+                    stateView.visibility = View.GONE
                     progress.visibility = View.GONE
                     return
                 }
@@ -71,7 +72,7 @@ class SearchActivity : AppCompatActivity() {
                         val done = local != null && remote != null
                         if (done) progress.visibility = View.GONE
                         empty.text = if (error != null) errorMessage(error) else getString(R.string.empty_search)
-                        empty.visibility = if (error != null || done && local!!.isEmpty() && remote!!.isEmpty()) View.VISIBLE else View.GONE
+                        stateView.visibility = if (error != null || done && local!!.isEmpty() && remote!!.isEmpty()) View.VISIBLE else View.GONE
                     }
                     launch {
                         try {

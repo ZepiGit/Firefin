@@ -1,33 +1,181 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical">
-<LinearLayout android:id="@+id/toolbar" android:layout_width="match_parent" android:layout_height="68dp" android:gravity="center_vertical" android:paddingStart="32dp" android:paddingEnd="32dp">
-<ImageView android:layout_width="44dp" android:layout_height="44dp" android:src="@drawable/firefin_mark" android:contentDescription="@string/app_name" android:scaleType="fitCenter" android:layout_marginEnd="8dp"/>
-<ImageButton android:id="@+id/homeButton" android:layout_width="48dp" android:layout_height="44dp" android:background="@drawable/button_background" android:contentDescription="@string/home" app:tint="@color/button_text" android:focusable="true" android:src="@drawable/ic_home" android:nextFocusLeft="@id/homeButton" android:nextFocusRight="@id/searchButton"/>
-<HorizontalScrollView android:layout_width="0dp" android:layout_height="56dp" android:layout_weight="1" android:fillViewport="false" android:scrollbars="none">
-<LinearLayout android:layout_width="wrap_content" android:layout_height="match_parent" android:gravity="center_vertical">
-<ImageButton android:id="@+id/searchButton" android:contentDescription="@string/search" app:tint="@color/button_text" android:src="@drawable/ic_search" android:background="@drawable/button_background" android:focusable="true" android:layout_width="48dp" android:layout_height="44dp" android:layout_marginStart="8dp" android:nextFocusLeft="@id/homeButton" android:nextFocusRight="@id/libraryButton"/>
-<ImageButton android:id="@+id/libraryButton" android:layout_width="48dp" android:background="@drawable/button_background" android:contentDescription="@string/libraries" app:tint="@color/button_text" android:src="@drawable/ic_library" android:focusable="true" android:layout_height="44dp" android:layout_marginStart="8dp" android:nextFocusLeft="@id/searchButton" android:nextFocusRight="@id/mediaRequestsButton"/>
-<ImageButton android:id="@+id/mediaRequestsButton" android:layout_width="48dp" android:background="@drawable/button_background" android:contentDescription="@string/media_requests" app:tint="@color/button_text" android:src="@drawable/ic_requests" android:focusable="true" android:layout_height="44dp" android:layout_marginStart="8dp" android:nextFocusLeft="@id/libraryButton" android:nextFocusRight="@id/randomButton"/>
-<ImageButton android:id="@+id/randomButton" android:layout_width="48dp" android:background="@drawable/button_background" android:contentDescription="@string/random_playback" app:tint="@color/button_text" android:src="@drawable/ic_shuffle" android:focusable="true" android:layout_height="44dp" android:layout_marginStart="8dp" android:nextFocusLeft="@id/mediaRequestsButton" android:nextFocusRight="@id/favoritesButton"/>
-<ImageButton android:id="@+id/favoritesButton" android:layout_width="48dp" android:background="@drawable/button_background" android:contentDescription="@string/favorites" app:tint="@color/button_text" android:src="@drawable/ic_star" android:focusable="true" android:layout_height="44dp" android:layout_marginStart="8dp" android:nextFocusLeft="@id/randomButton" android:nextFocusRight="@id/settingsButton"/>
-<ImageButton android:id="@+id/settingsButton" android:layout_width="48dp" android:background="@drawable/button_background" android:contentDescription="@string/settings" app:tint="@color/button_text" android:src="@drawable/ic_settings" android:focusable="true" android:layout_height="44dp" android:layout_marginStart="8dp" android:nextFocusLeft="@id/favoritesButton" android:nextFocusRight="@id/settingsButton"/>
-</LinearLayout></HorizontalScrollView>
-<TextView android:id="@+id/toolbarActionLabel" android:layout_width="240dp" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:gravity="end" android:maxLines="1" android:ellipsize="end" android:textColor="@color/text_secondary" android:textSize="14sp" android:focusable="false" android:importantForAccessibility="no" android:visibility="invisible"/>
-<TextClock android:layout_width="64dp" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:format24Hour="HH:mm" android:format12Hour="h:mm" android:textSize="18sp" android:gravity="end"/>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingLeft="@dimen/page_margin"
+        android:paddingRight="@dimen/page_margin">
+
+        <ImageView
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginRight="@dimen/space_m"
+            android:contentDescription="@string/app_name"
+            android:scaleType="fitCenter"
+            android:src="@drawable/firefin_mark" />
+
+        <ImageButton
+            android:id="@+id/homeButton"
+            style="@style/Firefin.IconButton"
+            android:contentDescription="@string/home"
+            android:nextFocusLeft="@id/homeButton"
+            android:nextFocusRight="@id/searchButton"
+            android:src="@drawable/ic_home" />
+
+        <ImageButton
+            android:id="@+id/searchButton"
+            style="@style/Firefin.IconButton"
+            android:layout_marginLeft="@dimen/space_s"
+            android:contentDescription="@string/search"
+            android:nextFocusLeft="@id/homeButton"
+            android:nextFocusRight="@id/libraryButton"
+            android:src="@drawable/ic_search" />
+
+        <ImageButton
+            android:id="@+id/libraryButton"
+            style="@style/Firefin.IconButton"
+            android:layout_marginLeft="@dimen/space_s"
+            android:contentDescription="@string/libraries"
+            android:nextFocusLeft="@id/searchButton"
+            android:nextFocusRight="@id/mediaRequestsButton"
+            android:src="@drawable/ic_library" />
+
+        <ImageButton
+            android:id="@+id/mediaRequestsButton"
+            style="@style/Firefin.IconButton"
+            android:layout_marginLeft="@dimen/space_s"
+            android:contentDescription="@string/media_requests"
+            android:nextFocusLeft="@id/libraryButton"
+            android:nextFocusRight="@id/randomButton"
+            android:src="@drawable/ic_requests" />
+
+        <ImageButton
+            android:id="@+id/randomButton"
+            style="@style/Firefin.IconButton"
+            android:layout_marginLeft="@dimen/space_s"
+            android:contentDescription="@string/random_playback"
+            android:nextFocusLeft="@id/mediaRequestsButton"
+            android:nextFocusRight="@id/favoritesButton"
+            android:src="@drawable/ic_shuffle" />
+
+        <ImageButton
+            android:id="@+id/favoritesButton"
+            style="@style/Firefin.IconButton"
+            android:layout_marginLeft="@dimen/space_s"
+            android:contentDescription="@string/favorites"
+            android:nextFocusLeft="@id/randomButton"
+            android:nextFocusRight="@id/settingsButton"
+            android:src="@drawable/ic_star" />
+
+        <ImageButton
+            android:id="@+id/settingsButton"
+            style="@style/Firefin.IconButton"
+            android:layout_marginLeft="@dimen/space_s"
+            android:contentDescription="@string/settings"
+            android:nextFocusLeft="@id/favoritesButton"
+            android:nextFocusRight="@id/settingsButton"
+            android:src="@drawable/ic_settings" />
+
+        <TextView
+            android:id="@+id/toolbarActionLabel"
+            style="@style/Firefin.Text.Label"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="@dimen/space_m"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:gravity="right"
+            android:importantForAccessibility="no"
+            android:maxLines="1"
+            android:visibility="invisible" />
+
+        <TextClock
+            style="@style/Firefin.Text.Body"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="@dimen/space_m"
+            android:format12Hour="h:mm"
+            android:format24Hour="HH:mm" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/preview_height">
+
+        <ImageView
+            android:id="@+id/previewImage"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:importantForAccessibility="no"
+            android:scaleType="centerCrop" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/backdrop_scrim" />
+
+        <LinearLayout
+            android:layout_width="600dp"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:orientation="vertical"
+            android:paddingLeft="@dimen/page_margin"
+            android:paddingRight="@dimen/space_l">
+
+            <TextView
+                android:id="@+id/previewName"
+                style="@style/Firefin.Text.Title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/home_preview_default" />
+
+            <TextView
+                android:id="@+id/previewMeta"
+                style="@style/Firefin.Text.Label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_xs" />
+
+            <TextView
+                android:id="@+id/previewOverview"
+                style="@style/Firefin.Text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_s"
+                android:ellipsize="end"
+                android:maxLines="3"
+                android:textSize="@dimen/text_label" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rows"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingBottom="@dimen/space_l" />
+
+        <ProgressBar
+            android:id="@+id/progress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="gone" />
+
+        <include layout="@layout/view_state" />
+    </FrameLayout>
 </LinearLayout>
-<FrameLayout android:layout_width="match_parent" android:layout_height="176dp" android:layout_marginBottom="4dp">
-<ImageView android:id="@+id/previewImage" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="centerCrop"/>
-<View android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/backdrop_scrim"/>
-<LinearLayout android:layout_width="540dp" android:layout_height="match_parent" android:paddingStart="38dp" android:paddingEnd="24dp" android:gravity="center_vertical" android:orientation="vertical">
-<TextView android:id="@+id/previewName" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/home_preview_default" android:textSize="28sp" android:textStyle="bold" android:maxLines="2"/>
-<TextView android:id="@+id/previewMeta" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:textColor="@color/text_secondary" android:textSize="13sp"/>
-<TextView android:id="@+id/previewOverview" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:maxLines="3" android:ellipsize="end" android:textSize="13sp"/>
-</LinearLayout></FrameLayout>
-<FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
-<androidx.recyclerview.widget.RecyclerView android:id="@+id/rows" android:layout_width="match_parent" android:layout_height="match_parent" android:clipToPadding="false" android:paddingBottom="20dp"/>
-<ProgressBar android:id="@+id/progress" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center" android:visibility="gone"/>
-<LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center" android:orientation="vertical" android:gravity="center_horizontal">
-<TextView android:id="@+id/empty" android:layout_width="wrap_content" android:layout_height="wrap_content" android:visibility="gone"/>
-<Button android:id="@+id/retryButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="@string/reload" android:visibility="gone"/>
-</LinearLayout>
-</FrameLayout></LinearLayout>
