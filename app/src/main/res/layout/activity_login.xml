@@ -115,6 +115,14 @@
                 android:nextFocusUp="@id/password"
                 android:text="@string/login_button" />
 
+            <Button
+                android:id="@+id/quickConnectButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_s"
+                android:nextFocusUp="@id/loginButton"
+                android:text="@string/quick_connect_button" />
+
             <ProgressBar
                 android:id="@+id/progress"
                 android:layout_width="32dp"

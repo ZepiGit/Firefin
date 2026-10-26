@@ -8,6 +8,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.tls.HandshakeCertificates
@@ -19,7 +20,7 @@ import java.io.IOException
 import java.net.URLEncoder
 
 /** Jellyfin REST client using one origin-bound, cancellable ServerTransport. */
-class JellyfinClient(private val session: SessionStore, trust: Lazy<HandshakeCertificates?> = lazyOf(null), private val seerrBridgeTimeoutMs: Long = SEERR_BRIDGE_TIMEOUT_MS, private val preferences: () -> zepigit.firefin.app.preferences.EffectiveDevicePreferences = {
+class JellyfinClient(private val session: SessionStore, trust: Lazy<HandshakeCertificates?> = lazyOf(null), private val seerrBridgeTimeoutMs: Long = SEERR_BRIDGE_TIMEOUT_MS, private val quickConnectPollMs: Long = 5_000, private val quickConnectTimeoutMs: Long = 300_000, private val preferences: () -> zepigit.firefin.app.preferences.EffectiveDevicePreferences = {
     zepigit.firefin.app.preferences.deriveEffective(zepigit.firefin.app.preferences.StoredPreferences(), DeviceProfile.MAX_WIDTH, DeviceProfile.MAX_HEIGHT, DeviceProfile.MAX_BITRATE)
 }) {
     private val transport = ServerTransport(
@@ -107,16 +108,56 @@ class JellyfinClient(private val session: SessionStore, trust: Lazy<HandshakeCer
         transport.update(ServerCredentials(server, "", ""))
         val body = JSONObject().put("Username", username).put("Pw", password)
         val json = JSONObject(transport.json("Users/AuthenticateByName", "POST", body.toString()))
-        val token = json.optString("AccessToken").takeIf { it.isNotBlank() }
-            ?: throw LocalizedIOException(R.string.error_login_response, "Login response did not contain an access token.")
-        val user = json.optJSONObject("User") ?: throw LocalizedIOException(R.string.error_login_response, "Login response did not contain a user.")
-        session.serverUrl = server
-        session.accessToken = token
-        session.userId = user.optString("Id")
-        session.userName = user.optString("Name")
-        transport.update(ServerCredentials(server, session.userId, token))
+        saveSession(server, json)
         if (password.isNotEmpty()) connectSeerr(username, password)
         json
+    }
+
+    private fun saveSession(server: String, json: JSONObject) {
+        val token = (json.opt("AccessToken") as? String)?.takeIf { it.isNotBlank() }
+            ?: throw LocalizedIOException(R.string.error_login_response, "Login response did not contain an access token.")
+        val user = json.optJSONObject("User")
+            ?: throw LocalizedIOException(R.string.error_login_response, "Login response did not contain a user.")
+        val id = (user.opt("Id") as? String)?.takeIf { it.isNotBlank() }
+            ?: throw LocalizedIOException(R.string.error_login_response, "Login response did not contain a user id.")
+        session.serverUrl = server
+        session.accessToken = token
+        session.userId = id
+        session.userName = user.optString("Name")
+        transport.update(ServerCredentials(server, id, token))
+    }
+
+    /** A cancellable attempt bound to the entered address; only the final token is persisted. */
+    suspend fun quickConnect(serverInput: String, onCode: (String) -> Unit) {
+        val server = Urls.normalizeServer(serverInput)
+        val bound = transport.snapshot().apply { update(ServerCredentials(server, "", "")) }
+        val json = kotlinx.coroutines.withTimeoutOrNull(quickConnectTimeoutMs) {
+            if (bound.json("QuickConnect/Enabled").trim() != "true")
+                throw LocalizedIOException(R.string.quick_connect_disabled, "Quick Connect is disabled on this server.")
+            val generation = routes(bound)
+            val method = if (generation == Routes.LEGACY) "GET" else "POST"
+            val initiated = try { bound.json("QuickConnect/Initiate", method) }
+            catch (e: ServerResponseException) {
+                if (e.status !in setOf(404, 405)) throw e
+                bound.json("QuickConnect/Initiate", if (method == "POST") "GET" else "POST")
+            }
+            val start = JSONObject(initiated)
+            val secret = (start.opt("Secret") as? String)?.takeIf { it.isNotBlank() }
+                ?: throw LocalizedIOException(R.string.error_login_response, "Quick Connect response did not contain a secret.")
+            val code = (start.opt("Code") as? String)?.takeIf { it.isNotBlank() }
+                ?: throw LocalizedIOException(R.string.error_login_response, "Quick Connect response did not contain a code.")
+            kotlinx.coroutines.currentCoroutineContext().ensureActive()
+            onCode(code)
+            while (true) {
+                kotlinx.coroutines.delay(quickConnectPollMs)
+                val status = JSONObject(bound.json("QuickConnect/Connect?secret=${urlEncode(secret)}"))
+                if (status.optBoolean("Authenticated")) break
+            }
+            JSONObject(bound.json("Users/AuthenticateWithQuickConnect", "POST", JSONObject().put("Secret", secret).toString()))
+        } ?: throw LocalizedIOException(R.string.quick_connect_timeout, "Quick Connect timed out. Request a new code.")
+        // Commit on the caller's context so cancelling the UI attempt cannot race an IO completion.
+        kotlinx.coroutines.currentCoroutineContext().ensureActive()
+        saveSession(server, json)
     }
 
     /**

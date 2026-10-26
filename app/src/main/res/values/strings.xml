@@ -275,4 +275,8 @@
     <string name="skip_recap">Skip recap</string>
     <string name="skip_preview">Skip preview</string>
     <string name="skip_commercial">Skip commercial</string>
+    <string name="quick_connect_button">Sign in with Quick Connect</string>
+    <string name="quick_connect_hint">Enter this code in the Jellyfin app or website under User → Quick Connect. The code expires after five minutes.</string>
+    <string name="quick_connect_disabled">Quick Connect is disabled on this server.</string>
+    <string name="quick_connect_timeout">Quick Connect timed out. Request a new code.</string>
 </resources>
