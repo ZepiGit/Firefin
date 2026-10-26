@@ -110,7 +110,8 @@ class JellyfinClient(private val session: SessionStore, trust: HandshakeCertific
     suspend fun items(parentId: String? = null, startIndex: Int = 0, limit: Int = 60, sortBy: String = "SortName", sortOrder: String = "Ascending", searchTerm: String? = null, includeTypes: String? = null, recursive: Boolean = true, favorites: Boolean = false): Pair<List<MediaItem>, Int> = withContext(Dispatchers.IO) {
         val path = buildString {
             append("Users/${session.userId}/Items?StartIndex=$startIndex&Limit=$limit&SortBy=${urlEncode(sortBy)}&SortOrder=${urlEncode(sortOrder)}&Recursive=$recursive")
-            append("&Fields=PrimaryImageAspectRatio,ProductionYear,Overview&EnableImageTypes=Primary,Backdrop,Thumb")
+            // Grids, children and search show cards only; Overview stays on the home rows that preview it.
+            append("&Fields=ProductionYear&EnableImageTypes=Primary,Backdrop,Thumb")
             if (!parentId.isNullOrBlank()) append("&ParentId=").append(urlEncode(parentId))
             if (!searchTerm.isNullOrBlank()) append("&searchTerm=").append(urlEncode(searchTerm))
             if (!includeTypes.isNullOrBlank()) append("&IncludeItemTypes=").append(urlEncode(includeTypes))
