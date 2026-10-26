@@ -19,7 +19,7 @@ import java.io.IOException
 import java.net.URLEncoder
 
 /** Jellyfin REST client using one origin-bound, cancellable ServerTransport. */
-class JellyfinClient(private val session: SessionStore, trust: HandshakeCertificates? = null, private val seerrBridgeTimeoutMs: Long = SEERR_BRIDGE_TIMEOUT_MS, private val preferences: () -> zepigit.firefin.app.preferences.EffectiveDevicePreferences = {
+class JellyfinClient(private val session: SessionStore, trust: Lazy<HandshakeCertificates?> = lazyOf(null), private val seerrBridgeTimeoutMs: Long = SEERR_BRIDGE_TIMEOUT_MS, private val preferences: () -> zepigit.firefin.app.preferences.EffectiveDevicePreferences = {
     zepigit.firefin.app.preferences.deriveEffective(zepigit.firefin.app.preferences.StoredPreferences(), DeviceProfile.MAX_WIDTH, DeviceProfile.MAX_HEIGHT, DeviceProfile.MAX_BITRATE)
 }) {
     private val transport = ServerTransport(
@@ -27,7 +27,7 @@ class JellyfinClient(private val session: SessionStore, trust: HandshakeCertific
         session.deviceId,
         Build.MODEL?.takeIf { it.isNotBlank() } ?: "Fire TV",
         VERSION,
-        trust = trust,
+        trustSource = trust,
     )
     private val background = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 

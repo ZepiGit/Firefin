@@ -22,7 +22,7 @@ import okhttp3.Call
 import zepigit.firefin.app.R
 
 /** Two shared decode/fetch slots, bounded weak-view queue, and sampled RGB565 caches. */
-class ImageLoader(context: Context, http: okhttp3.OkHttpClient, cacheName: String = "images", memoryLimit: Int = 16 * 1024 * 1024, private val accountKey: () -> String = { "public" }) {
+class ImageLoader(context: Context, http: () -> okhttp3.OkHttpClient, cacheName: String = "images", memoryLimit: Int = 16 * 1024 * 1024, private val accountKey: () -> String = { "public" }) {
     private class Load(val url: String, val width: Int, val account: String, val key: String, view: ImageView) {
         val view = WeakReference(view)
         @Volatile var cancelled = false
@@ -31,8 +31,8 @@ class ImageLoader(context: Context, http: okhttp3.OkHttpClient, cacheName: Strin
     }
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private val pending = Channel<Load>(32, BufferOverflow.DROP_OLDEST, onUndeliveredElement = { it.cancel() })
-    private val imageHttp = http.newBuilder().connectTimeout(10, TimeUnit.SECONDS)
-        .callTimeout(15, TimeUnit.SECONDS).readTimeout(15, TimeUnit.SECONDS).build()
+    private val imageHttp by lazy { http().newBuilder().connectTimeout(10, TimeUnit.SECONDS)
+        .callTimeout(15, TimeUnit.SECONDS).readTimeout(15, TimeUnit.SECONDS).build() }
     private val memCache = object : android.util.LruCache<String, Bitmap>(minOf(memoryLimit, (Runtime.getRuntime().maxMemory() / 8).toInt())) {
         override fun sizeOf(key: String, value: Bitmap) = value.byteCount
     }
@@ -40,6 +40,8 @@ class ImageLoader(context: Context, http: okhttp3.OkHttpClient, cacheName: Strin
     private val diskDir = File(context.cacheDir, cacheName).apply { mkdirs() }
     private val diskCacheCapBytes = if (cacheName == "images") 48L * 1024 * 1024 else 16L * 1024 * 1024
     private val diskLock = Any()
+    /** Running size of [diskDir]; counted by the trim and kept current by writes so no call has to stat the directory. */
+    @Volatile private var diskBytes = 0L
     @Volatile private var generation = 0
 
     init {
@@ -92,9 +94,9 @@ class ImageLoader(context: Context, http: okhttp3.OkHttpClient, cacheName: Strin
             generation++
             memCache.evictAll(); failures.evictAll()
         }
-        scope.launch(Dispatchers.IO) { synchronized(diskLock) { diskDir.listFiles()?.forEach { it.delete() } } }
+        scope.launch(Dispatchers.IO) { synchronized(diskLock) { diskDir.listFiles()?.forEach { it.delete() }; diskBytes = 0L } }
     }
-    fun diskCacheBytes(): Long = synchronized(diskLock) { diskDir.listFiles()?.sumOf { it.length() } ?: 0L }
+    fun diskCacheBytes(): Long = diskBytes
     private fun cacheKey(url: String, width: Int) = "${accountKey()}\u0000$url@$width"
     private fun diskFile(key: String) = File(diskDir, MessageDigest.getInstance("SHA-256").digest(key.toByteArray()).joinToString("") { "%02x".format(it) })
 
@@ -102,7 +104,7 @@ class ImageLoader(context: Context, http: okhttp3.OkHttpClient, cacheName: Strin
         val bytes = synchronized(diskLock) {
             val file = diskFile(load.key)
             if (!file.exists()) return null
-            if (file.length() > MAX_IMAGE_BYTES) { file.delete(); return null }
+            if (file.length() > MAX_IMAGE_BYTES) { diskBytes -= file.length(); file.delete(); return null }
             // Touch on read so the size trim removes the least recently used files first.
             file.setLastModified(System.currentTimeMillis())
             runCatching { readBounded(file.inputStream()) }.getOrNull()
@@ -110,7 +112,7 @@ class ImageLoader(context: Context, http: okhttp3.OkHttpClient, cacheName: Strin
         val bitmap = runCatching { decode(bytes, load.width) }.getOrNull()
         synchronized(diskLock) {
             if (epoch != generation || load.account != accountKey() || load.cancelled) return null
-            if (bitmap == null) diskFile(load.key).delete() else memCache.put(load.key, bitmap)
+            if (bitmap == null) diskFile(load.key).let { diskBytes -= it.length(); it.delete() } else memCache.put(load.key, bitmap)
         }
         return bitmap
     }
@@ -132,8 +134,8 @@ class ImageLoader(context: Context, http: okhttp3.OkHttpClient, cacheName: Strin
                             val temp = File.createTempFile("art", ".tmp", diskDir)
                             try {
                                 temp.writeBytes(bytes)
-                                if (!temp.renameTo(diskFile(load.key))) temp.delete()
-                                trimDiskCache()
+                                if (temp.renameTo(diskFile(load.key))) diskBytes += bytes.size else temp.delete()
+                                if (diskBytes > diskCacheCapBytes) trimDiskCache()
                             } finally { temp.delete() }
                         }
                     }
@@ -186,6 +188,7 @@ class ImageLoader(context: Context, http: okhttp3.OkHttpClient, cacheName: Strin
             val size = file.length()
             if (file.delete()) total -= size
         }
+        diskBytes = total
     }
 
     private companion object {

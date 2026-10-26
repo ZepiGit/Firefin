@@ -38,21 +38,23 @@ class ServerTransport(
     private val deviceName: String = "Fire TV",
     private val version: String = "0.1.0-firefin",
     private val shared: ServerTransport? = null,
-    private val trust: HandshakeCertificates? = shared?.trust,
+    trust: HandshakeCertificates? = null,
     private val mediaReadTimeoutMs: Long = shared?.mediaReadTimeoutMs ?: MEDIA_READ_TIMEOUT_MS,
+    /** Built on first use: loading the platform trust store is too slow for the main thread at startup. */
+    private val trustSource: Lazy<HandshakeCertificates?> = shared?.trustSource ?: lazyOf(trust),
 ) {
     @Volatile private var current = initial
     private val lock = Any()
 
     private fun baseBuilder() = OkHttpClient.Builder()
         .apply { shared?.let { dispatcher(it.http.dispatcher); connectionPool(it.http.connectionPool) } }
-        .apply { trust?.let { sslSocketFactory(it.sslSocketFactory(), it.trustManager) } }
+        .apply { trustSource.value?.let { sslSocketFactory(it.sslSocketFactory(), it.trustManager) } }
         .connectTimeout(10, TimeUnit.SECONDS)
         .followRedirects(false)
         .followSslRedirects(false)
         .retryOnConnectionFailure(false)
 
-    val http: OkHttpClient = baseBuilder()
+    val http: OkHttpClient by lazy { baseBuilder()
         .readTimeout(20, TimeUnit.SECONDS)
         .callTimeout(25, TimeUnit.SECONDS)
         .addInterceptor(Interceptor { chain ->
@@ -63,7 +65,7 @@ class ServerTransport(
                 .build()
             requireServerUrl(request.url)
             chain.proceed(request)
-        }).build()
+        }).build() }
 
     /**
      * Media3 keeps long-running VOD bodies open while sharing origin/auth policy.
@@ -71,7 +73,7 @@ class ServerTransport(
      * [mediaReadTimeoutMs] fails, so a stalled connection reaches Media3's retry
      * and error handling instead of buffering forever.
      */
-    val mediaHttp: OkHttpClient = baseBuilder()
+    val mediaHttp: OkHttpClient by lazy { baseBuilder()
         .callTimeout(0, TimeUnit.MILLISECONDS)
         .readTimeout(mediaReadTimeoutMs, TimeUnit.MILLISECONDS)
         .addInterceptor(Interceptor { chain ->
@@ -97,7 +99,7 @@ class ServerTransport(
             @Suppress("UNREACHABLE_CODE")
             error("unreachable")
         })
-        .build()
+        .build() }
 
     fun update(credentials: ServerCredentials) {
         synchronized(lock) { current = credentials }
