@@ -12,7 +12,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -62,51 +61,42 @@ class SearchActivity : AppCompatActivity() {
                 }
                 queryJob = scope.launch {
                     delay(400); progress.visibility = View.VISIBLE
-                    try {
-                        val pair = kotlinx.coroutines.supervisorScope {
-                            val jf = async(Dispatchers.IO) {
-                                ServiceLocator.client.items(searchTerm = q, includeTypes = "Movie,Series,Episode").first
-                            }
-                            val seerr = async(Dispatchers.IO) {
-                                if (seerrProbeUnavailable) return@async emptyList()
-                                try {
-                                    if (seerrClient.connect()) {
-                                        seerrClient.page("", 1, q).items
-                                    } else {
-                                        seerrProbeUnavailable = true
-                                        emptyList()
-                                    }
-                                } catch (e: CancellationException) {
-                                    throw e
-                                } catch (e: SessionExpiredException) {
-                                    throw e
-                                } catch (_: Exception) {
-                                    seerrProbeUnavailable = true
-                                    emptyList()
-                                }
-                            }
-                            jf.await() to seerr.await()
-                        }
-                        if (!queryGate.isCurrent(generation)) return@launch
-                        val local = pair.first; val remote = pair.second
-                        rows.submit(local, remote)
-                        empty.text = getString(R.string.empty_search)
-                        empty.visibility = if (local.isEmpty() && remote.isEmpty()) View.VISIBLE else View.GONE
-                    } catch (e: CancellationException) { throw e }
-                    catch (e: SessionExpiredException) {
-                        if (queryGate.isCurrent(generation)) {
-                            ServiceLocator.session.clear()
-                            LoginActivity.startFresh(this@SearchActivity)
-                        }
+                    // Each source publishes as soon as it answers: the Seerr probe can take
+                    // several seconds, and the library results must not wait for it.
+                    var local: List<zepigit.firefin.app.data.MediaItem>? = null
+                    var remote: List<SeerrMedia>? = null
+                    fun publish(error: Exception? = null) {
+                        if (!queryGate.isCurrent(generation)) return
+                        rows.submit(local.orEmpty(), remote.orEmpty())
+                        val done = local != null && remote != null
+                        if (done) progress.visibility = View.GONE
+                        empty.text = if (error != null) errorMessage(error) else getString(R.string.empty_search)
+                        empty.visibility = if (error != null || done && local!!.isEmpty() && remote!!.isEmpty()) View.VISIBLE else View.GONE
                     }
-                    catch (e: Exception) {
-                        if (!queryGate.isCurrent(generation)) return@launch
-                        rows.submit(emptyList(), emptyList())
-                        empty.text = errorMessage(e)
-                        empty.visibility = View.VISIBLE
+                    launch {
+                        try {
+                            local = ServiceLocator.client.items(searchTerm = q, includeTypes = "Movie,Series,Episode").first
+                            publish()
+                        } catch (e: CancellationException) { throw e }
+                        catch (e: SessionExpiredException) {
+                            if (queryGate.isCurrent(generation)) {
+                                ServiceLocator.session.clear()
+                                LoginActivity.startFresh(this@SearchActivity)
+                            }
+                        }
+                        catch (e: Exception) { local = emptyList(); remote = remote ?: emptyList(); publish(e) }
                     }
-                    finally {
-                        if (queryGate.isCurrent(generation)) progress.visibility = View.GONE
+                    launch(Dispatchers.IO) {
+                        val found = if (seerrProbeUnavailable) emptyList() else try {
+                            if (seerrClient.connect()) seerrClient.page("", 1, q).items
+                            else { seerrProbeUnavailable = true; emptyList() }
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (_: Exception) {
+                            seerrProbeUnavailable = true
+                            emptyList()
+                        }
+                        withContext(Dispatchers.Main) { remote = found; publish() }
                     }
                 }
             }
