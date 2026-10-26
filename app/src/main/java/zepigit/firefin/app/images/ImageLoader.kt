@@ -104,7 +104,7 @@ class ImageLoader(context: Context, http: () -> okhttp3.OkHttpClient, cacheName:
         val bytes = synchronized(diskLock) {
             val file = diskFile(load.key)
             if (!file.exists()) return null
-            if (file.length() > MAX_IMAGE_BYTES) { diskBytes -= file.length(); file.delete(); return null }
+            if (file.length() > MAX_IMAGE_BYTES) { removeFile(file); return null }
             // Touch on read so the size trim removes the least recently used files first.
             file.setLastModified(System.currentTimeMillis())
             runCatching { readBounded(file.inputStream()) }.getOrNull()
@@ -112,7 +112,7 @@ class ImageLoader(context: Context, http: () -> okhttp3.OkHttpClient, cacheName:
         val bitmap = runCatching { decode(bytes, load.width) }.getOrNull()
         synchronized(diskLock) {
             if (epoch != generation || load.account != accountKey() || load.cancelled) return null
-            if (bitmap == null) diskFile(load.key).let { diskBytes -= it.length(); it.delete() } else memCache.put(load.key, bitmap)
+            if (bitmap == null) removeFile(diskFile(load.key)) else memCache.put(load.key, bitmap)
         }
         return bitmap
     }
@@ -134,7 +134,10 @@ class ImageLoader(context: Context, http: () -> okhttp3.OkHttpClient, cacheName:
                             val temp = File.createTempFile("art", ".tmp", diskDir)
                             try {
                                 temp.writeBytes(bytes)
-                                if (temp.renameTo(diskFile(load.key))) diskBytes += bytes.size else temp.delete()
+                                val target = diskFile(load.key)
+                                // A second worker may have written the same key meanwhile; count the replacement, not a duplicate.
+                                val replaced = target.length()
+                                if (temp.renameTo(target)) diskBytes += bytes.size - replaced else temp.delete()
                                 if (diskBytes > diskCacheCapBytes) trimDiskCache()
                             } finally { temp.delete() }
                         }
@@ -178,6 +181,12 @@ class ImageLoader(context: Context, http: () -> okhttp3.OkHttpClient, cacheName:
         return BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply {
             inSampleSize = sample; inPreferredConfig = Bitmap.Config.RGB_565
         })
+    }
+
+    /** Caller holds [diskLock]; the counter only drops once the file is really gone. */
+    private fun removeFile(file: File) {
+        val size = file.length()
+        if (file.delete()) diskBytes -= size
     }
 
     private fun trimDiskCache() = synchronized(diskLock) {

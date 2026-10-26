@@ -6,13 +6,13 @@
     <!-- targetSdk 34 is intentional; 35 changes edge-to-edge and nothing relevant for Fire OS 5. -->
     <issue id="OldTargetApi" severity="ignore" />
     <!-- A TV app: landscape only, no ChromeOS build, no autofill, no RTL interface languages. -->
-    <issue id="DiscouragedApi" severity="ignore">
+    <issue id="DiscouragedApi">
         <ignore path="src/main/AndroidManifest.xml" />
     </issue>
     <issue id="ChromeOsAbiSupport" severity="ignore" />
     <issue id="Autofill" severity="ignore" />
     <!-- usesCleartextTraffic only matters from API 28 on, where http:// servers would otherwise be blocked. -->
-    <issue id="UnusedAttribute" severity="ignore">
+    <issue id="UnusedAttribute">
         <ignore path="src/main/AndroidManifest.xml" />
     </issue>
     <!-- allowBackup=false already disables backup; the app has no cloud or transfer rules. -->
@@ -27,7 +27,7 @@
     <!-- The detail layout is shared by two activities, so its FrameLayout root stays a real view. -->
     <issue id="MergeRootFrame" severity="ignore" />
     <!-- The request lock must be on disk before the request is sent. -->
-    <issue id="ApplySharedPref" severity="ignore">
+    <issue id="ApplySharedPref">
         <ignore path="src/main/java/zepigit/firefin/app/ui/SeerrDetailActivity.kt" />
     </issue>
 </lint>

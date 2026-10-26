@@ -16,23 +16,19 @@ import androidx.recyclerview.widget.RecyclerView
 class TvRecyclerView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) : RecyclerView(context, attrs) {
     override fun focusSearch(focused: View?, direction: Int): View? {
         val next = super.focusSearch(focused, direction)
-        return if (FocusTrap.keepsFocus(direction, next != null && isDescendant(next))) focused else next
-    }
-
-    private fun isDescendant(view: View): Boolean {
-        var parent = view.parent
-        while (parent != null) {
-            if (parent === this) return true
-            parent = parent.parent
-        }
-        return false
+        if (next == null || focused == null) return next
+        // Same list and same line: a short last grid row must not jump diagonally into the row above.
+        val from = findContainingItemView(focused)
+        val to = findContainingItemView(next)
+        val sameLine = from != null && to != null && Math.abs(to.top - from.top) < from.height / 2
+        return if (FocusTrap.keepsFocus(direction, sameLine)) focused else next
     }
 }
 
 object FocusTrap {
-    /** True when a sideways move found nothing inside the list and must therefore stay put. */
-    fun keepsFocus(direction: Int, nextInsideList: Boolean): Boolean =
-        (direction == View.FOCUS_LEFT || direction == View.FOCUS_RIGHT) && !nextInsideList
+    /** True when a sideways move found no card on the same line of this list and must therefore stay put. */
+    fun keepsFocus(direction: Int, nextOnSameLine: Boolean): Boolean =
+        (direction == View.FOCUS_LEFT || direction == View.FOCUS_RIGHT) && !nextOnSameLine
 }
 
 /** Runs [block] once after the next layout pass; API-21 replacement for doOnLayout. */

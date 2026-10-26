@@ -66,11 +66,13 @@ class SearchActivity : AppCompatActivity() {
                     // several seconds, and the library results must not wait for it.
                     var local: List<zepigit.firefin.app.data.MediaItem>? = null
                     var remote: List<SeerrMedia>? = null
-                    fun publish(error: Exception? = null) {
+                    var failure: Exception? = null
+                    fun publish() {
                         if (!queryGate.isCurrent(generation)) return
                         rows.submit(local.orEmpty(), remote.orEmpty())
                         val done = local != null && remote != null
                         if (done) progress.visibility = View.GONE
+                        val error = failure
                         empty.text = if (error != null) errorMessage(error) else getString(R.string.empty_search)
                         stateView.visibility = if (error != null || done && local!!.isEmpty() && remote!!.isEmpty()) View.VISIBLE else View.GONE
                     }
@@ -85,7 +87,7 @@ class SearchActivity : AppCompatActivity() {
                                 LoginActivity.startFresh(this@SearchActivity)
                             }
                         }
-                        catch (e: Exception) { local = emptyList(); remote = remote ?: emptyList(); publish(e) }
+                        catch (e: Exception) { local = emptyList(); failure = e; publish() }
                     }
                     launch(Dispatchers.IO) {
                         val found = if (seerrProbeUnavailable) emptyList() else try {
@@ -107,8 +109,11 @@ class SearchActivity : AppCompatActivity() {
     }
 
     private class SearchRowsAdapter(private val onJellyfin: (zepigit.firefin.app.data.MediaItem) -> Unit, private val onSeerr: (SeerrMedia) -> Unit) : RecyclerView.Adapter<SearchRowsAdapter.Holder>() {
+        init { setHasStableIds(true) }
         private var local = emptyList<zepigit.firefin.app.data.MediaItem>()
         private var remote = emptyList<SeerrMedia>()
+        /** One row per source; stable ids keep the focused card when the other source arrives later. */
+        override fun getItemId(position: Int) = getItemViewType(position).toLong()
         fun submit(j: List<zepigit.firefin.app.data.MediaItem>, s: List<SeerrMedia>) {
             local = j
             remote = s

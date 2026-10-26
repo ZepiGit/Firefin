@@ -40,6 +40,10 @@ object ServiceLocator {
                 .addPlatformTrustedCertificates().build()
         }
         client = JellyfinClient(session, trust) { preferences.effective() }
+        // Warm the lazy trust store and clients off the main thread: a cold restore straight into
+        // the player would otherwise parse the certificate store on it. Lazy is synchronized, so a
+        // concurrent first request simply waits for this thread instead of doing the work twice.
+        Thread({ runCatching { client.okHttp } }, "firefin-tls-warmup").start()
         images = ImageLoader(context.applicationContext, { client.okHttp }, accountKey = {
             session.serverUrl + "\u0000" + session.userId
         })

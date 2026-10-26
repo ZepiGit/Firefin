@@ -199,7 +199,9 @@ class HomeActivity : AppCompatActivity() {
         stateView.visibility = if (empty) View.VISIBLE else View.GONE
         retryButton.visibility = View.GONE
         if (hadRowFocus) rowsView.afterNextLayout {
-            if (currentFocus == null) rowsView.getChildAt(0)?.findViewById<RecyclerView>(R.id.rowItems)?.getChildAt(0)?.requestFocus()
+            // The framework may have parked focus nowhere, on the list itself or on the toolbar.
+            val kept = rowsView.findFocus()
+            if (kept == null || kept === rowsView) rowsView.getChildAt(0)?.findViewById<RecyclerView>(R.id.rowItems)?.getChildAt(0)?.requestFocus()
         }
     }
 
