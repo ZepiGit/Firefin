@@ -24,6 +24,8 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         versionCode = versionProperties.getProperty("versionCode").toInt()
         versionName = versionProperties.getProperty("versionName")
+        // Only the app's own languages; drops AppCompat/Media3 translations for ~80 locales from resources.arsc.
+        resourceConfigurations += listOf("en", "de")
     }
 
     if (productionSigning) {
