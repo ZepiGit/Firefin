@@ -62,6 +62,12 @@ class SettingsActivity : AppCompatActivity() {
         setting(R.id.subtitleLanguageButton, R.string.setting_subtitle_language, { stored -> subtitleLabels[LANGUAGES.indexOf(stored.subtitleLanguage).coerceAtLeast(0)] }) { refresh ->
             choose(R.string.subtitle_language_title, R.array.subtitle_language_options, refresh) { stored, index -> stored.copy(subtitleLanguage = LANGUAGES[index]) }
         }
+        val homeLabels = resources.getStringArray(R.array.home_order_options)
+        setting(R.id.homeOrderButton, R.string.setting_home_order, { stored ->
+            homeLabels[HomeSections.presets.indexOf(stored.homeSectionOrder).coerceAtLeast(0)]
+        }) { refresh ->
+            choose(R.string.setting_home_order, R.array.home_order_options, refresh) { stored, index -> stored.copy(homeSectionOrder = HomeSections.presets[index]) }
+        }
         findViewById<Button>(R.id.remoteButton).setOnClickListener {
             startActivity(Intent(this, RemoteActivity::class.java))
         }

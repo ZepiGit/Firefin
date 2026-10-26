@@ -53,6 +53,7 @@ class HomeActivity : AppCompatActivity() {
     /** Read once per resume instead of hashing the account key on every focus change. */
     private var backdropsEnabled = true
     private var lastKeyUptime = 0L
+    private var loadedOrder = emptyList<String>()
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         lastKeyUptime = event.eventTime
@@ -101,7 +102,9 @@ class HomeActivity : AppCompatActivity() {
         rowsAdapter = HomeRowsAdapter(
             onItem = { item -> DetailActivity.start(this, item.id) },
             onFocus = ::preview,
-            onRowTitle = { view -> LibraryActivity.start(this, view.id, view.name, view.collectionType) },
+            onRowTitle = { row ->
+                LibraryActivity.start(this, row.libraryId.orEmpty(), row.libraryName ?: row.title, row.libraryType, favorites = row.kind == "favorites")
+            },
             onMenu = { item -> CardMenu.show(this, scope, item, ::onCardChanged) },
         )
         rowsView.layoutManager = LinearLayoutManager(this)
@@ -184,7 +187,7 @@ class HomeActivity : AppCompatActivity() {
         if (::rowsAdapter.isInitialized && !backdropsEnabled) ServiceLocator.images.cancel(previewImage)
         // Refresh resume/next-up after returning from Detail or Player. The adapter
         // preserves stable row/card ids and the saved vertical position.
-        if (::rowsAdapter.isInitialized && homeLoaded && !loadingHome) loadHome(refreshOnly = true)
+        if (::rowsAdapter.isInitialized && homeLoaded && !loadingHome) loadHome(refreshOnly = loadedOrder == ServiceLocator.preferences.stored().homeSectionOrder)
         else if (::rowsAdapter.isInitialized && !homeLoaded && !loadingHome) loadHome()
     }
 
@@ -227,42 +230,44 @@ class HomeActivity : AppCompatActivity() {
         progress.visibility = View.VISIBLE
         scope.launch {
             try {
-                val rows = mutableListOf<HomeRow>()
-                // Independent requests run concurrently; OkHttp still bounds connections per host.
-                val (resume, nextUp, views) = coroutineScope {
-                    val resume = async { ServiceLocator.client.resume() }
-                    val nextUp = async { ServiceLocator.client.nextUp() }
-                    val views = async { if (refreshOnly) libraries else ServiceLocator.client.views() }
-                    Triple(resume.await(), nextUp.await(), views.await())
-                }
-                rows.add(HomeRow(getString(R.string.continue_watching), resume, landscape = true))
-                rows.add(HomeRow(getString(R.string.next_up), nextUp, landscape = true))
-                if (refreshOnly) {
-                    rows.addAll(latestRows)
-                    showRows(rows)
-                    homeLoaded = true
-                    return@launch
-                }
-                libraries = views
-                val mediaViews = libraries.filter {
-                    it.collectionType in setOf("movies", "tvshows", "mixed", "")
-                }
-                rows += coroutineScope {
-                    mediaViews.map { view ->
-                        async {
-                            HomeRow(
-                                getString(R.string.latest_media) + " · " + view.name,
-                                ServiceLocator.client.latest(view.id),
-                                libraryId = view.id,
-                                libraryName = view.name,
-                                libraryType = view.collectionType,
-                            )
+                val order = ServiceLocator.preferences.stored().homeSectionOrder
+                val rows = coroutineScope {
+                    val resume = async { if ("resume" in order) ServiceLocator.client.resume() else emptyList() }
+                    val nextUp = async { if ("nextUp" in order) ServiceLocator.client.nextUp() else emptyList() }
+                    val favorites = async {
+                        if ("favorites" in order) ServiceLocator.client.items(favorites = true, includeTypes = "Movie,Series", sortBy = "DateCreated", sortOrder = "Descending", limit = 12).first
+                        else emptyList()
+                    }
+                    if (!refreshOnly) {
+                        val views = async { ServiceLocator.client.views() }
+                        val excluded = async {
+                            try { ServiceLocator.client.latestExcludes() }
+                            catch (e: CancellationException) { throw e }
+                            catch (e: SessionExpiredException) { throw e }
+                            catch (_: Exception) { emptySet<String>() }
                         }
-                    }.awaitAll()
+                        libraries = views.await()
+                        val excludes = excluded.await()
+                        latestRows = if ("latest" in order) libraries.filter {
+                            it.collectionType in setOf("movies", "tvshows", "mixed", "") && it.id !in excludes
+                        }.map { view ->
+                            async {
+                                HomeRow("latest", getString(R.string.latest_media) + " · " + view.name,
+                                    ServiceLocator.client.latest(view.id), libraryId = view.id,
+                                    libraryName = view.name, libraryType = view.collectionType)
+                            }
+                        }.awaitAll() else emptyList()
+                    }
+                    listOf(
+                        HomeRow("resume", getString(R.string.continue_watching), resume.await(), landscape = true),
+                        HomeRow("nextUp", getString(R.string.next_up), nextUp.await(), landscape = true),
+                        HomeRow("favorites", getString(R.string.favorites), favorites.await()),
+                    ) + latestRows
                 }
-                latestRows = rows.drop(2)
-                showRows(rows)
-                if (!homeLoaded) rows.firstOrNull { it.items.isNotEmpty() }?.items?.firstOrNull()?.let(::preview)
+                loadedOrder = order
+                val ordered = HomeSections.order(order, rows)
+                showRows(ordered)
+                if (!homeLoaded) ordered.firstOrNull { it.items.isNotEmpty() }?.items?.firstOrNull()?.let(::preview)
                 homeLoaded = true
                 pendingScroll?.let {
                     (rowsView.layoutManager as LinearLayoutManager).scrollToPosition(it)

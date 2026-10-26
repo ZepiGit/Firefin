@@ -5,8 +5,8 @@ import java.security.MessageDigest
 import zepigit.firefin.app.data.SessionStore
 import zepigit.firefin.app.playback.DeviceProfile
 
-class PreferenceStore(context: Context, private val session: SessionStore) {
-    private val prefs = context.getSharedPreferences("firefin_preferences", Context.MODE_PRIVATE)
+class PreferenceStore(private val prefs: android.content.SharedPreferences, private val session: SessionStore) {
+    constructor(context: Context, session: SessionStore) : this(context.getSharedPreferences("firefin_preferences", Context.MODE_PRIVATE), session)
     private fun key(name: String): String {
         val account = session.serverUrl + "\u0000" + session.userId
         val hash = MessageDigest.getInstance("SHA-256").digest(account.toByteArray()).joinToString("") { "%02x".format(it) }
@@ -14,7 +14,7 @@ class PreferenceStore(context: Context, private val session: SessionStore) {
     }
     fun stored(): StoredPreferences = StoredPreferences(
         prefs.getBoolean(key("backdropEnabled"), true),
-        prefs.getString(key("homeSectionOrder"), "resume,nextUp,latest")!!.split(","),
+        prefs.getString(key("homeSectionOrder"), "resume,nextUp,favorites,latest")!!.split(","),
         prefs.getLong(key("preferredBitrate"), DeviceProfile.MAX_BITRATE),
         prefs.getInt(key("preferredHeight"), DeviceProfile.MAX_HEIGHT),
         prefs.getString(key("audioLanguage"), "").orEmpty(),

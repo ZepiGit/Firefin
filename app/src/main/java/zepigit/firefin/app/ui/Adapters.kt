@@ -123,12 +123,12 @@ fun stableId(key: String): Long {
     return hash
 }
 
-data class HomeRow(val title: String, val items: List<MediaItem>, val libraryId: String? = null, val libraryName: String? = null, val libraryType: String = "", val landscape: Boolean = false)
+data class HomeRow(val kind: String, val title: String, val items: List<MediaItem>, val libraryId: String? = null, val libraryName: String? = null, val libraryType: String = "", val landscape: Boolean = false)
 
 class HomeRowsAdapter(
     private val onItem: (MediaItem) -> Unit,
     private val onFocus: (MediaItem) -> Unit = {},
-    private val onRowTitle: (UserView) -> Unit,
+    private val onRowTitle: (HomeRow) -> Unit,
     private val onMenu: ((MediaItem) -> Unit)? = null,
 ) : RecyclerView.Adapter<HomeRowsAdapter.RowHolder>() {
     init { setHasStableIds(true) }
@@ -144,16 +144,16 @@ class HomeRowsAdapter(
         rows.clear(); rows.addAll(visible); notifyDataSetChanged()
     }
     override fun getItemCount() = rows.size
-    override fun getItemId(position: Int) = stableId(rows[position].title)
+    override fun getItemId(position: Int) = stableId(rows[position].kind + ":" + rows[position].libraryId.orEmpty())
     override fun getItemViewType(position: Int) = if (rows[position].landscape) 1 else 0
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RowHolder = RowHolder(LayoutInflater.from(parent.context).inflate(R.layout.view_home_row, parent, false))
     override fun onBindViewHolder(holder: RowHolder, position: Int) {
         val row = rows[position]
         holder.title.text = row.title
-        val library = row.libraryId != null
+        val library = row.libraryId != null || row.kind == "favorites"
         holder.title.isFocusable = library
         holder.title.isClickable = library
-        holder.title.setOnClickListener(if (library) View.OnClickListener { onRowTitle(UserView(row.libraryId!!, row.libraryName ?: row.title, row.libraryType)) } else null)
+        holder.title.setOnClickListener(if (library) View.OnClickListener { onRowTitle(row) } else null)
         if (holder.items.adapter == null || holder.items.adapter is MediaCardAdapter && (holder.items.adapter as MediaCardAdapter).posterStyleForBinding != !row.landscape) {
             holder.items.layoutManager = LinearLayoutManager(holder.items.context, LinearLayoutManager.HORIZONTAL, false).apply { initialPrefetchItemCount = 6 }
             holder.items.setRecycledViewPool(cardPool)

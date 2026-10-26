@@ -229,4 +229,11 @@
     <string name="moonbase_invalid_json">Moonbase did not return a valid JSON response.</string>
     <string name="seerr_invalid_title">Invalid Seerr title.</string>
     <string name="seerr_login_failed">Seerr sign-in failed.</string>
+    <string name="setting_home_order">Home screen</string>
+    <string-array name="home_order_options">
+        <item>Continue watching first</item>
+        <item>Recently added first</item>
+        <item>Favorites first</item>
+        <item>Without favorites</item>
+    </string-array>
 </resources>

@@ -229,4 +229,11 @@
     <string name="moonbase_invalid_json">Moonbase hat keine gültige JSON-Antwort geliefert.</string>
     <string name="seerr_invalid_title">Ungültiger Seerr-Titel.</string>
     <string name="seerr_login_failed">Seerr-Anmeldung fehlgeschlagen.</string>
+    <string name="setting_home_order">Startseite</string>
+    <string-array name="home_order_options">
+        <item>Weiterschauen zuerst</item>
+        <item>Neu zuerst</item>
+        <item>Favoriten zuerst</item>
+        <item>Ohne Favoriten</item>
+    </string-array>
 </resources>

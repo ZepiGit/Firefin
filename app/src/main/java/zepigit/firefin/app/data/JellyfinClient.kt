@@ -150,6 +150,11 @@ class JellyfinClient(private val session: SessionStore, trust: Lazy<HandshakeCer
         (0 until arr.length()).mapNotNull { i -> arr.optJSONObject(i)?.let { UserView(it.optString("Id"), it.optString("Name"), it.optString("CollectionType")) } }
     }
 
+    suspend fun latestExcludes(): Set<String> = withContext(Dispatchers.IO) {
+        val values = getJson("Users/Me").optJSONObject("Configuration")?.optJSONArray("LatestItemsExcludes") ?: JSONArray()
+        (0 until values.length()).mapNotNull { values.optString(it).takeIf(String::isNotBlank) }.toSet()
+    }
+
     suspend fun resume(limit: Int = 12): List<MediaItem> = withContext(Dispatchers.IO) {
         val query = "Limit=$limit&MediaTypes=Video&Fields=PrimaryImageAspectRatio,ProductionYear,Overview&EnableImageTypes=Primary,Backdrop,Thumb"
         parseItems(userJson("UserItems/Resume?userId=${user()}&$query", "Users/${user()}/Items/Resume?$query"))

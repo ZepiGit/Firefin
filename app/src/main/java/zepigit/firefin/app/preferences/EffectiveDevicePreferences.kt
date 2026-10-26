@@ -9,7 +9,7 @@ package zepigit.firefin.app.preferences
  */
 data class StoredPreferences(
     val backdropEnabled: Boolean = true,
-    val homeSectionOrder: List<String> = listOf("resume", "nextUp", "latest"),
+    val homeSectionOrder: List<String> = listOf("resume", "nextUp", "favorites", "latest"),
     val preferredBitrate: Long = 4_000_000L,
     val preferredHeight: Int = 1080,
     val audioLanguage: String = "",

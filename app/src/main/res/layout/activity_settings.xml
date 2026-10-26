@@ -58,6 +58,10 @@
             android:layout_marginTop="@dimen/space_s" />
 
         <Button
+            android:id="@+id/homeOrderButton"
+            style="@style/Firefin.Button.Setting" />
+
+        <Button
             android:id="@+id/clearCacheButton"
             style="@style/Firefin.Button.Setting"
             android:text="@string/clear_image_cache" />
