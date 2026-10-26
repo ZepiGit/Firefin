@@ -203,6 +203,7 @@ class DetailActivity : AppCompatActivity() {
             posterStyle = container.type != "Season",
             inSeason = container.type == "Season",
             onFocus = { child -> childAdapter?.let { if (cursor.nearEnd(it.positionOf(child))) loadChildPage(container, cursor) } },
+            onMenu = { child -> CardMenu.show(this, scope, child) { fresh -> childAdapter?.replace(fresh) } },
             onClick = { child -> start(this, child.id) },
         )
         childAdapter = adapter

@@ -45,6 +45,18 @@ class JellyfinClient(private val session: SessionStore, trust: Lazy<HandshakeCer
     /** DELETE Videos/ActiveEncodings is a pre-12 route (spec evidence, runtime behaviour unverified). */
     fun cleanupEncodings(): Boolean = (majorByServer[session.serverUrl] ?: 0) < 12
 
+    /** True once the signed-in server is known to be 10.8, which has no UserItems/{id}/UserData route. */
+    fun legacyRoutes(): Boolean = routesByServer[session.serverUrl] == Routes.LEGACY
+
+    /**
+     * Clears only the resume position (10.9+): the server applies the fields the
+     * body carries and leaves Played, PlayCount and LastPlayedDate alone, unlike
+     * the unplayed mark. Server-side behaviour not exercised against a live server.
+     */
+    suspend fun resetResume(itemId: String) = withContext(Dispatchers.IO) {
+        transportText("UserItems/${urlEncode(itemId)}/UserData?userId=${user()}", "POST", JSONObject().put("PlaybackPositionTicks", 0).toString())
+    }
+
     private suspend fun routes(bound: ServerTransport): Routes {
         val server = bound.credentials().serverUrl
         routesByServer[server]?.let { return it }

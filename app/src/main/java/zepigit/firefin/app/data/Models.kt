@@ -20,6 +20,7 @@ data class MediaItem(
     val played: Boolean,
     val favorite: Boolean,
     val collectionType: String,
+    val seriesId: String? = null,
 ) {
     val isEpisode: Boolean get() = type == "Episode"
     val isSeries: Boolean get() = type == "Series"
@@ -52,6 +53,7 @@ data class MediaItem(
                 played = userData.optBoolean("Played", false),
                 favorite = userData.optBoolean("IsFavorite", false),
                 collectionType = json.optString("CollectionType"),
+                seriesId = json.optString("SeriesId").takeIf { it.isNotBlank() },
             )
         }
     }

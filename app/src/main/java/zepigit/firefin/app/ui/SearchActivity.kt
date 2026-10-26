@@ -41,9 +41,11 @@ class SearchActivity : AppCompatActivity() {
         val empty = findViewById<TextView>(R.id.stateText)
         val progress = findViewById<android.widget.ProgressBar>(R.id.progress)
         val seerrClient = SeerrClient(ServiceLocator.client.transportSnapshot())
-        val rows = SearchRowsAdapter(
+        lateinit var rows: SearchRowsAdapter
+        rows = SearchRowsAdapter(
             onJellyfin = { DetailActivity.start(this, it.id) },
             onSeerr = { SeerrDetailActivity.start(this, it.type, it.id) },
+            onMenu = { item -> CardMenu.show(this, scope, item, rows::replaceLocal) },
         )
         results.layoutManager = LinearLayoutManager(this)
         results.adapter = rows
@@ -108,12 +110,13 @@ class SearchActivity : AppCompatActivity() {
         box.requestFocus()
     }
 
-    private class SearchRowsAdapter(private val onJellyfin: (zepigit.firefin.app.data.MediaItem) -> Unit, private val onSeerr: (SeerrMedia) -> Unit) : RecyclerView.Adapter<SearchRowsAdapter.Holder>() {
+    private class SearchRowsAdapter(private val onJellyfin: (zepigit.firefin.app.data.MediaItem) -> Unit, private val onSeerr: (SeerrMedia) -> Unit, private val onMenu: (zepigit.firefin.app.data.MediaItem) -> Unit) : RecyclerView.Adapter<SearchRowsAdapter.Holder>() {
         init { setHasStableIds(true) }
         private var local = emptyList<zepigit.firefin.app.data.MediaItem>()
         private var remote = emptyList<SeerrMedia>()
         /** One row per source; stable ids keep the focused card when the other source arrives later. */
         override fun getItemId(position: Int) = getItemViewType(position).toLong()
+        fun replaceLocal(item: zepigit.firefin.app.data.MediaItem) = submit(local.map { if (it.id == item.id) item else it }, remote)
         fun submit(j: List<zepigit.firefin.app.data.MediaItem>, s: List<SeerrMedia>) {
             local = j
             remote = s
@@ -135,6 +138,7 @@ class SearchActivity : AppCompatActivity() {
                         TmdbArtwork.url(item.posterTag)?.let { ServiceLocator.discoveryImages.load(it, 320, view) }
                             ?: ServiceLocator.discoveryImages.cancel(view)
                     }) else null,
+                    onMenu = if (isRemote) null else onMenu,
                     onClick = if (isRemote) ({ found: zepigit.firefin.app.data.MediaItem -> remote.firstOrNull { it.key == found.id }?.let { onSeerr(it) } ?: Unit }) else onJellyfin,
                 ).also {
                     h.items.adapter = it

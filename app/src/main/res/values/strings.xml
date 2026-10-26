@@ -82,6 +82,12 @@
     <string name="children_items">Items</string>
     <string name="load_error">Failed to load.</string>
     <string name="continue_series">▶ Continue %1$s</string>
+    <string name="menu_remove_resume">Remove from Continue watching</string>
+    <string name="menu_mark_played">Mark as watched</string>
+    <string name="menu_mark_unplayed">Mark as unwatched</string>
+    <string name="menu_favorite_add">Add to favorites</string>
+    <string name="menu_favorite_remove">Remove from favorites</string>
+    <string name="menu_go_series">Go to series</string>
     <string name="children_load_more_failed">More items could not be loaded. Move the focus again to retry.</string>
 
     <!-- Player -->

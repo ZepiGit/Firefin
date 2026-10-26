@@ -228,6 +228,16 @@ class JellyfinClientTest {
         )
     }
 
+    @Test fun `resume reset posts only the position to the user-data route`() = runBlocking {
+        signIn()
+        server.enqueue(MockResponse().setBody("{}"))
+        client.resetResume("i1")
+        // No generation probe: the route has no 10.8 counterpart and goes out as is.
+        val request = server.takeRequest()
+        assertEquals("POST /UserItems/i1/UserData?userId=u1", "${request.method} ${request.path}")
+        assertEquals("{\"PlaybackPositionTicks\":0}", request.body.readUtf8())
+    }
+
     @Test fun `a rejected unmark is reported instead of pretending success`() = runBlocking {
         signIn()
         server.enqueue(MockResponse().setResponseCode(500))

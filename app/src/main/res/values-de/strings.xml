@@ -82,6 +82,12 @@
     <string name="children_items">Inhalte</string>
     <string name="load_error">Fehler beim Laden.</string>
     <string name="continue_series">▶ Weiter mit %1$s</string>
+    <string name="menu_remove_resume">Aus „Weiterschauen“ entfernen</string>
+    <string name="menu_mark_played">Als gesehen markieren</string>
+    <string name="menu_mark_unplayed">Als ungesehen markieren</string>
+    <string name="menu_favorite_add">Zu Favoriten hinzufügen</string>
+    <string name="menu_favorite_remove">Aus Favoriten entfernen</string>
+    <string name="menu_go_series">Zur Serie</string>
     <string name="children_load_more_failed">Weitere Einträge konnten nicht geladen werden. Bewege den Fokus erneut, um es nochmals zu versuchen.</string>
 
     <!-- Player -->

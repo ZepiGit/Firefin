@@ -1,5 +1,6 @@
 package zepigit.firefin.app.ui
 
+import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -20,6 +21,8 @@ class MediaCardAdapter(
     private val inSeason: Boolean = false,
     private val onFocus: (MediaItem) -> Unit = {},
     private val artwork: ((MediaItem, ImageView) -> Unit)? = null,
+    /** MENU key on a card; only Jellyfin cards get one, Seerr cards carry synthetic ids. */
+    private val onMenu: ((MediaItem) -> Unit)? = null,
     private val onClick: (MediaItem) -> Unit,
 ) : RecyclerView.Adapter<MediaCardAdapter.Holder>() {
     val posterStyleForBinding: Boolean get() = posterStyle
@@ -34,6 +37,15 @@ class MediaCardAdapter(
         val start = items.size; items.addAll(unique); notifyItemRangeInserted(start, unique.size)
     }
     fun positionOf(item: MediaItem) = items.indexOfFirst { it.id == item.id }
+    /** Rebinds one card after its user data changed on the server. */
+    fun replace(item: MediaItem) {
+        val index = positionOf(item)
+        if (index >= 0) { items[index] = item; notifyItemChanged(index) }
+    }
+    fun remove(itemId: String) {
+        val index = items.indexOfFirst { it.id == itemId }
+        if (index >= 0) { items.removeAt(index); notifyItemRemoved(index) }
+    }
     override fun getItemCount() = items.size
     override fun getItemId(position: Int) = stableId(items[position].id)
     /** Poster and landscape holders must never be swapped through a shared pool. */
@@ -75,6 +87,11 @@ class MediaCardAdapter(
             ServiceLocator.images.load(url, ArtworkPolicy.decodeBucket(holder.card.layoutParams.width), holder.image)
         }
         holder.card.setOnClickListener { onClick(item) }
+        holder.card.setOnKeyListener(onMenu?.let { menu ->
+            View.OnKeyListener { _, keyCode, event ->
+                if (keyCode == KeyEvent.KEYCODE_MENU && event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) { menu(item); true } else false
+            }
+        })
         // Card focus expansion is locked off on this target (EffectiveDevicePreferences);
         // the static background selector is the whole focus effect.
         holder.card.setOnFocusChangeListener { _, focused -> if (focused) onFocus(item) }
@@ -82,6 +99,7 @@ class MediaCardAdapter(
     override fun onViewRecycled(holder: Holder) {
         ServiceLocator.images.cancel(holder.image)
         holder.card.setOnFocusChangeListener(null)
+        holder.card.setOnKeyListener(null)
         super.onViewRecycled(holder)
     }
     class Holder(view: View) : RecyclerView.ViewHolder(view) {
@@ -111,6 +129,7 @@ class HomeRowsAdapter(
     private val onItem: (MediaItem) -> Unit,
     private val onFocus: (MediaItem) -> Unit = {},
     private val onRowTitle: (UserView) -> Unit,
+    private val onMenu: ((MediaItem) -> Unit)? = null,
 ) : RecyclerView.Adapter<HomeRowsAdapter.RowHolder>() {
     init { setHasStableIds(true) }
     private val rows = mutableListOf<HomeRow>()
@@ -138,7 +157,7 @@ class HomeRowsAdapter(
         if (holder.items.adapter == null || holder.items.adapter is MediaCardAdapter && (holder.items.adapter as MediaCardAdapter).posterStyleForBinding != !row.landscape) {
             holder.items.layoutManager = LinearLayoutManager(holder.items.context, LinearLayoutManager.HORIZONTAL, false).apply { initialPrefetchItemCount = 6 }
             holder.items.setRecycledViewPool(cardPool)
-            holder.items.adapter = MediaCardAdapter(posterStyle = !row.landscape, onFocus = onFocus, onClick = onItem)
+            holder.items.adapter = MediaCardAdapter(posterStyle = !row.landscape, onFocus = onFocus, onMenu = onMenu, onClick = onItem)
         }
         (holder.items.adapter as MediaCardAdapter).submit(row.items)
     }

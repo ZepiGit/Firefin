@@ -102,6 +102,7 @@ class HomeActivity : AppCompatActivity() {
             onItem = { item -> DetailActivity.start(this, item.id) },
             onFocus = ::preview,
             onRowTitle = { view -> LibraryActivity.start(this, view.id, view.name, view.collectionType) },
+            onMenu = { item -> CardMenu.show(this, scope, item, ::onCardChanged) },
         )
         rowsView.layoutManager = LinearLayoutManager(this)
         rowsView.adapter = rowsAdapter
@@ -212,6 +213,12 @@ class HomeActivity : AppCompatActivity() {
             val kept = rowsView.findFocus()
             if (kept == null || kept === rowsView) rowsView.getChildAt(0)?.findViewById<RecyclerView>(R.id.rowItems)?.getChildAt(0)?.requestFocus()
         }
+    }
+
+    /** A card changed on the server: patch the cached latest rows and reload resume and next up. */
+    private fun onCardChanged(item: MediaItem) {
+        latestRows = latestRows.map { row -> row.copy(items = row.items.map { if (it.id == item.id) item else it }) }
+        loadHome(refreshOnly = true)
     }
 
     private fun loadHome(refreshOnly: Boolean = false) {

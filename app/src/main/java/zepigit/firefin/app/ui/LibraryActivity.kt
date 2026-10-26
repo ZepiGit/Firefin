@@ -58,7 +58,16 @@ class LibraryActivity : AppCompatActivity() {
         stateText = findViewById(R.id.stateText)
         stateRetry = findViewById(R.id.stateRetry)
         stateRetry.setOnClickListener { loadMore() }
-        adapter = MediaCardAdapter(onClick = { DetailActivity.start(this, it.id) })
+        val favoritesGrid = intent.getBooleanExtra("library.favorites", false)
+        adapter = MediaCardAdapter(
+            onMenu = { item ->
+                CardMenu.show(this, scope, item) { fresh ->
+                    // An un-favorited card has no place in the favorites grid any more.
+                    if (favoritesGrid && !fresh.favorite) { adapter.remove(fresh.id); if (total > 0) total-- } else adapter.replace(fresh)
+                }
+            },
+            onClick = { DetailActivity.start(this, it.id) },
+        )
         val grid = findViewById<RecyclerView>(R.id.grid)
         grid.layoutManager = GridLayoutManager(this, GRID_SPAN)
         grid.adapter = adapter
