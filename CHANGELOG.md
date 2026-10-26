@@ -41,6 +41,9 @@ Performance:
   16 MB / 40 s; library, children and search responses no longer carry the
   Overview field; artwork is requested at quality 80.
 - The release APK ships only English and German resources.
+- The Moonfin-derived Flutter sources, their vendored packages, platform
+  folders, `scripts/legacy` and the validation-only workflow were removed from
+  the repository; they remain in the git history up to commit `086af52`.
 
 Interface (10-foot rework):
 

@@ -29,7 +29,6 @@ List the key changes included in this PR.
 
 ## Area
 - [ ] Native app (`app/`)
-- [ ] Legacy Flutter app (`lib/`, `packages/`, `android/`)
 - [ ] Documentation
 - [ ] Build / CI
 

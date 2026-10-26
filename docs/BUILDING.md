@@ -172,25 +172,10 @@ For a local signed build, export the four `FIREFIN_*` variables above
 `-Pfirefin.productionSigning=true`. A locally signed APK is not a project
 release. See [SECURITY.md](../SECURITY.md) for key handling rules.
 
-## Legacy Flutter build (history, validation only)
+## Legacy Flutter app (history)
 
-The Flutter sources (`lib/`, `packages/`, `android/`) remain until native
-parity is proven. The workflow `Legacy Flutter baseline (validation only)`
-(`build.yml`) runs `flutter test` and `bash scripts/legacy/build-android.sh` and uploads
-`legacy-validation-only-<sha>`; it never publishes. Package
-`org.moonfin.firetv32`, version `1.1.0+3000028` (`1.1.0-firetv32-r21`),
-Flutter 3.32.8, Dart 3.8.1, ARMv7 (`android-arm`) only. `scripts/legacy/build-android.sh`
-writes `Moonfin_FireTV32_Unofficial_1.1.0-build3000028.apk`.
-
-Historical r21 validation commands:
-
-```text
-flutter clean
-flutter pub get
-flutter analyze lib test packages/playback_core packages/playback_jellyfin packages/playback_emby packages/server_core
-flutter test test/legacy_firetv_transcode_limits_test.dart test/image_api_url_test.dart test/legacy_firetv_network_image_test.dart
-flutter build apk --release --target-platform android-arm
-```
-
-`flutter analyze` without paths also scans vendored example projects that are
-not part of the app build, which is why paths are listed explicitly.
+The Moonfin-derived Flutter app (`org.moonfin.firetv32`, `1.1.0-firetv32-r21`)
+was removed from this repository on 2026-10-26; its sources, the
+`scripts/legacy` helpers and the validation-only workflow are available in the
+git history up to commit `086af52`. The earlier community releases stay on the
+releases page as history.

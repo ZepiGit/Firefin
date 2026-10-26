@@ -99,9 +99,10 @@ The legacy `org.moonfin.firetv32` app uses a compatibility transport that
 the Dart network code) to cope with the frozen Fire OS 5 certificate store.
 That weakens protection against an active network attacker. It is not part of
 the native app. If you still run the legacy app, use it only on a trusted local
-network or VPN. CI builds of the legacy app are validation-only; the earlier
-community releases `v1.1.0-firetv32-r20` and `v1.1.0-firetv32-r21` remain on the
-releases page as history and carry this limitation.
+network or VPN. Its sources were removed from this repository on 2026-10-26
+(git history up to commit `086af52`); the earlier community releases
+`v1.1.0-firetv32-r20` and `v1.1.0-firetv32-r21` remain on the releases page as
+history and carry this limitation.
 
 ## Open security items
 

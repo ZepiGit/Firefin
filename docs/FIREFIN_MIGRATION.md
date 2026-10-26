@@ -13,8 +13,8 @@ were not acceptance evidence. This ledger supersedes the inaccurate earlier
 claims of clean lint, all review findings fixed, protected signing, bounded disk
 decode and completed API-22 validation. Releases `0.2.3-firefin`,
 `0.2.4-firefin` and `0.2.5-firefin` were published by the protected workflow (see Gate 7); no AFTT
-hardware approval is claimed. The Flutter sources stay in the repository while
-active features lack native parity.
+hardware approval is claimed. The Flutter sources were removed on 2026-10-26
+by owner decision; they remain in the git history up to commit `086af52`.
 
 ## Unreleased UI and Seerr follow-up (2026-10-09)
 
@@ -125,7 +125,7 @@ unproven or incomplete; HISTORICAL means evidence applies only to its named SHA.
 | Gate 6: trust chain/hostname, API22 CA policy, redirect/token isolation, stalled media | Transport TLS, timeout and redirect negative tests | Partial: platform trust plus ISRG Root X1 for Jellyfin and TMDB; JVM tests for an added anchor, wrong hostname, unknown self-signed certificate, stalled and slow media bodies, REST/media redirects and header-only tokens; no API22 CA test on hardware |
 | Gate 7: actionlint, wrapper/dependency verification, tests, strict debug/release lint, both builds | android.yml with mandatory reports/APKs | `0.2.5-firefin` local run: 83 tests, 0 lint errors, both APKs and verifier pass; CI per SHA; dependency-verification metadata open |
 | Gate 7: separate protected signing, required secrets, stable cert, tag/full SHA, v1, checksums/source | release.yml, verifier, protected environment and actual run/release | DONE for 0.2.3, 0.2.4 and 0.2.5: the protected `firefin-release` environment (required reviewer, `main` only), the production signing secrets and the pinned certificate fingerprint are configured; run 37055114680 published `firefin-v0.2.3-firefin` from `e9760aa62e71f5ddb1b7a7f806b0d26c0726c987`, run 37067878548 published `firefin-v0.2.4-firefin` from `503678d519950d74c4cfb6d3d93a08150716a3af`, run 37095893231 published `firefin-v0.2.5-firefin` from `7bf3345a21f2731cf25dbfbcb38e7a4cd95d7f78`. Earlier attempts failed for setup reasons (SDK path, keystore secret content, annotated tag) and were corrected; the tags `firefin-v0.2.0-firefin`, `firefin-v0.2.1-firefin` and `firefin-v0.2.2-firefin` exist without a release |
-| Gate 8: native-only cleanup after parity; updated public English docs/templates | README, BUILDING, COMPATIBILITY, CHANGELOG, SECURITY, notices/templates | Partial: English docs and issue/PR templates describe Firefin; redundant standalone legacy readme/verification/release-note files have been removed; legacy source and changelog history remain; the UI is English by default with a German translation |
+| Gate 8: native-only cleanup after parity; updated public English docs and templates | README, BUILDING, COMPATIBILITY, CHANGELOG, SECURITY, notices and templates | Partial: English docs and issue/PR templates describe Firefin; redundant standalone legacy readme, verification and release-note files have been removed; the legacy source tree was removed on 2026-10-26 (git history only), the changelog history remains; the UI is English by default with a German translation |
 
 ## Actual feature matrix
 
@@ -239,6 +239,6 @@ Fixes in the native app, each with a regression test:
 Deliberately reduced scope: no Live TV/DVR, offline downloads, music/book/photo
 readers, DLNA, admin, plugin sync, full modern Moonfin theme customization,
 QuickConnect code-polling, or Seerr people/4K/admin workflows. These are not
-quietly represented as complete, and the legacy Flutter source remains.
+quietly represented as complete; the legacy Flutter source is history only.
 
 Open external prerequisites: AFTT/ARMv7 hardware and CI for each new SHA.

@@ -19,9 +19,9 @@ replayed SHAs and committer metadata are reconstructed; see
 [FIREFIN_MIGRATION.md](FIREFIN_MIGRATION.md)). Firefin is an
 independent project and is not affiliated with or endorsed by Moonfin.
 
-The native Kotlin app in `app/` is new code written for Firefin. The legacy
-Flutter sources (`lib/`, `packages/`, `android/`) are Moonfin-derived and remain
-in the tree until native parity is proven. Historical text that mentions
+The native Kotlin app in `app/` is new code written for Firefin. The
+Moonfin-derived Flutter sources were removed from the tree on 2026-10-26 and
+remain in the git history up to commit `086af52`. Historical text that mentions
 "Moonfin FireTV32" refers to that legacy line.
 
 ## Native app dependencies
@@ -59,7 +59,7 @@ Native (`.so`) libraries: the current release APK packages Conscrypt's
 `lib/armeabi-v7a/libconscrypt_jni.so`; debug additionally packages `lib/x86/`
 for the API-22 emulator. This is a point-in-time listing; the verifier rejects
 unexpected release ABIs and all Flutter/mpv artifacts.
-The legacy Flutter build bundled the Flutter engine and media_kit/mpv
+The former Flutter build bundled the Flutter engine and media_kit/mpv
 libraries; those must not appear in the native APK.
 
 Bundled public certificate: `app/src/main/res/raw/isrgrootx1.pem` is the
@@ -75,12 +75,12 @@ The Firefin launcher icon, transparent mark, wordmark and TV banner are
 project artwork supplied for this migration; they are not copied from a
 third-party library.
 
-## Legacy Flutter app dependencies
+## Legacy Flutter app dependencies (history)
 
-The legacy app includes Flutter and third-party Dart, Android and native
-libraries. Their terms remain with their authors. Dependency versions are
-recorded in `pubspec.lock`; Android and local package dependencies are declared
-in `pubspec.yaml` and the `packages/` directory.
+The removed legacy app included Flutter and third-party Dart, Android and
+native libraries. Their terms remain with their authors; the dependency
+inventory (`pubspec.lock`, `pubspec.yaml`, local packages) is preserved in the
+git history up to commit `086af52`.
 
 ## Trademarks
 
