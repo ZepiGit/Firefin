@@ -9,6 +9,7 @@ import androidx.media3.common.MimeTypes
 import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
@@ -28,6 +29,16 @@ class PlaybackEngine(context: Context, okHttpClient: okhttp3.OkHttpClient) {
     )
         .setMediaSourceFactory(
             DefaultMediaSourceFactory(OkHttpDataSource.Factory(okHttpClient)),
+        )
+        // Media3's defaults buffer 50 s and size the byte target from the renderers;
+        // on a 1 GB device the sample queue lives in the Java heap next to the
+        // artwork caches, so the buffer is capped at 16 MB / 40 s instead.
+        .setLoadControl(
+            DefaultLoadControl.Builder()
+                .setBufferDurationsMs(20_000, 40_000, 2_500, 5_000)
+                .setTargetBufferBytes(16 * 1024 * 1024)
+                .setPrioritizeTimeOverSizeThresholds(false)
+                .build(),
         )
         .build()
         .apply {
