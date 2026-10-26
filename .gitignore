@@ -114,6 +114,7 @@ firefin-pre-repair-*.bundle
 # Local agent and editor workspace files; they are not part of the project
 .zcode/
 .zcodeignore
+.omc/
 CLAUDE.md
 
 # Native Android local configuration and outputs

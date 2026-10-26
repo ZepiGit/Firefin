@@ -34,6 +34,10 @@ This project is not about being the best Jellyfin/Moonfin alternative. It doesn'
 
 ## Screenshots
 
+The gallery shows the interface before the 2026-10 rework; captures of the
+reworked screens from the API-22 emulator are in
+[docs/screenshots/audit-2026-10-26](docs/screenshots/audit-2026-10-26).
+
 <table>
   <tr>
     <td width="50%">

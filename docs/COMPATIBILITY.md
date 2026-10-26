@@ -18,6 +18,7 @@ servers work on all supported Android versions after a confirmation.
 
 | Evidence | Result |
 |---|---|
+| Local build after the 2026-10-26 overhaul (unreleased, version `2.6.0`) | 95 JVM unit tests pass; strict debug and release lint 0 errors, 0 warnings; unsigned release APK 2 605 114 bytes; both APKs pass the verifier; D-pad focus, details, library grid, search and settings exercised on an API-22 x86 emulator (software emulation) against a fixture server, see the `audit-2026-10-26` folder next to the other screenshots; playback not exercised |
 | Local build of `0.2.5-firefin` | 83 JVM unit tests pass; strict debug/release lint 0 errors (74 warnings); Debug/Release APKs build and pass the APK verifier; the CI release build is unsigned by design, signed APKs come only from the protected release workflow |
 | API 22 stock x86 emulator, `0.2.5-firefin` | Two instrumented tests pass (login screen; sign-in over HTTP, favorite set/clear, paging through 125 episodes, sign-out and prefilled sign-in against a local fixture server); sign-in error and cleartext dialog checked manually. Playback was not exercised for this version |
 | API 22 stock x86 emulator, snapshot `c9da933` (before 0.2.4) | Login, Moonfin-like Home/Library/Detail/Search/Settings, Seerr discovery/search/detail/season confirmation, TMDB artwork, baseline 480p playback up to 1080p, resume, D-pad controller, audio dialog and cleanup exercised |

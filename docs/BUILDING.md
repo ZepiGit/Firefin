@@ -3,6 +3,10 @@
 This document covers the native Kotlin app (`app/`). The legacy Flutter build
 is kept at the end as history; it is validation-only and is never published.
 
+Build status after the 2026-10-26 overhaul (unreleased): 95 JVM unit tests,
+strict lint with 0 errors and 0 warnings (deliberate TV decisions are recorded
+in `app/lint.xml`), R8 release build and both APK verifiers pass locally.
+
 Build status for `0.2.5-firefin`: local verification passed 83 JVM unit tests,
 strict lint (0 errors, 74 warnings), an R8 release build and the APK verifier,
 and two instrumented tests on an API 22 stock x86 emulator. Signed APKs come

@@ -6,6 +6,65 @@ preserved unchanged as history.
 
 ## Native Firefin
 
+### Unreleased
+
+Audit and overhaul of the native app; the findings, evidence and plan are in
+`docs/AUDIT_2026-10-26.md` (German). Version identity is unchanged.
+
+Fixes:
+
+- D-pad focus no longer leaves a row or grid sideways: RIGHT on the last card
+  of a short row used to jump into the row below, RIGHT on the last grid column
+  landed on the Sort or Next page button. Rows and grids keep the focus on the
+  last card; UP and DOWN still reach the header and the other rows.
+- Series and season details focus their first season or episode once the cards
+  exist; Home keeps a usable focus after a refresh removes the focused row and
+  shows a focusable Reload when loading fails.
+- Search shows library results as soon as they arrive instead of waiting for
+  the optional Seerr probe, which could take up to the 25 s request timeout.
+- The player handles the separate MEDIA_PLAY, MEDIA_PAUSE and MEDIA_STOP keys
+  that HDMI-CEC and third-party remotes send, and closes its dialogs with the
+  activity.
+- A request on a keep-alive connection that the server or a reverse proxy has
+  already closed is retried once on a fresh socket instead of failing with
+  "unexpected end of stream"; a POST that was already sent is never repeated.
+- Favorite and Watched send one toggle at a time; runtimes use Latin digits in
+  every locale; card ids are 64-bit so large libraries cannot collide.
+
+Performance:
+
+- The Conscrypt provider, the platform trust store and the HTTP clients are
+  built on the first request instead of on the main thread at app start.
+- The artwork disk cache keeps a running byte count instead of listing the
+  directory after every write; landscape cards decode at 480 px instead of
+  640 px; home rows share one view pool; the Media3 buffer is capped at
+  16 MB / 40 s; library, children and search responses no longer carry the
+  Overview field; artwork is requested at quality 80.
+- The release APK ships only English and German resources.
+
+Interface (10-foot rework):
+
+- Shared design tokens: colors, a type scale with nothing below 14 sp,
+  spacing, 48 dp controls and a 48 dp overscan margin.
+- Focus is a static 3 dp accent frame with a lighter surface on cards, inputs
+  and row titles; buttons fill with the accent color. No animations.
+- Cards: 128 dp posters (six grid columns) and 224 dp landscape cards with a
+  two-line title, a caption and a resume progress bar; the title marquee is
+  gone.
+- Every screen has the same 72 dp header, the same margins and a shared
+  empty/error state with a Reload action. Details show the series or item type
+  as context and the number of seasons or episodes. Settings are grouped into
+  Playback, Interface and Account. The player controller hides the shuffle,
+  previous/next, subtitle and settings controls that the top bar replaces.
+
+Verification (local, 2026-10-26): 95 JVM unit tests pass; strict debug and
+release lint report 0 errors and 0 warnings (before: 74 warnings); the
+unsigned release APK is 2 605 114 bytes (before: 2 921 708) and both APKs pass
+the verifier. The reworked screens were exercised on an API-22 x86 emulator
+without hardware acceleration against a local fixture server; captures of the
+old and new interface are in `docs/screenshots/audit-2026-10-26/`. Playback and
+physical AFTT hardware were not exercised.
+
 ### 2.6.0 (versionCode 3001006)
 
 Release title: `Firefin-v2.6.0`; tag: `firefin-v2.6.0`.

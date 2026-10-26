@@ -47,9 +47,21 @@ The standard local verification command is:
 ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug :app:lintRelease :app:assembleDebug :app:assembleRelease
 ```
 
+The 2026-10-26 overhaul (unreleased) has local evidence of 95 JVM tests, strict debug/release lint with 0 errors and 0 warnings, both APK verifiers and an API-22 x86 emulator tour of the reworked screens (`docs/screenshots/audit-2026-10-26/`); the findings and the implementation record are in `AUDIT_2026-10-26.md` (German).
+
 Version `0.2.5-firefin` has local evidence of 83 JVM tests, strict debug/release lint with 0 errors, APK verification, debug/unsigned-release assembly and two instrumented tests on the API-22 x86 emulator. Earlier emulator records cover login, navigation, search, Seerr flows, artwork, playback controls and resume; see the [migration ledger](FIREFIN_MIGRATION.md).
 
 Signed releases are built only by the protected release workflow, which requires signing credentials stored outside this repository. Releases `0.2.3-firefin`, `0.2.4-firefin` and `0.2.5-firefin` were built and verified against the pinned production certificate this way. None has been validated on physical AFTT hardware.
+
+## Interface tokens
+
+Layouts reference only the tokens in `values/colors.xml`, `values/dimens.xml`
+and the styles in `values/themes.xml`: a seven-step type scale (36 to 14 sp,
+nothing smaller), spacing from 4 to 32 dp plus a 48 dp overscan page margin,
+48 dp controls and 52 dp inputs. Focus is static: a 3 dp accent stroke with a
+lighter surface on cards, inputs and row titles, an accent fill on buttons.
+Lists use `TvRecyclerView`, which keeps LEFT/RIGHT inside the list. Empty and
+error states come from `layout/view_state.xml` with a focusable Reload action.
 
 ## Known boundaries
 

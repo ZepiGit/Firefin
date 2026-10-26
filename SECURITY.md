@@ -48,12 +48,14 @@ completed security audit; open items are listed below.
 - **Tokens.** The access token is sent in the `Authorization` header only.
   Firefin does not append it to image, stream or HLS URLs, so it does not
   appear in image cache keys. Cookies are removed from outgoing requests.
-  A helper that strips `api_key`-style parameters exists in `Urls` but is not
-  wired into playback; media URLs returned by the server are used as-is if they
-  are same-origin.
+  Media URLs returned by the server are used as-is if they are same-origin;
+  the app never appends a token to them.
 - **Limits.** REST responses larger than 8 MiB are rejected; REST calls time
   out after 25 s. Media calls have no total limit, but a read that receives no
   data for 30 s fails. Request cancellation cancels the underlying OkHttp call.
+  A request that fails because the server closed an idle keep-alive socket is
+  retried once on a new connection; request bodies are one-shot, so a POST
+  that was already sent is never repeated.
 - **Storage.** The session (server URL, user, access token, device ID) is kept
   in app-private SharedPreferences, unencrypted, with `allowBackup="false"`.
   Sign-out asks the server to revoke the token (`POST /Sessions/Logout`, best
@@ -107,7 +109,6 @@ releases page as history and carry this limitation.
 - Repository-level signing secrets: move them into the `firefin-release`
   environment.
 - Dependency lock/verification metadata (versions are pinned, hashes are not).
-- Wiring token/query stripping for server-supplied media URLs, if required.
 
 ## Reporting
 
