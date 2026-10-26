@@ -117,7 +117,9 @@ class PlayerActivity : AppCompatActivity() {
         playerView.setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { visibility ->
             findViewById<android.view.View>(R.id.playerActions).visibility = visibility
         })
-        engine = PlaybackEngine(this, playbackTransport.mediaHttp).also { e ->
+        // The snapshot's client is resolved on Media3's loader thread, so a cold restore straight
+        // into the player never waits for the lazy TLS stack on the main thread.
+        engine = PlaybackEngine(this, okhttp3.Call.Factory { request -> playbackTransport.mediaHttp.newCall(request) }).also { e ->
             playerView.player = e.player
             e.player.addListener(playerListener)
             subtitleIndex?.let { e.applySubtitleChoice(it >= 0, subtitleLanguage(sourceTracks, it)) }

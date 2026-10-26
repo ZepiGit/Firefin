@@ -52,6 +52,12 @@ class HomeActivity : AppCompatActivity() {
     private var latestRows = emptyList<HomeRow>()
     /** Read once per resume instead of hashing the account key on every focus change. */
     private var backdropsEnabled = true
+    private var lastKeyUptime = 0L
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        lastKeyUptime = event.eventTime
+        return super.dispatchKeyEvent(event)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -193,13 +199,16 @@ class HomeActivity : AppCompatActivity() {
      */
     private fun showRows(rows: List<HomeRow>) {
         val hadRowFocus = rowsView.hasFocus()
+        val submittedAt = android.os.SystemClock.uptimeMillis()
         rowsAdapter.submitRows(rows)
         val empty = rowsAdapter.itemCount == 0
         emptyView.text = if (empty) getString(R.string.empty_home) else ""
         stateView.visibility = if (empty) View.VISIBLE else View.GONE
         retryButton.visibility = View.GONE
         if (hadRowFocus) rowsView.afterNextLayout {
-            // The framework may have parked focus nowhere, on the list itself or on the toolbar.
+            // A key press since the submit means the user moved on purpose; otherwise the framework
+            // may have parked focus nowhere, on the list itself or on the toolbar.
+            if (lastKeyUptime > submittedAt) return@afterNextLayout
             val kept = rowsView.findFocus()
             if (kept == null || kept === rowsView) rowsView.getChildAt(0)?.findViewById<RecyclerView>(R.id.rowItems)?.getChildAt(0)?.requestFocus()
         }

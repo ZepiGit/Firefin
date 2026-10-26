@@ -21,14 +21,14 @@ import androidx.media3.datasource.okhttp.OkHttpDataSource
  * exactly one owner of focus per playback session.
  */
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
-class PlaybackEngine(context: Context, okHttpClient: okhttp3.OkHttpClient) {
+class PlaybackEngine(context: Context, callFactory: okhttp3.Call.Factory) {
 
     val player: ExoPlayer = ExoPlayer.Builder(
         context,
         DefaultRenderersFactory(context).setEnableDecoderFallback(true),
     )
         .setMediaSourceFactory(
-            DefaultMediaSourceFactory(OkHttpDataSource.Factory(okHttpClient)),
+            DefaultMediaSourceFactory(OkHttpDataSource.Factory(callFactory)),
         )
         // Media3's defaults buffer 50 s and size the byte target from the renderers;
         // on a 1 GB device the sample queue lives in the Java heap next to the
