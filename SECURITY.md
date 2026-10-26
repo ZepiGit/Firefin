@@ -117,3 +117,13 @@ Use GitHub's private vulnerability reporting for this repository when it is
 enabled. Until then, open an issue that only asks for a private contact and
 contains no exploit details. Include affected version, reproduction steps,
 impact and a minimal sanitized log in the private report.
+
+## Quick Connect
+
+Quick Connect initiation and polling use a transport bound to the address
+entered for that attempt, without an old account token. The code and secret
+stay in memory and expire with the five-minute attempt. Only the final
+Jellyfin access token and user identity enter the existing session store.
+Cancellation discards late responses. HTTP requires the same confirmation
+as password sign-in; TLS and origin checks are unchanged. Quick Connect
+does not supply a password to the optional Seerr bridge.

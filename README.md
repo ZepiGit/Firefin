@@ -27,7 +27,8 @@ Firefin is a 32-bit native Android TV application for watching, discovering and 
 - Media details with descriptions, release information, playback actions and watched state
 - Series browsing with seasons and episodes
 - Jellyfin library search alongside Seerr/Moonbase discovery results
-- Media3 playback with audio and subtitle selection, resume support and D-pad controls
+- Media3 playback with resume, automatic next episodes, segment skipping and D-pad controls
+- Quick Connect sign-in, configurable home rows, library filters and subtitle size/language preferences
 - Seerr request discovery, title details, season selection and confirmation flows
 
 This project is not about being the best Jellyfin/Moonfin alternative. It doesn't even aim to be a good Jellyfin/Moonfin player at all. The goal is to give perfectly fine old devices, which became obsolete because no native app supports them anymore, a purpose again and restore compatibility.

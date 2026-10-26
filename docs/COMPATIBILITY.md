@@ -65,8 +65,19 @@ Player, controller hidden: Left/Right and Rewind/Fast Forward seek 10 s;
 Center/Up/Down/Menu show the controller; Play/Pause toggles playback. Controller
 visible: Menu hides it, Up opens the audio-track dialog, Down the subtitle
 dialog, other keys navigate the controller. Back hides the visible controller
-first; a subsequent Back leaves the player. The player closes by itself at the
-end of the media; a playback error offers Retry or Back.
+first; a subsequent Back leaves the player. At episode end, the next-episode overlay owns D-pad and Back input. With
+Autoplay enabled it counts down ten seconds; after three automatic advances
+it requires confirmation. Back closes the player. A visible segment cue
+accepts Center to skip or Back to dismiss while the controller is hidden.
+Without a next episode, the player closes at media end; errors offer Retry
+or Back.
+
+Jellyfin route generations are selected per server with a 404 fallback.
+Removing only the resume position needs the 10.9+ user-data route and is
+hidden for detected 10.8 servers. Segment skipping needs server-provided
+media segments (10.10+); missing routes disable it. Quick Connect must be
+enabled by the server. These contracts have fixture tests; live-server
+version interoperability still needs validation.
 
 
 ## Legacy Flutter app (history only)

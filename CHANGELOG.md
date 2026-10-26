@@ -11,6 +11,32 @@ preserved unchanged as history.
 Audit and overhaul of the native app; the findings, evidence and plan are in
 `docs/AUDIT_2026-10-26.md` (German). Version identity is unchanged.
 
+Features:
+
+- The player offers the next episode with an optional ten-second countdown,
+  reuses the same decoder and asks for confirmation after three automatic
+  advances. Leaving the foreground cancels the countdown.
+- Intro, recap, preview and commercial segments can be skipped when the
+  Jellyfin server supplies them. Back dismisses a cue; unsupported servers
+  continue without segment controls.
+- MENU on a Jellyfin card opens watched, favorite and series actions. On
+  supported servers, removing a resume position preserves watched history.
+- Home adds a favorites row, four section-order presets and the server's
+  latest-library exclusions. Libraries add watched-state and genre filters.
+- Text subtitles have three sizes and a contrast background; language
+  preferences cover eight languages with ISO and regional aliases.
+- Quick Connect signs in with a code approved in another Jellyfin client.
+  Polling is cancellable and expires after five minutes; the secret is never
+  persisted. Password sign-in and its optional Seerr bridge remain available.
+
+Additional compatibility fixes:
+
+- User-scoped API routes select their generation per server, with a 404
+  fallback for older Jellyfin versions. Live-stream cleanup sends its id in
+  the query string.
+- Playback chooses a directly playable version before negotiating language
+  preferences. Transport-stream seeks retain external subtitles.
+
 Fixes:
 
 - D-pad focus no longer leaves a row or grid sideways: RIGHT on the last card
@@ -60,10 +86,10 @@ Interface (10-foot rework):
   Playback, Interface and Account. The player controller hides the shuffle,
   previous/next, subtitle and settings controls that the top bar replaces.
 
-Verification (local, 2026-10-26): 95 JVM unit tests pass; strict debug and
-release lint report 0 errors and 0 warnings (before: 74 warnings); the
-unsigned release APK is 2 605 114 bytes (before: 2 921 708) and both APKs pass
-the verifier. The reworked screens were exercised on an API-22 x86 emulator
+Verification (local, 2026-10-26, including the feature round): 120 JVM unit
+tests pass; strict debug and release lint report 0 errors and 0 warnings
+(before: 74 warnings); the unsigned release APK is 2 629 202 bytes (before:
+2 921 708) and both APKs pass the verifier. The reworked screens were exercised on an API-22 x86 emulator
 without hardware acceleration against a local fixture server; captures of the
 old and new interface are in `docs/screenshots/audit-2026-10-26/`. Playback and
 physical AFTT hardware were not exercised.

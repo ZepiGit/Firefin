@@ -47,11 +47,37 @@ The standard local verification command is:
 ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug :app:lintRelease :app:assembleDebug :app:assembleRelease
 ```
 
-The 2026-10-26 overhaul (unreleased) has local evidence of 95 JVM tests, strict debug/release lint with 0 errors and 0 warnings, both APK verifiers and an API-22 x86 emulator tour of the reworked screens (`docs/screenshots/audit-2026-10-26/`); the findings and the implementation record are in `AUDIT_2026-10-26.md` (German).
+The 2026-10-26 overhaul and feature round (unreleased) have local evidence of 120 JVM tests, strict debug/release lint with 0 errors and 0 warnings, both APK verifiers and an API-22 x86 emulator tour of the reworked screens (`docs/screenshots/audit-2026-10-26/`); the findings and the implementation record are in `AUDIT_2026-10-26.md` (German).
 
 Version `0.2.5-firefin` has local evidence of 83 JVM tests, strict debug/release lint with 0 errors, APK verification, debug/unsigned-release assembly and two instrumented tests on the API-22 x86 emulator. Earlier emulator records cover login, navigation, search, Seerr flows, artwork, playback controls and resume; see the [migration ledger](FIREFIN_MIGRATION.md).
 
 Signed releases are built only by the protected release workflow, which requires signing credentials stored outside this repository. Releases `0.2.3-firefin`, `0.2.4-firefin` and `0.2.5-firefin` were built and verified against the pinned production certificate this way. None has been validated on physical AFTT hardware.
+
+## Browsing and playback features
+
+Home section presets and subtitle preferences are stored per server and
+user. A missing home order defaults to resume, next-up, favorites and latest;
+previously saved orders remain unchanged. The latest group respects
+`Users/Me` library exclusions. Library filters and genre selection reset
+pagination; card-menu mutations update matching visible cards.
+
+Episode playback reuses one ExoPlayer and credential snapshot. Every attempt
+finishes its reporter once; switching awaits the pending terminal report
+before negotiating and starting the next session. Automatic advances use a
+ten-second countdown and require confirmation after three unattended
+switches. Any remote input resets the unattended counter. Pausing cancels a
+countdown and returning leaves the choice to the user.
+
+Jellyfin media segments expose manual skip controls for Intro, Recap,
+Preview and Commercial. Missing routes and metadata leave playback usable;
+Outro is intentionally ignored. Absolute segment times are converted into
+the player's timeline before seeking, including restarted TS transcodes.
+
+Quick Connect uses an address-bound transport for initiation, polling and
+final authentication, with a five-minute deadline. Its code and secret live
+only in the attempt; cancellation prevents late completion from saving a
+session. It does not open the Seerr password bridge, so Requests may ask for
+a separate sign-in. The existing HTTP confirmation and TLS policy apply.
 
 ## Interface tokens
 
@@ -74,7 +100,6 @@ The following are not claimed complete for the slim native target:
 - DLNA
 - Administrative workflows
 - Plugin synchronization
-- Jellyfin Quick Connect sign-in
 - Seerr people, administrator and 4K workflows
 
 These boundaries are intentional and are kept visible so that “compatible” does not imply unsupported feature parity.
