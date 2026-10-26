@@ -58,6 +58,7 @@ class PlayerActivity : AppCompatActivity() {
     private var resumed = false
     private var sourceId = ""
     private var directPlay = false
+    private var dialog: android.app.Dialog? = null
     private lateinit var playbackTransport: zepigit.firefin.app.data.ServerTransport
 
     private val playerListener = object : Player.Listener {
@@ -170,13 +171,22 @@ class PlayerActivity : AppCompatActivity() {
         val positionMs = actualPositionMs(p)
         session.finish(Ticks.fromMs(positionMs))
         if (isFinishing || isDestroyed) return
-        AlertDialog.Builder(this)
+        showDialog(AlertDialog.Builder(this)
             .setTitle(R.string.playback_error_title)
             .setMessage(playbackErrorMessage(error))
             .setPositiveButton(R.string.retry) { _, _ -> renegotiate(audioIndex, subtitleIndex, positionMs, resumePlaying = true) }
             .setNegativeButton(R.string.back) { _, _ -> finish() }
             .setOnCancelListener { finish() }
-            .show()
+            .create())
+    }
+
+    /** At most one dialog at a time, and none outliving the activity (WindowLeaked). */
+    private fun showDialog(next: android.app.Dialog) {
+        dialog?.setOnDismissListener(null)
+        dialog?.dismiss()
+        dialog = next
+        next.setOnDismissListener { if (dialog === next) dialog = null }
+        next.show()
     }
 
     private fun playbackErrorMessage(error: PlaybackException): String = when (error.errorCode) {
@@ -203,6 +213,9 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        dialog?.setOnDismissListener(null)
+        dialog?.dismiss()
+        dialog = null
         val p = engine?.player
         if (p != null) {
             val positionTicks = Ticks.fromMs(actualPositionMs(p))
@@ -231,9 +244,15 @@ class PlayerActivity : AppCompatActivity() {
             consumedBack = false
             return true
         }
-        if (keyCode == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE && event.action == KeyEvent.ACTION_DOWN) {
-            engine?.player?.let { if (it.playWhenReady) it.pause() else it.play() }
-            return true
+        if (event.action == KeyEvent.ACTION_DOWN) {
+            val player = engine?.player
+            when (keyCode) {
+                // HDMI-CEC and third-party remotes send separate play/pause/stop keys.
+                KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> { player?.let { if (it.playWhenReady) it.pause() else it.play() }; return true }
+                KeyEvent.KEYCODE_MEDIA_PLAY -> { player?.play(); return true }
+                KeyEvent.KEYCODE_MEDIA_PAUSE -> { player?.pause(); return true }
+                KeyEvent.KEYCODE_MEDIA_STOP -> { finish(); return true }
+            }
         }
         if (controllerVisible) {
             if (event.action == KeyEvent.ACTION_DOWN) {
@@ -289,7 +308,7 @@ class PlayerActivity : AppCompatActivity() {
         val subtitles = trackType == C.TRACK_TYPE_TEXT
         val available = sourceTracks.filter { it.type == if (subtitles) "Subtitle" else "Audio" }
         if (trackType == C.TRACK_TYPE_VIDEO || available.isEmpty() || (directPlay && !subtitles)) {
-            androidx.media3.ui.TrackSelectionDialogBuilder(this, title, player, trackType).build().show()
+            showDialog(androidx.media3.ui.TrackSelectionDialogBuilder(this, title, player, trackType).build())
             return
         }
         val labels = (if (subtitles) listOf(getString(R.string.subtitles_off)) else emptyList()) + available.map { it.title }
@@ -299,14 +318,14 @@ class PlayerActivity : AppCompatActivity() {
             subtitles && current == -1 -> 0
             else -> available.indexOfFirst { it.index == current }.let { if (it < 0) -1 else it + if (subtitles) 1 else 0 }
         }
-        AlertDialog.Builder(this).setTitle(title).setSingleChoiceItems(labels.toTypedArray(), checked) { dialog, chosen ->
-            dialog.dismiss()
+        showDialog(AlertDialog.Builder(this).setTitle(title).setSingleChoiceItems(labels.toTypedArray(), checked) { chooser, chosen ->
+            chooser.dismiss()
             val index = if (subtitles && chosen == 0) -1 else available[chosen - if (subtitles) 1 else 0].index
             val p = engine?.player ?: return@setSingleChoiceItems
             if (index == current) return@setSingleChoiceItems
             if (subtitles) renegotiate(audioIndex, index, actualPositionMs(p), p.playWhenReady)
             else renegotiate(index, subtitleIndex, actualPositionMs(p), p.playWhenReady)
-        }.show()
+        }.create())
     }
 
     /**
