@@ -36,7 +36,9 @@ class MediaCardAdapter(
     }
     fun positionOf(item: MediaItem) = items.indexOfFirst { it.id == item.id }
     override fun getItemCount() = items.size
-    override fun getItemId(position: Int) = items[position].id.hashCode().toLong()
+    override fun getItemId(position: Int) = stableId(items[position].id)
+    /** Poster and landscape holders must never be swapped through a shared pool. */
+    override fun getItemViewType(position: Int) = if (posterStyle) TYPE_POSTER else TYPE_LANDSCAPE
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder = Holder(
         LayoutInflater.from(parent.context).inflate(if (posterStyle) R.layout.item_card else R.layout.item_card_landscape, parent, false),
     )
@@ -64,7 +66,8 @@ class MediaCardAdapter(
             val tag = when (type) { "Primary" -> item.posterTag; "Thumb" -> item.thumbTag; else -> item.backdropTag }
             val url = Urls.imageUrl(ServiceLocator.client.baseUrl, item.id, type, width, tag,
                 maxHeight = if (type == "Primary") ArtworkPolicy.POSTER_MAX_HEIGHT else null)
-            ServiceLocator.images.load(url, ArtworkPolicy.decodeBucket(width), holder.image)
+            // Decode for the card's own pixel width, not the server request class (a 440 px landscape card needs 480, not 640).
+            ServiceLocator.images.load(url, ArtworkPolicy.decodeBucket(holder.card.layoutParams.width), holder.image)
         }
         holder.card.setOnClickListener { onClick(item) }
         // Card focus expansion is locked off on this target (EffectiveDevicePreferences);
@@ -86,6 +89,18 @@ class MediaCardAdapter(
         val name: TextView = view.findViewById(R.id.name)
         val subtitle: TextView = view.findViewById(R.id.subtitle)
     }
+
+    companion object {
+        const val TYPE_POSTER = 1
+        const val TYPE_LANDSCAPE = 2
+    }
+}
+
+/** 64-bit FNV-1a of [key]; String.hashCode is 32-bit and collides in large libraries, which confuses focus restore. */
+fun stableId(key: String): Long {
+    var hash = -0x340d631b7bdddcdbL
+    for (byte in key.toByteArray(Charsets.UTF_8)) hash = (hash xor (byte.toLong() and 0xff)) * 0x100000001b3L
+    return hash
 }
 
 data class HomeRow(val title: String, val items: List<MediaItem>, val libraryId: String? = null, val libraryName: String? = null, val libraryType: String = "", val landscape: Boolean = false)
@@ -97,13 +112,18 @@ class HomeRowsAdapter(
 ) : RecyclerView.Adapter<HomeRowsAdapter.RowHolder>() {
     init { setHasStableIds(true) }
     private val rows = mutableListOf<HomeRow>()
+    /** Card views are shared across rows, so scrolling down reuses holders instead of inflating a fresh set per row. */
+    private val cardPool = RecyclerView.RecycledViewPool().apply {
+        setMaxRecycledViews(MediaCardAdapter.TYPE_POSTER, 16)
+        setMaxRecycledViews(MediaCardAdapter.TYPE_LANDSCAPE, 12)
+    }
     fun submitRows(newRows: List<HomeRow>) {
         val visible = newRows.filter { it.items.isNotEmpty() }
         if (rows == visible) return
         rows.clear(); rows.addAll(visible); notifyDataSetChanged()
     }
     override fun getItemCount() = rows.size
-    override fun getItemId(position: Int) = rows[position].title.hashCode().toLong()
+    override fun getItemId(position: Int) = stableId(rows[position].title)
     override fun getItemViewType(position: Int) = if (rows[position].landscape) 1 else 0
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RowHolder = RowHolder(LayoutInflater.from(parent.context).inflate(R.layout.view_home_row, parent, false))
     override fun onBindViewHolder(holder: RowHolder, position: Int) {
@@ -114,7 +134,8 @@ class HomeRowsAdapter(
         holder.title.isClickable = library
         holder.title.setOnClickListener(if (library) View.OnClickListener { onRowTitle(UserView(row.libraryId!!, row.libraryName ?: row.title, row.libraryType)) } else null)
         if (holder.items.adapter == null || holder.items.adapter is MediaCardAdapter && (holder.items.adapter as MediaCardAdapter).posterStyleForBinding != !row.landscape) {
-            holder.items.layoutManager = LinearLayoutManager(holder.items.context, LinearLayoutManager.HORIZONTAL, false)
+            holder.items.layoutManager = LinearLayoutManager(holder.items.context, LinearLayoutManager.HORIZONTAL, false).apply { initialPrefetchItemCount = 6 }
+            holder.items.setRecycledViewPool(cardPool)
             holder.items.adapter = MediaCardAdapter(posterStyle = !row.landscape, onFocus = onFocus, onClick = onItem)
         }
         (holder.items.adapter as MediaCardAdapter).submit(row.items)
