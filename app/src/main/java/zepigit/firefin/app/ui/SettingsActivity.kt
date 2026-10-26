@@ -62,6 +62,11 @@ class SettingsActivity : AppCompatActivity() {
         setting(R.id.subtitleLanguageButton, R.string.setting_subtitle_language, { stored -> subtitleLabels[zepigit.firefin.app.preferences.Languages.CODES.indexOf(stored.subtitleLanguage).coerceAtLeast(0)] }) { refresh ->
             choose(R.string.subtitle_language_title, R.array.subtitle_language_options, refresh) { stored, index -> stored.copy(subtitleLanguage = zepigit.firefin.app.preferences.Languages.CODES[index]) }
         }
+        setting(R.id.autoPlayNextButton, R.string.setting_auto_next, { getString(if (it.autoPlayNext) R.string.state_on else R.string.state_off) }) { refresh ->
+            val stored = ServiceLocator.preferences.stored()
+            ServiceLocator.preferences.save(stored.copy(autoPlayNext = !stored.autoPlayNext))
+            refresh()
+        }
         val sizeLabels = resources.getStringArray(R.array.subtitle_size_options)
         setting(R.id.subtitleSizeButton, R.string.setting_subtitle_size, { sizeLabels[it.subtitleSize.coerceIn(0, 2)] }) { refresh ->
             choose(R.string.setting_subtitle_size, R.array.subtitle_size_options, refresh) { stored, index -> stored.copy(subtitleSize = index) }

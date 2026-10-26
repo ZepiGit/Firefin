@@ -458,4 +458,19 @@ class JellyfinClientTest {
         assertEquals("Movie,BoxSet", genres.queryParameter("includeItemTypes"))
         assertEquals(setOf("lib2"), client.latestExcludes())
     }
+    @Test fun `next episode requires current episode first and uses bound credentials`() = runBlocking {
+        session.serverUrl = address(); session.userId = "u1"; session.accessToken = "tok"
+        val bound = client.transportSnapshot()
+        server.enqueue(MockResponse().setBody("""{"Items":[{"Id":"e1","Type":"Episode"},{"Id":"e2","Type":"Episode","SeriesId":"s1"}]}"""))
+        assertEquals("e2", client.nextEpisode("s1", "e1", bound)?.id)
+        val url = server.takeRequest(2, TimeUnit.SECONDS)!!.requestUrl!!
+        assertEquals("/Shows/s1/Episodes", url.encodedPath)
+        assertEquals("e1", url.queryParameter("startItemId"))
+        assertEquals("2", url.queryParameter("limit"))
+        assertEquals("false", url.queryParameter("isMissing"))
+        server.enqueue(MockResponse().setBody("""{"Items":[{"Id":"wrong","Type":"Episode"},{"Id":"e2","Type":"Episode"}]}"""))
+        assertEquals(null, client.nextEpisode("s1", "e1", bound))
+        server.enqueue(MockResponse().setBody("""{"Items":[{"Id":"e1","Type":"Episode"}]}"""))
+        assertEquals(null, client.nextEpisode("s1", "e1", bound))
+    }
 }

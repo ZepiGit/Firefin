@@ -168,6 +168,13 @@ class JellyfinClient(private val session: SessionStore, trust: Lazy<HandshakeCer
         parseItems(getJson(path))
     }
 
+    suspend fun nextEpisode(seriesId: String, itemId: String, bound: ServerTransport): MediaItem? = withContext(Dispatchers.IO) {
+        val path = "Shows/${urlEncode(seriesId)}/Episodes?userId=${urlEncode(bound.credentials().userId)}&startItemId=${urlEncode(itemId)}&limit=2&isMissing=false&fields=Overview"
+        val items = parseItems(JSONObject(bound.json(path)))
+        if (items.firstOrNull()?.id != itemId) null
+        else items.getOrNull(1)?.takeIf { it.isEpisode && it.id.isNotBlank() && it.id != itemId }
+    }
+
     suspend fun randomItem(): MediaItem? = withContext(Dispatchers.IO) {
         items(limit = 1, sortBy = "Random", sortOrder = "Ascending", includeTypes = "Movie,Series,Episode", recursive = true).first.firstOrNull()
     }

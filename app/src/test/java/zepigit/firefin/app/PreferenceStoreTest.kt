@@ -12,7 +12,7 @@ class PreferenceStoreTest {
         val prefs = InMemoryPrefs()
         val store = PreferenceStore(prefs, session)
         assertEquals(StoredPreferences(), store.stored())
-        val old = StoredPreferences(homeSectionOrder = listOf("resume", "nextUp", "latest"), backdropEnabled = false, preferredHeight = 720, subtitleSize = 2, audioLanguage = "fr", subtitleLanguage = "pt")
+        val old = StoredPreferences(homeSectionOrder = listOf("resume", "nextUp", "latest"), backdropEnabled = false, preferredHeight = 720, subtitleSize = 2, autoPlayNext = false, audioLanguage = "fr", subtitleLanguage = "pt")
         store.save(old)
         assertEquals(old, PreferenceStore(prefs, session).stored())
         session.userId = "b"

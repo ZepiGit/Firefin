@@ -270,6 +270,7 @@ class DetailActivity : AppCompatActivity() {
                     mediaSourceId = source.mediaSourceId,
                     startMs = Ticks.toMs(startTicks),
                     name = displayName(loaded),
+                    seriesId = loaded.seriesId.takeIf { loaded.isEpisode },
                     isTranscode = source.isTranscode,
                     isHls = source.isHls,
                     liveStreamId = source.liveStreamId,

@@ -46,6 +46,10 @@
             style="@style/Firefin.Button.Setting" />
 
         <Button
+            android:id="@+id/autoPlayNextButton"
+            style="@style/Firefin.Button.Setting" />
+
+        <Button
             android:id="@+id/subtitleSizeButton"
             style="@style/Firefin.Button.Setting" />
 

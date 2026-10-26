@@ -264,4 +264,11 @@
         <item>Groß</item>
         <item>Sehr groß</item>
     </string-array>
+    <string name="setting_auto_next">Nächste Folge automatisch abspielen</string>
+    <string name="next_episode_title">Nächste Folge · %1$s</string>
+    <string name="still_watching">Noch dabei?</string>
+    <string name="continue_playback">Weiter</string>
+    <string name="play_now">Jetzt abspielen</string>
+    <string name="play_next_countdown">Jetzt abspielen (%1$d)</string>
+    <string name="stop_playback">Player schließen</string>
 </resources>

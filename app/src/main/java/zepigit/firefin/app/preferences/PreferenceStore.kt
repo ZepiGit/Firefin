@@ -20,6 +20,7 @@ class PreferenceStore(private val prefs: android.content.SharedPreferences, priv
         prefs.getString(key("audioLanguage"), "").orEmpty(),
         prefs.getString(key("subtitleLanguage"), "").orEmpty(),
         prefs.getInt(key("subtitleSize"), 0).coerceIn(0, 2),
+        prefs.getBoolean(key("autoPlayNext"), true),
     )
     fun effective() = deriveEffective(stored(), DeviceProfile.MAX_WIDTH, DeviceProfile.MAX_HEIGHT, DeviceProfile.MAX_BITRATE)
     fun save(value: StoredPreferences) {
@@ -27,6 +28,7 @@ class PreferenceStore(private val prefs: android.content.SharedPreferences, priv
             .putString(key("homeSectionOrder"), value.homeSectionOrder.joinToString(","))
             .putLong(key("preferredBitrate"), value.preferredBitrate).putInt(key("preferredHeight"), value.preferredHeight)
             .putString(key("audioLanguage"), value.audioLanguage).putString(key("subtitleLanguage"), value.subtitleLanguage)
-            .putInt(key("subtitleSize"), value.subtitleSize.coerceIn(0, 2)).apply()
+            .putInt(key("subtitleSize"), value.subtitleSize.coerceIn(0, 2))
+            .putBoolean(key("autoPlayNext"), value.autoPlayNext).apply()
     }
 }

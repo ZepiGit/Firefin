@@ -60,4 +60,38 @@
             android:layout_marginLeft="@dimen/space_s"
             android:text="@string/track_video" />
     </LinearLayout>
+    <LinearLayout
+        android:id="@+id/nextOverlay"
+        android:layout_width="480dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|right"
+        android:layout_margin="@dimen/page_margin"
+        android:background="@drawable/panel_background"
+        android:orientation="vertical"
+        android:padding="@dimen/space_l"
+        android:visibility="gone">
+        <TextView
+            android:id="@+id/nextTitle"
+            style="@style/Firefin.Text.Subheading"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+        <Button
+            android:id="@+id/nextPlay"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:nextFocusUp="@id/nextPlay"
+            android:nextFocusLeft="@id/nextPlay"
+            android:nextFocusRight="@id/nextPlay"
+            android:nextFocusDown="@id/nextClose"
+            android:text="@string/play_now" />
+        <Button
+            android:id="@+id/nextClose"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:nextFocusUp="@id/nextPlay"
+            android:nextFocusLeft="@id/nextClose"
+            android:nextFocusRight="@id/nextClose"
+            android:nextFocusDown="@id/nextClose"
+            android:text="@string/stop_playback" />
+    </LinearLayout>
 </FrameLayout>

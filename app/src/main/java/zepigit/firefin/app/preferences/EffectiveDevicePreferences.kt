@@ -15,6 +15,7 @@ data class StoredPreferences(
     val audioLanguage: String = "",
     val subtitleLanguage: String = "",
     val subtitleSize: Int = 0,
+    val autoPlayNext: Boolean = true,
 )
 
 data class EffectiveDevicePreferences(
@@ -53,4 +54,5 @@ fun serializeStored(prefs: StoredPreferences): Map<String, String> = mapOf(
     "audioLanguage" to prefs.audioLanguage,
     "subtitleLanguage" to prefs.subtitleLanguage,
     "subtitleSize" to prefs.subtitleSize.toString(),
+    "autoPlayNext" to prefs.autoPlayNext.toString(),
 )

@@ -47,6 +47,16 @@ class PlayerActivity : AppCompatActivity() {
     private val session = PlaybackSessionTracker()
 
     private var itemId = ""
+    private var seriesId: String? = null
+    private var attempt = 0
+    private val nextGate = zepigit.firefin.app.playback.NextUpGate()
+    private var nextEpisode: zepigit.firefin.app.data.MediaItem? = null
+    private var nextLookup: Job? = null
+    private var countdown: Job? = null
+    private var pendingTerminal: SessionReporter? = null
+    private var automaticPending = false
+    private lateinit var nextOverlay: android.view.View
+    private lateinit var nextPlay: android.widget.Button
     private var isTranscode = false
     private var isHls = false
     private var transcodeOffsetMs = 0L
@@ -64,6 +74,10 @@ class PlayerActivity : AppCompatActivity() {
 
     private val playerListener = object : Player.Listener {
         override fun onPlaybackStateChanged(playbackState: Int) {
+            if (playbackState == Player.STATE_READY && automaticPending) {
+                automaticPending = false
+                nextGate.advancedAutomatically()
+            }
             if (playbackState == Player.STATE_ENDED) endPlayback()
         }
 
@@ -81,6 +95,7 @@ class PlayerActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_player)
         itemId = intent.getStringExtra(EXTRA_ITEM) ?: return finish()
+        seriesId = intent.getStringExtra(EXTRA_SERIES)
         val playSessionId = intent.getStringExtra(EXTRA_SESSION) ?: ""
         val url = intent.getStringExtra(EXTRA_URL) ?: return finish()
         val startMs = intent.getLongExtra(EXTRA_START, 0L)
@@ -116,6 +131,10 @@ class PlayerActivity : AppCompatActivity() {
                 android.graphics.Color.BLACK, null))
             setApplyEmbeddedStyles(false)
         }
+        nextOverlay = findViewById(R.id.nextOverlay)
+        nextPlay = findViewById(R.id.nextPlay)
+        nextPlay.setOnClickListener { nextEpisode?.let { switchEpisode(it, automatic = false) } }
+        findViewById<android.view.View>(R.id.nextClose).setOnClickListener { finish() }
         // The controller's settings popup (speed, audio) duplicates the top bar and is awkward with a D-pad.
         playerView.findViewById<android.view.View>(androidx.media3.ui.R.id.exo_settings)?.visibility = android.view.View.GONE
         findViewById<android.widget.TextView>(R.id.playerTitle).text = name
@@ -127,6 +146,7 @@ class PlayerActivity : AppCompatActivity() {
         })
         // The snapshot's client is resolved on Media3's loader thread, so a cold restore straight
         // into the player never waits for the lazy TLS stack on the main thread.
+        session.start(SessionReporter(playbackTransport, itemId, playSessionId, sourceId, playMethod, intent.getStringExtra(EXTRA_LIVE_STREAM).orEmpty(), ServiceLocator.client.cleanupEncodings()))
         engine = PlaybackEngine(this, okhttp3.Call.Factory { request -> playbackTransport.mediaHttp.newCall(request) }).also { e ->
             playerView.player = e.player
             e.player.addListener(playerListener)
@@ -134,7 +154,7 @@ class PlayerActivity : AppCompatActivity() {
             e.prepare(playbackUrl, timeline.preparePositionMs, intent.getStringExtra(EXTRA_SUBTITLE_URL), intent.getStringExtra(EXTRA_SUBTITLE_MIME))
         }
 
-        session.start(SessionReporter(playbackTransport, itemId, playSessionId, sourceId, playMethod, intent.getStringExtra(EXTRA_LIVE_STREAM).orEmpty(), ServiceLocator.client.cleanupEncodings()))
+        loadNextEpisode()
         scope.launch {
             while (isActive) {
                 delay(10_000)
@@ -170,19 +190,72 @@ class PlayerActivity : AppCompatActivity() {
         player.playWhenReady = true
     }
 
-    /** Natural end: report the final position once and leave the player. */
+    private fun finishAttempt(positionMs: Long): SessionReporter? {
+        session.finish(Ticks.fromMs(positionMs))?.let { pendingTerminal = it }
+        return pendingTerminal
+    }
+
+    private fun loadNextEpisode() {
+        nextLookup?.cancel()
+        nextEpisode = null
+        val series = seriesId ?: return
+        val ownAttempt = attempt
+        val ownItem = itemId
+        nextLookup = scope.launch {
+            try {
+                val next = ServiceLocator.client.nextEpisode(series, ownItem, playbackTransport)
+                if (attempt == ownAttempt) nextEpisode = next
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+            catch (_: Exception) { /* Optional metadata: playback can finish without a next episode. */ }
+        }
+    }
+
     private fun endPlayback() {
-        if (switching) return
+        if (switching || !nextGate.endOnce()) return
         val p = engine?.player ?: return
-        session.finish(Ticks.fromMs(actualPositionMs(p)))
-        finish()
+        finishAttempt(actualPositionMs(p))
+        val ownAttempt = attempt
+        scope.launch {
+            nextLookup?.join()
+            if (ownAttempt != attempt || isFinishing || isDestroyed) return@launch
+            val next = nextEpisode ?: return@launch finish()
+            playerView.hideController()
+            playerView.useController = false
+            nextOverlay.visibility = android.view.View.VISIBLE
+            val confirmation = nextGate.needsConfirmation()
+            findViewById<android.widget.TextView>(R.id.nextTitle).text = if (confirmation) getString(R.string.still_watching)
+                else getString(R.string.next_episode_title, listOfNotNull(next.episodeCode, next.name).joinToString(" · "))
+            nextPlay.setText(if (confirmation) R.string.continue_playback else R.string.play_now)
+            nextPlay.requestFocus()
+            if (resumed && nextGate.countdownEnabled(ServiceLocator.preferences.stored().autoPlayNext)) {
+                countdown = scope.launch {
+                    for (seconds in 10 downTo 1) {
+                        nextPlay.text = getString(R.string.play_next_countdown, seconds)
+                        delay(1_000)
+                    }
+                    if (resumed && ownAttempt == attempt) switchEpisode(next, automatic = true)
+                }
+            }
+        }
+    }
+
+    private fun cancelCountdown() {
+        countdown?.cancel()
+        countdown = null
+        if (::nextPlay.isInitialized) nextPlay.setText(R.string.play_now)
+    }
+
+    private fun switchEpisode(next: zepigit.firefin.app.data.MediaItem, automatic: Boolean) {
+        renegotiate(null, null, Ticks.toMs(next.resumeTicks).coerceAtLeast(0), resumePlaying = true, next = next, automatic = automatic)
     }
 
     /** A fatal error ends the session; the user may retry at the same position or leave. */
     private fun showPlaybackError(error: PlaybackException) {
         val p = engine?.player ?: return
         val positionMs = actualPositionMs(p)
-        session.finish(Ticks.fromMs(positionMs))
+        finishAttempt(positionMs)
+        automaticPending = false
+        cancelCountdown()
         if (isFinishing || isDestroyed) return
         showDialog(AlertDialog.Builder(this)
             .setTitle(R.string.playback_error_title)
@@ -219,6 +292,7 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun onPause() {
         resumed = false
+        cancelCountdown()
         super.onPause()
         val p = engine?.player ?: return
         p.pause()
@@ -249,12 +323,25 @@ class PlayerActivity : AppCompatActivity() {
      * are consumed; everything else (notably BACK) reaches the framework.
      */
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        val controllerVisible = playerView.isControllerFullyVisible
+        if (!::playerView.isInitialized) return super.dispatchKeyEvent(event)
         val keyCode = event.keyCode
+        if (event.action == KeyEvent.ACTION_DOWN) {
+            nextGate.input()
+            automaticPending = false
+            if (::nextOverlay.isInitialized && nextOverlay.visibility == android.view.View.VISIBLE) cancelCountdown()
+        }
+        val controllerVisible = playerView.isControllerFullyVisible
         if (switching && keyCode != KeyEvent.KEYCODE_BACK) return true
         if (keyCode == KeyEvent.KEYCODE_BACK && event.action == KeyEvent.ACTION_UP && consumedBack) {
             consumedBack = false
             return true
+        }
+        if (::nextOverlay.isInitialized && nextOverlay.visibility == android.view.View.VISIBLE) {
+            if (keyCode == KeyEvent.KEYCODE_BACK) {
+                if (event.action == KeyEvent.ACTION_DOWN) { consumedBack = true; finish() }
+                return true
+            }
+            return super.dispatchKeyEvent(event)
         }
         if (event.action == KeyEvent.ACTION_DOWN) {
             val player = engine?.player
@@ -345,28 +432,44 @@ class PlayerActivity : AppCompatActivity() {
      * absolute position with this playback's own credentials. Serves server-side
      * track changes and retry after a fatal error; the new source gets a new session.
      */
-    private fun renegotiate(audio: Int?, subtitle: Int?, positionMs: Long, resumePlaying: Boolean) {
+    private fun renegotiate(audio: Int?, subtitle: Int?, positionMs: Long, resumePlaying: Boolean, next: zepigit.firefin.app.data.MediaItem? = null, automatic: Boolean = false) {
         if (switching) return
         val player = engine?.player ?: return
         val credentials = playbackTransport.credentials()
         fun sameAccount() = credentials.userId == ServiceLocator.session.userId && credentials.serverUrl == ServiceLocator.session.serverUrl && credentials.token == ServiceLocator.session.accessToken
         if (!sameAccount()) { finish(); return }
         switching = true
+        attempt++
+        nextLookup?.cancel()
+        cancelCountdown()
+        nextOverlay.visibility = android.view.View.GONE
+        playerView.useController = true
+        automaticPending = false
+        val previous = finishAttempt(if (next == null) positionMs else actualPositionMs(player))
         player.pause()
         player.stop()
         player.clearMediaItems()
-        val previous = session.finish(Ticks.fromMs(positionMs))
+        val targetId = next?.id ?: itemId
         scope.launch {
             try {
                 // Let the old session's stop and transcode cleanup reach the server first.
                 previous?.awaitTerminal()
+                pendingTerminal = null
                 if (!sameAccount()) { finish(); return@launch }
-                val source = ServiceLocator.client.playbackInfo(itemId, audio, subtitle, playbackTransport, sourceId)
+                val source = ServiceLocator.client.playbackInfo(targetId, audio, subtitle, playbackTransport, if (next == null) sourceId else null)
                 if (!sameAccount() || isFinishing || isDestroyed) {
-                    SessionReporter(playbackTransport, itemId, source.playSessionId, source.mediaSourceId, source.playMethod, source.liveStreamId, ServiceLocator.client.cleanupEncodings()).stopped(Ticks.fromMs(positionMs))
+                    SessionReporter(playbackTransport, targetId, source.playSessionId, source.mediaSourceId, source.playMethod, source.liveStreamId, ServiceLocator.client.cleanupEncodings()).stopped(Ticks.fromMs(positionMs))
                     if (!isFinishing && !isDestroyed) finish()
                     return@launch
                 }
+                if (next != null) {
+                    itemId = next.id
+                    seriesId = next.seriesId ?: seriesId
+                    title = listOf(next.seriesName, next.episodeCode.orEmpty(), next.name).filter { it.isNotBlank() }.joinToString(" · ")
+                    findViewById<android.widget.TextView>(R.id.playerTitle).text = title
+                    player.trackSelectionParameters = player.trackSelectionParameters.buildUpon().clearOverrides().build()
+                }
+                nextGate.beginAttempt()
                 sourceId = source.mediaSourceId
                 directPlay = source.playMethod == "DirectPlay"
                 audioIndex = source.audioIndex; subtitleIndex = source.subtitleIndex
@@ -377,9 +480,11 @@ class PlayerActivity : AppCompatActivity() {
                 val url = if (isTranscode && !isHls) Urls.withStartTimeTicks(source.url, Ticks.fromMs(positionMs)) else source.url
                 val chosenSubtitle = subtitleIndex ?: -1
                 engine?.applySubtitleChoice(chosenSubtitle >= 0, subtitleLanguage(sourceTracks, chosenSubtitle))
+                session.start(SessionReporter(playbackTransport, targetId, source.playSessionId, source.mediaSourceId, source.playMethod, source.liveStreamId, ServiceLocator.client.cleanupEncodings()))
+                automaticPending = automatic
                 engine?.prepare(url, timeline.preparePositionMs, source.subtitleUrl, source.subtitleMime)
                 player.playWhenReady = resumePlaying && resumed
-                session.start(SessionReporter(playbackTransport, itemId, source.playSessionId, source.mediaSourceId, source.playMethod, source.liveStreamId, ServiceLocator.client.cleanupEncodings()))
+                loadNextEpisode()
             } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
                 Toast.makeText(this@PlayerActivity, R.string.track_switch_aborted, Toast.LENGTH_LONG).show()
                 finish()
@@ -397,6 +502,7 @@ class PlayerActivity : AppCompatActivity() {
 
     companion object {
         private const val SEEK_MS = 10_000L
+        private const val EXTRA_SERIES = "p.series"
         private const val EXTRA_ITEM = "p.item"
         private const val EXTRA_URL = "p.url"
         private const val EXTRA_SESSION = "p.session"
@@ -421,6 +527,7 @@ class PlayerActivity : AppCompatActivity() {
             mediaSourceId: String,
             startMs: Long,
             name: String,
+            seriesId: String? = null,
             isTranscode: Boolean = false,
             isHls: Boolean = false,
             liveStreamId: String = "",
@@ -434,6 +541,7 @@ class PlayerActivity : AppCompatActivity() {
             context.startActivity(
                 Intent(context, PlayerActivity::class.java)
                     .putExtra(EXTRA_ITEM, itemId)
+                    .putExtra(EXTRA_SERIES, seriesId)
                     .putExtra(EXTRA_URL, url)
                     .putExtra(EXTRA_SESSION, playSessionId)
                     .putExtra(EXTRA_SOURCE, mediaSourceId)

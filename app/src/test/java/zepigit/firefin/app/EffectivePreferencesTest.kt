@@ -53,7 +53,7 @@ class EffectivePreferencesTest {
     fun `serialization contains only stored values, never device limits`() {
         val map = serializeStored(StoredPreferences(backdropEnabled = false))
         assertEquals(
-            mapOf("backdropEnabled" to "false", "homeSectionOrder" to "resume,nextUp,favorites,latest", "preferredBitrate" to "4000000", "preferredHeight" to "1080", "audioLanguage" to "", "subtitleLanguage" to "", "subtitleSize" to "0"),
+            mapOf("backdropEnabled" to "false", "homeSectionOrder" to "resume,nextUp,favorites,latest", "preferredBitrate" to "4000000", "preferredHeight" to "1080", "audioLanguage" to "", "subtitleLanguage" to "", "subtitleSize" to "0", "autoPlayNext" to "true"),
             map,
         )
         assertFalse(map.keys.any { it.contains("max", ignoreCase = true) || it.contains("blur") })

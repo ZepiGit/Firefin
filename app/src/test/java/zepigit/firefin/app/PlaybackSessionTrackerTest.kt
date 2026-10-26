@@ -87,6 +87,20 @@ class PlaybackSessionTrackerTest {
         }
     }
 
+    @Test fun `awaiting the finished reporter puts stop before next playing`() = runBlocking {
+        val tracker = PlaybackSessionTracker()
+        tracker.start(reporter("old"))
+        val pending = tracker.finish(100)!!
+        assertNull(tracker.finish(100))
+        pending.awaitTerminal()
+        tracker.start(reporter("next"))
+        tracker.finish(200)!!.awaitTerminal()
+        val events = drain()
+        val stop = events.indexOfFirst { it.path == "/Sessions/Playing/Stopped" && it.body.contains("old") }
+        val start = events.indexOfFirst { it.path == "/Sessions/Playing" && it.body.contains("next") }
+        assertTrue(stop >= 0 && start > stop)
+    }
+
     @Test(expected = IllegalStateException::class)
     fun `an active session cannot be replaced without finishing it`() {
         val tracker = PlaybackSessionTracker()

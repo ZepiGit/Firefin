@@ -264,4 +264,11 @@
         <item>Large</item>
         <item>Very large</item>
     </string-array>
+    <string name="setting_auto_next">Play next episode automatically</string>
+    <string name="next_episode_title">Next episode · %1$s</string>
+    <string name="still_watching">Still watching?</string>
+    <string name="continue_playback">Continue</string>
+    <string name="play_now">Play now</string>
+    <string name="play_next_countdown">Play now (%1$d)</string>
+    <string name="stop_playback">Close player</string>
 </resources>
