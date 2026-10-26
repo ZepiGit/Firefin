@@ -52,7 +52,10 @@ class ServerTransport(
         .connectTimeout(10, TimeUnit.SECONDS)
         .followRedirects(false)
         .followSslRedirects(false)
-        .retryOnConnectionFailure(false)
+        // Reverse proxies and Jellyfin itself close idle keep-alive sockets; a request on such a
+        // stale pooled connection is retried once on a fresh one. POST bodies are one-shot, so
+        // a request that was already sent is never repeated.
+        .retryOnConnectionFailure(true)
 
     val http: OkHttpClient by lazy { baseBuilder()
         .readTimeout(20, TimeUnit.SECONDS)

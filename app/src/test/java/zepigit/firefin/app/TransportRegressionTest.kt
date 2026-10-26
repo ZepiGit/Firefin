@@ -181,6 +181,37 @@ class TransportRegressionTest {
         assertEquals(30_000, ServerTransport(ServerCredentials("https://example.test", "u", "t"), "d").mediaHttp.readTimeoutMillis)
     }
 
+    @Test fun `a stale pooled connection is retried on a fresh socket for GET`() = runBlocking {
+        val server = MockWebServer()
+        try {
+            server.enqueue(MockResponse().setBody("{}"))
+            // The server drops the reused socket after reading the request, as a proxy closing an idle connection does.
+            server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST))
+            server.enqueue(MockResponse().setBody("{\"ok\":true}"))
+            server.start()
+            val transport = ServerTransport(ServerCredentials(server.url("/").toString(), "u", "t"), "d")
+            transport.json("System/Info")
+            // The pooled socket is closed by the server; the request must land on a new connection.
+            assertEquals("{\"ok\":true}", transport.json("System/Info"))
+            assertEquals(3, server.requestCount)
+        } finally { server.shutdown() }
+    }
+
+    @Test fun `a POST that was already sent is not repeated after a connection loss`() = runBlocking {
+        val server = MockWebServer()
+        try {
+            server.enqueue(MockResponse().setBody("{}"))
+            server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST))
+            server.enqueue(MockResponse().setBody("{}"))
+            server.start()
+            val transport = ServerTransport(ServerCredentials(server.url("/").toString(), "u", "t"), "d")
+            transport.json("System/Info")
+            val failure = runCatching { transport.json("Moonfin/Seerr/Api/request", "POST", "{\"mediaId\":1}") }.exceptionOrNull()
+            assertTrue("$failure", failure is java.io.IOException)
+            assertEquals(2, server.requestCount)
+        } finally { server.shutdown() }
+    }
+
     @Test fun `cancelling request cancels its actual okhttp call`() = runBlocking {
         val server = MockWebServer()
         server.start()
