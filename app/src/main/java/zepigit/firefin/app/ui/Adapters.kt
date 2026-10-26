@@ -3,7 +3,6 @@ package zepigit.firefin.app.ui
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -55,6 +54,12 @@ class MediaCardAdapter(
             if (item.played) append("  ✓ ").append(holder.itemView.context.getString(R.string.mark_watched))
             else if (item.resumeTicks > 0) append("  ▶ ").append(holder.itemView.context.getString(R.string.resume))
         }
+        // Resume position as a static bar under the artwork; width is set from the card's own pixel width.
+        val fraction = if (item.resumeTicks > 0 && item.runTimeTicks > 0) (item.resumeTicks.toDouble() / item.runTimeTicks).coerceIn(0.02, 1.0) else 0.0
+        holder.progress.visibility = if (fraction > 0) View.VISIBLE else View.GONE
+        if (fraction > 0) holder.progress.layoutParams = holder.progress.layoutParams.apply {
+            width = ((holder.card.layoutParams.width - 2 * holder.card.paddingLeft) * fraction).toInt()
+        }
         if (artwork != null) artwork.invoke(item, holder.image) else {
             val type = when {
                 posterStyle && item.posterTag != null -> "Primary"
@@ -71,12 +76,8 @@ class MediaCardAdapter(
         }
         holder.card.setOnClickListener { onClick(item) }
         // Card focus expansion is locked off on this target (EffectiveDevicePreferences);
-        // focus only starts the title marquee and notifies the screen.
-        holder.card.setOnFocusChangeListener { _, focused ->
-            holder.name.isSelected = focused
-            if (focused) onFocus(item)
-        }
-        holder.name.isSelected = holder.card.hasFocus()
+        // the static background selector is the whole focus effect.
+        holder.card.setOnFocusChangeListener { _, focused -> if (focused) onFocus(item) }
     }
     override fun onViewRecycled(holder: Holder) {
         ServiceLocator.images.cancel(holder.image)
@@ -84,8 +85,9 @@ class MediaCardAdapter(
         super.onViewRecycled(holder)
     }
     class Holder(view: View) : RecyclerView.ViewHolder(view) {
-        val card: FrameLayout = view.findViewById(R.id.card)
+        val card: View = view.findViewById(R.id.card)
         val image: ImageView = view.findViewById(R.id.image)
+        val progress: View = view.findViewById(R.id.progress)
         val name: TextView = view.findViewById(R.id.name)
         val subtitle: TextView = view.findViewById(R.id.subtitle)
     }

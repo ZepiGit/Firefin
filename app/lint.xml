@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Deliberate decisions for the Fire OS 5 / API 22 TV target; everything else stays at lint's default severity. -->
+<lint>
+    <!-- Newer library versions were not checked against minSdk 21 and are not taken. -->
+    <issue id="GradleDependency" severity="ignore" />
+    <!-- targetSdk 34 is intentional; 35 changes edge-to-edge and nothing relevant for Fire OS 5. -->
+    <issue id="OldTargetApi" severity="ignore" />
+    <!-- A TV app: landscape only, no ChromeOS build, no autofill, no RTL interface languages. -->
+    <issue id="DiscouragedApi" severity="ignore">
+        <ignore path="src/main/AndroidManifest.xml" />
+    </issue>
+    <issue id="ChromeOsAbiSupport" severity="ignore" />
+    <issue id="Autofill" severity="ignore" />
+    <!-- usesCleartextTraffic only matters from API 28 on, where http:// servers would otherwise be blocked. -->
+    <issue id="UnusedAttribute" severity="ignore">
+        <ignore path="src/main/AndroidManifest.xml" />
+    </issue>
+    <!-- allowBackup=false already disables backup; the app has no cloud or transfer rules. -->
+    <issue id="DataExtractionRules" severity="ignore" />
+    <!-- The brand mark fills its square on purpose; Fire TV launches from the 320x180 banner. -->
+    <issue id="IconLauncherShape" severity="ignore" />
+    <issue id="IconLocation" severity="ignore" />
+    <!-- Buttons use the pill style, not borderless button bars. -->
+    <issue id="ButtonStyle" severity="ignore" />
+    <!-- Lists hold at most a few dozen cards; a full rebind is cheaper than diffing on this CPU. -->
+    <issue id="NotifyDataSetChanged" severity="ignore" />
+    <!-- The detail layout is shared by two activities, so its FrameLayout root stays a real view. -->
+    <issue id="MergeRootFrame" severity="ignore" />
+    <!-- The request lock must be on disk before the request is sent. -->
+    <issue id="ApplySharedPref" severity="ignore">
+        <ignore path="src/main/java/zepigit/firefin/app/ui/SeerrDetailActivity.kt" />
+    </issue>
+</lint>

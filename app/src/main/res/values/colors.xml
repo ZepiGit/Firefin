@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-<color name="background">#101528</color><color name="surface">#1A1A2E</color>
-<color name="accent">#00A4DC</color><color name="text_primary">#FFFFFF</color>
-<color name="text_secondary">#B3B3B3</color><color name="error">#CF6679</color>
+    <!-- Design tokens: the only colors layouts and drawables may reference. -->
+    <color name="background">#0F1420</color>
+    <color name="surface">#1A2030</color>
+    <color name="surface_focus">#243049</color>
+    <color name="outline">#2E3A52</color>
+    <color name="accent">#00A4DC</color>
+    <color name="accent_dark">#007EA8</color>
+    <color name="on_accent">#0B1020</color>
+    <color name="text_primary">#F2F4F8</color>
+    <color name="text_secondary">#AEB6C4</color>
+    <color name="text_muted">#7D8699</color>
+    <color name="error">#FF6B6B</color>
+    <color name="overlay">#99000000</color>
 </resources>

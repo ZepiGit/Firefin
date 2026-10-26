@@ -1,5 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingTop="10dp">
-<TextView android:id="@+id/searchRowTitle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="@color/text_primary" android:textSize="18sp" android:textStyle="bold"/>
-<zepigit.firefin.app.ui.TvRecyclerView android:id="@+id/searchRowItems" android:layout_width="match_parent" android:layout_height="245dp" android:clipToPadding="false" android:padding="6dp"/>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingTop="@dimen/space_s">
+
+    <TextView
+        android:id="@+id/searchRowTitle"
+        style="@style/Firefin.Text.Subheading"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="@dimen/page_margin" />
+
+    <zepigit.firefin.app.ui.TvRecyclerView
+        android:id="@+id/searchRowItems"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:clipToPadding="false"
+        android:paddingLeft="40dp"
+        android:paddingRight="40dp" />
 </LinearLayout>
