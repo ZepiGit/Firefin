@@ -104,10 +104,12 @@ class JellyfinClientTest {
         client = JellyfinClient(session) {
             zepigit.firefin.app.preferences.deriveEffective(zepigit.firefin.app.preferences.StoredPreferences(audioLanguage = "de", subtitleLanguage = "de"), 1280, 720, 4_000_000)
         }
+        server.enqueue(MockResponse().setBody("""{"Version":"10.11.0"}"""))
         server.enqueue(MockResponse().setBody("""{"MediaSources":[{"MediaStreams":[{"Type":"Audio","Index":1,"Language":"eng"},{"Type":"Audio","Index":2,"Language":"ger"},{"Type":"Subtitle","Index":4,"Language":"deu"}]}]}"""))
         server.enqueue(MockResponse().setBody("""{"PlaySessionId":"ps","MediaSources":[{"Id":"s","TranscodingUrl":"/v.m3u8","MediaStreams":[{"Type":"Subtitle","Index":4,"Codec":"srt","DeliveryUrl":"/sub.srt"}]}]}"""))
         val source = client.playbackInfo("i1")
-        assertEquals("/Users/u1/Items/i1", server.takeRequest().path)
+        assertEquals("/System/Info/Public", server.takeRequest().path)
+        assertEquals("/Items/i1?userId=u1", server.takeRequest().path)
         val body = org.json.JSONObject(server.takeRequest().body.readUtf8())
         assertEquals(2, body.getInt("AudioStreamIndex"))
         assertEquals(4, body.getInt("SubtitleStreamIndex"))
@@ -124,9 +126,49 @@ class JellyfinClientTest {
         assertEquals("DirectStream", source.playMethod)
     }
 
-    private fun signIn() {
+    /** Signed-in session on a 10.11 server; the version probe answer is queued first. */
+    private fun signIn(version: String = "10.11.0") {
         session.serverUrl = server.url("/").toString().trimEnd('/')
         session.userId = "u1"; session.accessToken = "tok"; session.userName = "testuser"
+        server.enqueue(MockResponse().setBody("""{"Version":"$version"}"""))
+    }
+
+    private fun userRoutes(version: MockResponse, vararg entries: Pair<String, String>) {
+        val table = entries.toMap()
+        server.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse {
+                val path = request.requestUrl!!.encodedPath
+                if (path == "/System/Info/Public") return version
+                return table[path]?.let { MockResponse().setBody(it) } ?: MockResponse().setResponseCode(404)
+            }
+        }
+    }
+
+    @Test fun `user routes follow the probed server generation`() = runBlocking {
+        signIn()
+        userRoutes(MockResponse().setBody("""{"Version":"10.8.13"}"""), "/Users/u1/Views" to """{"Items":[]}""")
+        client.views()
+        assertEquals(listOf("GET /System/Info/Public", "GET /Users/u1/Views"), recorded().paths())
+        assertTrue(client.cleanupEncodings())
+
+        val fresh = JellyfinClient(session)
+        userRoutes(MockResponse().setBody("""{"Version":"12.3.0"}"""), "/UserViews" to """{"Items":[]}""", "/UserFavoriteItems/i1" to "{}")
+        fresh.views()
+        fresh.setFavorite("i1", true)
+        assertEquals(listOf("GET /System/Info/Public", "GET /UserViews", "POST /UserFavoriteItems/i1"), recorded().paths())
+        assertFalse(fresh.cleanupEncodings())
+    }
+
+    @Test fun `an unknown server falls back to the other route generation on 404 and remembers it`() = runBlocking {
+        signIn()
+        userRoutes(MockResponse().setResponseCode(500), "/Users/u1/Views" to """{"Items":[{"Id":"lib","Name":"Filme","CollectionType":"movies"}]}""")
+        assertEquals("lib", client.views().single().id)
+        assertEquals("lib", client.views().single().id)
+        assertEquals(
+            listOf("GET /System/Info/Public", "GET /UserViews", "GET /Users/u1/Views", "GET /Users/u1/Views"),
+            recorded().paths(),
+        )
+        assertTrue(client.cleanupEncodings())
     }
 
     @Test fun `favorite and watched marks set with POST and clear with DELETE on the same path`() = runBlocking {
@@ -136,13 +178,14 @@ class JellyfinClientTest {
         client.setFavorite("i1", false)
         client.setPlayed("i1", true)
         client.setPlayed("i1", false)
+        server.takeRequest() // version probe
         val requests = (1..4).map { server.takeRequest() }.map { it.method to it.path }
         assertEquals(
             listOf(
-                "POST" to "/Users/u1/FavoriteItems/i1",
-                "DELETE" to "/Users/u1/FavoriteItems/i1",
-                "POST" to "/Users/u1/PlayedItems/i1",
-                "DELETE" to "/Users/u1/PlayedItems/i1",
+                "POST" to "/UserFavoriteItems/i1?userId=u1",
+                "DELETE" to "/UserFavoriteItems/i1?userId=u1",
+                "POST" to "/UserPlayedItems/i1?userId=u1",
+                "DELETE" to "/UserPlayedItems/i1?userId=u1",
             ),
             requests,
         )
@@ -162,6 +205,7 @@ class JellyfinClientTest {
         val (page, total) = client.children(season, startIndex = 60)
         assertEquals(125, total)
         assertEquals("e61", page.single().id)
+        server.takeRequest() // version probe
         val path = server.takeRequest().path!!
         assertTrue(path, path.contains("ParentId=s1") && path.contains("StartIndex=60") && path.contains("Limit=60") && path.contains("Recursive=false"))
     }
@@ -170,6 +214,7 @@ class JellyfinClientTest {
         signIn()
         server.enqueue(MockResponse().setBody("[]"))
         client.latest("lib1")
+        server.takeRequest() // version probe
         assertTrue(server.takeRequest().path!!.contains("Overview"))
     }
 

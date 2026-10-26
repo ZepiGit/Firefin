@@ -27,6 +27,8 @@ class SessionReporter(
     private val mediaSourceId: String,
     private val playMethod: String,
     private val liveStreamId: String = "",
+    /** False on Jellyfin 12.x, which has no DELETE Videos/ActiveEncodings route. */
+    private val cleanupEncodings: Boolean = true,
 ) {
     private sealed interface Event {
         data object Playing : Event
@@ -117,13 +119,14 @@ class SessionReporter(
 
     /** One-shot, idempotent transcode teardown bound to this playback session only. */
     private suspend fun cleanupTranscode() {
-        try {
+        if (cleanupEncodings) try {
             val query = "?DeviceId=" + urlEncode(transport.deviceId) + "&PlaySessionId=" + urlEncode(sessionId)
             transport.json("Videos/ActiveEncodings$query", "DELETE")
         } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: ServerResponseException) { if (e.status != 404) Unit } catch (_: Exception) { Unit }
         if (liveStreamId.isNotBlank()) {
             try {
-                transport.json("LiveStreams/Close", "POST", JSONObject().put("LiveStreamId", liveStreamId).toString())
+                // The API takes the id as a query parameter; there is no request body.
+                transport.json("LiveStreams/Close?liveStreamId=" + urlEncode(liveStreamId), "POST")
             } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: ServerResponseException) { if (e.status != 404) Unit } catch (_: Exception) { Unit }
         }
     }

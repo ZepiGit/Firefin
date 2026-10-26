@@ -31,6 +31,59 @@ class JellyfinClient(private val session: SessionStore, trust: Lazy<HandshakeCer
     )
     private val background = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    /**
+     * User-scoped item routes come in two generations: Users/{id}/... on 10.8 and
+     * UserViews, UserItems/Resume, Items?userId=, UserFavoriteItems, ... from 10.9
+     * on (the only form a 12.x server has). The generation is probed once per
+     * server address and corrected when a route answers 404, so a wrong guess
+     * costs one request.
+     */
+    private enum class Routes { MODERN, LEGACY, UNKNOWN }
+    private val routesByServer = java.util.concurrent.ConcurrentHashMap<String, Routes>()
+    private val majorByServer = java.util.concurrent.ConcurrentHashMap<String, Int>()
+
+    /** DELETE Videos/ActiveEncodings is a pre-12 route (spec evidence, runtime behaviour unverified). */
+    fun cleanupEncodings(): Boolean = (majorByServer[session.serverUrl] ?: 0) < 12
+
+    private suspend fun routes(bound: ServerTransport): Routes {
+        val server = bound.credentials().serverUrl
+        routesByServer[server]?.let { return it }
+        val probed = try {
+            val version = JSONObject(bound.json("System/Info/Public")).optString("Version").split('.')
+            val major = version.getOrNull(0)?.toIntOrNull()
+            val minor = version.getOrNull(1)?.toIntOrNull()
+            if (major == null || minor == null) Routes.UNKNOWN else {
+                majorByServer[server] = major
+                if (major == 10 && minor < 9) Routes.LEGACY else Routes.MODERN
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            Routes.UNKNOWN
+        }
+        routesByServer[server] = probed
+        return probed
+    }
+
+    /** Sends the route of the probed generation; a 404 tries the other generation once and remembers it. */
+    private suspend fun userText(modern: String, legacy: String, method: String = "GET", body: String? = null, bound: ServerTransport? = null): String {
+        val via = bound ?: transport.also { syncTransport() }
+        val server = via.credentials().serverUrl
+        val first = routes(via)
+        val (primary, fallback) = if (first == Routes.LEGACY) legacy to modern else modern to legacy
+        return try {
+            via.json(primary, method, body)
+        } catch (e: ServerResponseException) {
+            if (e.status != 404) throw e
+            val text = via.json(fallback, method, body)
+            routesByServer[server] = if (first == Routes.LEGACY) Routes.MODERN else Routes.LEGACY
+            text
+        }
+    }
+
+    private suspend fun userJson(modern: String, legacy: String, method: String = "GET", body: String? = null, bound: ServerTransport? = null) =
+        JSONObject(userText(modern, legacy, method, body, bound))
+
     val okHttp: okhttp3.OkHttpClient get() = transport.mediaHttp
     val baseUrl: String get() = session.serverUrl
 
@@ -80,13 +133,14 @@ class JellyfinClient(private val session: SessionStore, trust: Lazy<HandshakeCer
     }
 
     suspend fun views(): List<UserView> = withContext(Dispatchers.IO) {
-        val json = getJson("Users/${session.userId}/Views")
+        val json = userJson("UserViews?userId=${user()}", "Users/${user()}/Views")
         val arr = json.optJSONArray("Items") ?: JSONArray()
         (0 until arr.length()).mapNotNull { i -> arr.optJSONObject(i)?.let { UserView(it.optString("Id"), it.optString("Name"), it.optString("CollectionType")) } }
     }
 
     suspend fun resume(limit: Int = 12): List<MediaItem> = withContext(Dispatchers.IO) {
-        parseItems(getJson("Users/${session.userId}/Items/Resume?Limit=$limit&MediaTypes=Video&Fields=PrimaryImageAspectRatio,ProductionYear,Overview&EnableImageTypes=Primary,Backdrop,Thumb"))
+        val query = "Limit=$limit&MediaTypes=Video&Fields=PrimaryImageAspectRatio,ProductionYear,Overview&EnableImageTypes=Primary,Backdrop,Thumb"
+        parseItems(userJson("UserItems/Resume?userId=${user()}&$query", "Users/${user()}/Items/Resume?$query"))
     }
 
     suspend fun nextUp(limit: Int = 12, seriesId: String? = null): List<MediaItem> = withContext(Dispatchers.IO) {
@@ -102,14 +156,14 @@ class JellyfinClient(private val session: SessionStore, trust: Lazy<HandshakeCer
     }
 
     suspend fun latest(parentId: String? = null, limit: Int = 12): List<MediaItem> = withContext(Dispatchers.IO) {
-        var path = "Users/${session.userId}/Items/Latest?Limit=$limit&Fields=PrimaryImageAspectRatio,ProductionYear,Overview&EnableImageTypes=Primary,Backdrop,Thumb"
-        if (!parentId.isNullOrBlank()) path += "&ParentId=${urlEncode(parentId)}"
-        parseArray(transportText(path))
+        var query = "Limit=$limit&Fields=PrimaryImageAspectRatio,ProductionYear,Overview&EnableImageTypes=Primary,Backdrop,Thumb"
+        if (!parentId.isNullOrBlank()) query += "&ParentId=${urlEncode(parentId)}"
+        parseArray(userText("Items/Latest?userId=${user()}&$query", "Users/${user()}/Items/Latest?$query"))
     }
 
     suspend fun items(parentId: String? = null, startIndex: Int = 0, limit: Int = 60, sortBy: String = "SortName", sortOrder: String = "Ascending", searchTerm: String? = null, includeTypes: String? = null, recursive: Boolean = true, favorites: Boolean = false): Pair<List<MediaItem>, Int> = withContext(Dispatchers.IO) {
-        val path = buildString {
-            append("Users/${session.userId}/Items?StartIndex=$startIndex&Limit=$limit&SortBy=${urlEncode(sortBy)}&SortOrder=${urlEncode(sortOrder)}&Recursive=$recursive")
+        val query = buildString {
+            append("StartIndex=$startIndex&Limit=$limit&SortBy=${urlEncode(sortBy)}&SortOrder=${urlEncode(sortOrder)}&Recursive=$recursive")
             // Grids, children and search show cards only; Overview stays on the home rows that preview it.
             append("&Fields=ProductionYear&EnableImageTypes=Primary,Backdrop,Thumb")
             if (!parentId.isNullOrBlank()) append("&ParentId=").append(urlEncode(parentId))
@@ -117,11 +171,13 @@ class JellyfinClient(private val session: SessionStore, trust: Lazy<HandshakeCer
             if (!includeTypes.isNullOrBlank()) append("&IncludeItemTypes=").append(urlEncode(includeTypes))
             if (favorites) append("&Filters=IsFavorite")
         }
-        val json = getJson(path)
+        val json = userJson("Items?userId=${user()}&$query", "Users/${user()}/Items?$query")
         parseItems(json) to json.optInt("TotalRecordCount", 0)
     }
 
-    suspend fun item(itemId: String): MediaItem = withContext(Dispatchers.IO) { MediaItem.from(getJson("Users/${session.userId}/Items/${urlEncode(itemId)}")) }
+    suspend fun item(itemId: String): MediaItem = withContext(Dispatchers.IO) {
+        MediaItem.from(userJson("Items/${urlEncode(itemId)}?userId=${user()}", "Users/${user()}/Items/${urlEncode(itemId)}"))
+    }
 
     /** One page of a container's children plus the total count; a series returns all of its seasons at once. */
     suspend fun children(container: MediaItem, startIndex: Int = 0, limit: Int = CHILD_PAGE_SIZE): Pair<List<MediaItem>, Int> = withContext(Dispatchers.IO) {
@@ -143,7 +199,7 @@ class JellyfinClient(private val session: SessionStore, trust: Lazy<HandshakeCer
         var selectedAudio = audioIndex
         var selectedSubtitle = subtitleIndex
         if (selectedAudio == null && effective.stored.audioLanguage.isNotBlank() || selectedSubtitle == null && effective.stored.subtitleLanguage.isNotBlank()) {
-            val metadata = request("Users/${urlEncode(credentials.userId)}/Items/${urlEncode(itemId)}")
+            val metadata = userJson("Items/${urlEncode(itemId)}?userId=${urlEncode(credentials.userId)}", "Users/${urlEncode(credentials.userId)}/Items/${urlEncode(itemId)}", bound = bound)
             val sources = metadata.optJSONArray("MediaSources")
             val selected = sources?.let { array -> (0 until array.length()).mapNotNull { array.optJSONObject(it) }.firstOrNull { mediaSourceId == null || it.optString("Id") == mediaSourceId } }
             val streams = selected?.optJSONArray("MediaStreams") ?: metadata.optJSONArray("MediaStreams") ?: JSONArray()
@@ -201,10 +257,10 @@ class JellyfinClient(private val session: SessionStore, trust: Lazy<HandshakeCer
     suspend fun sendCommand(sessionId: String, command: String) = withContext(Dispatchers.IO) { transportText("Sessions/${urlEncode(sessionId)}/Playing/${urlEncode(command)}", "POST", "{}") }
     // Jellyfin marks with POST and unmarks with DELETE on the same resource path.
     suspend fun setFavorite(itemId: String, favorite: Boolean) = withContext(Dispatchers.IO) {
-        transportText("Users/${session.userId}/FavoriteItems/${urlEncode(itemId)}", if (favorite) "POST" else "DELETE")
+        userText("UserFavoriteItems/${urlEncode(itemId)}?userId=${user()}", "Users/${user()}/FavoriteItems/${urlEncode(itemId)}", if (favorite) "POST" else "DELETE")
     }
     suspend fun setPlayed(itemId: String, played: Boolean) = withContext(Dispatchers.IO) {
-        transportText("Users/${session.userId}/PlayedItems/${urlEncode(itemId)}", if (played) "POST" else "DELETE")
+        userText("UserPlayedItems/${urlEncode(itemId)}?userId=${user()}", "Users/${user()}/PlayedItems/${urlEncode(itemId)}", if (played) "POST" else "DELETE")
     }
 
     /**
@@ -224,6 +280,7 @@ class JellyfinClient(private val session: SessionStore, trust: Lazy<HandshakeCer
     private fun parseArray(value: String): List<MediaItem> { val arr = JSONArray(value); return (0 until arr.length()).mapNotNull { arr.optJSONObject(it)?.let(MediaItem::from) } }
     private fun syncTransport() { transport.update(ServerCredentials(session.serverUrl, session.userId, session.accessToken)) }
     private fun urlEncode(value: String): String = URLEncoder.encode(value, "UTF-8")
+    private fun user(): String = urlEncode(session.userId)
 
     companion object {
         const val VERSION = BuildConfig.VERSION_NAME

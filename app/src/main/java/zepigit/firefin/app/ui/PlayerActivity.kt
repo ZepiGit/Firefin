@@ -126,7 +126,7 @@ class PlayerActivity : AppCompatActivity() {
             e.prepare(playbackUrl, timeline.preparePositionMs, intent.getStringExtra(EXTRA_SUBTITLE_URL), intent.getStringExtra(EXTRA_SUBTITLE_MIME))
         }
 
-        session.start(SessionReporter(playbackTransport, itemId, playSessionId, sourceId, playMethod, intent.getStringExtra(EXTRA_LIVE_STREAM).orEmpty()))
+        session.start(SessionReporter(playbackTransport, itemId, playSessionId, sourceId, playMethod, intent.getStringExtra(EXTRA_LIVE_STREAM).orEmpty(), ServiceLocator.client.cleanupEncodings()))
         scope.launch {
             while (isActive) {
                 delay(10_000)
@@ -355,7 +355,7 @@ class PlayerActivity : AppCompatActivity() {
                 if (!sameAccount()) { finish(); return@launch }
                 val source = ServiceLocator.client.playbackInfo(itemId, audio, subtitle, playbackTransport, sourceId)
                 if (!sameAccount() || isFinishing || isDestroyed) {
-                    SessionReporter(playbackTransport, itemId, source.playSessionId, source.mediaSourceId, source.playMethod, source.liveStreamId).stopped(Ticks.fromMs(positionMs))
+                    SessionReporter(playbackTransport, itemId, source.playSessionId, source.mediaSourceId, source.playMethod, source.liveStreamId, ServiceLocator.client.cleanupEncodings()).stopped(Ticks.fromMs(positionMs))
                     if (!isFinishing && !isDestroyed) finish()
                     return@launch
                 }
@@ -371,7 +371,7 @@ class PlayerActivity : AppCompatActivity() {
                 engine?.applySubtitleChoice(chosenSubtitle >= 0, subtitleLanguage(sourceTracks, chosenSubtitle))
                 engine?.prepare(url, timeline.preparePositionMs, source.subtitleUrl, source.subtitleMime)
                 player.playWhenReady = resumePlaying && resumed
-                session.start(SessionReporter(playbackTransport, itemId, source.playSessionId, source.mediaSourceId, source.playMethod, source.liveStreamId))
+                session.start(SessionReporter(playbackTransport, itemId, source.playSessionId, source.mediaSourceId, source.playMethod, source.liveStreamId, ServiceLocator.client.cleanupEncodings()))
             } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
                 Toast.makeText(this@PlayerActivity, R.string.track_switch_aborted, Toast.LENGTH_LONG).show()
                 finish()

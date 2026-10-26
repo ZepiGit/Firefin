@@ -134,7 +134,15 @@ class SessionReporterContractTest {
             listOf("/Sessions/Playing", "/Sessions/Playing/Stopped", "/Videos/ActiveEncodings", "/LiveStreams/Close"),
             requests.paths(),
         )
-        assertTrue(requests[3].body.readUtf8().contains("\"LiveStreamId\":\"ls-7\""))
+        assertEquals("/LiveStreams/Close?liveStreamId=ls-7", requests[3].path)
+    }
+
+    @Test
+    fun `a server without ActiveEncodings skips that cleanup but still closes live streams`() {
+        val requests = SessionReporter(transport(), "item-live", "session-live", "ms-live", "Transcode", liveStreamId = "ls-7", cleanupEncodings = false).runAndDrain {
+            stopped(250)
+        }
+        assertEquals(listOf("/Sessions/Playing", "/Sessions/Playing/Stopped", "/LiveStreams/Close"), requests.paths())
     }
 
     @Test

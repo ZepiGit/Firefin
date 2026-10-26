@@ -51,7 +51,7 @@ class Api22FlowTest {
                 return when (url.encodedPath) {
                     "/Users/AuthenticateByName" -> MockResponse().setBody("""{"AccessToken":"tok","ServerId":"srv","User":{"Id":"u1","Name":"tester"}}""")
                     "/Moonfin/Ping" -> MockResponse().setResponseCode(404)
-                    "/Users/u1/Items" -> {
+                    "/Items" -> {
                         val start = url.queryParameter("StartIndex")!!.toInt()
                         val limit = url.queryParameter("Limit")!!.toInt()
                         val items = JSONArray()
@@ -88,8 +88,8 @@ class Api22FlowTest {
             ServiceLocator.session.clear()
             val requests = generateSequence { server.takeRequest(5, TimeUnit.SECONDS) }
                 .map { "${it.method} ${it.requestUrl!!.encodedPath}" }.toList()
-            assertTrue(requests.contains("POST /Users/u1/FavoriteItems/i1"))
-            assertTrue(requests.contains("DELETE /Users/u1/FavoriteItems/i1"))
+            assertTrue(requests.contains("POST /UserFavoriteItems/i1"))
+            assertTrue(requests.contains("DELETE /UserFavoriteItems/i1"))
             assertFalse(requests.any { it.endsWith("/Delete") })
             assertTrue(requests.contains("POST /Sessions/Logout"))
         } finally {
