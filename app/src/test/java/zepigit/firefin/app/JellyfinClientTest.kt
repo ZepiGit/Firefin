@@ -104,7 +104,7 @@ class JellyfinClientTest {
         client = JellyfinClient(session) {
             zepigit.firefin.app.preferences.deriveEffective(zepigit.firefin.app.preferences.StoredPreferences(audioLanguage = "de", subtitleLanguage = "de"), 1280, 720, 4_000_000)
         }
-        val streams = """[{"Type":"Audio","Index":1,"Language":"eng"},{"Type":"Audio","Index":2,"Language":"ger"},{"Type":"Subtitle","Index":4,"Language":"deu","Codec":"srt","DeliveryUrl":"/sub.srt"}]"""
+        val streams = """[{"Type":"Audio","Index":1,"Language":"eng"},{"Type":"Audio","Index":2,"Language":"ger"},{"Type":"Subtitle","Index":4,"Language":"deu","Codec":"subrip","DeliveryUrl":"/sub.srt"}]"""
         server.enqueue(MockResponse().setBody("""{"PlaySessionId":"ps","MediaSources":[{"Id":"s","TranscodingUrl":"/v.m3u8","DefaultAudioStreamIndex":1,"MediaStreams":$streams}]}"""))
         server.enqueue(MockResponse().setBody("""{"PlaySessionId":"ps","MediaSources":[{"Id":"s","TranscodingUrl":"/v.m3u8?a=2","DefaultAudioStreamIndex":2,"DefaultSubtitleStreamIndex":4,"MediaStreams":$streams}]}"""))
         val source = client.playbackInfo("i1")
@@ -170,26 +170,18 @@ class JellyfinClientTest {
         server.enqueue(MockResponse().setBody("""{"Version":"$version"}"""))
     }
 
-    private fun userRoutes(version: MockResponse, vararg entries: Pair<String, String>) {
-        val table = entries.toMap()
-        server.dispatcher = object : Dispatcher() {
-            override fun dispatch(request: RecordedRequest): MockResponse {
-                val path = request.requestUrl!!.encodedPath
-                if (path == "/System/Info/Public") return version
-                return table[path]?.let { MockResponse().setBody(it) } ?: MockResponse().setResponseCode(404)
-            }
-        }
-    }
+    private fun userRoutes(version: MockResponse, vararg entries: Pair<String, String>) =
+        routes("GET /System/Info/Public" to version, *entries.map { (route, body) -> route to MockResponse().setBody(body) }.toTypedArray())
 
     @Test fun `user routes follow the probed server generation`() = runBlocking {
         signIn()
-        userRoutes(MockResponse().setBody("""{"Version":"10.8.13"}"""), "/Users/u1/Views" to """{"Items":[]}""")
+        userRoutes(MockResponse().setBody("""{"Version":"10.8.13"}"""), "GET /Users/u1/Views" to """{"Items":[]}""")
         client.views()
         assertEquals(listOf("GET /System/Info/Public", "GET /Users/u1/Views"), recorded().paths())
         assertTrue(client.cleanupEncodings())
 
         val fresh = JellyfinClient(session)
-        userRoutes(MockResponse().setBody("""{"Version":"12.3.0"}"""), "/UserViews" to """{"Items":[]}""", "/UserFavoriteItems/i1" to "{}")
+        userRoutes(MockResponse().setBody("""{"Version":"12.3.0"}"""), "GET /UserViews" to """{"Items":[]}""", "POST /UserFavoriteItems/i1" to "{}")
         fresh.views()
         fresh.setFavorite("i1", true)
         assertEquals(listOf("GET /System/Info/Public", "GET /UserViews", "POST /UserFavoriteItems/i1"), recorded().paths())
@@ -198,7 +190,7 @@ class JellyfinClientTest {
 
     @Test fun `an unknown server falls back to the other route generation on 404 and remembers it`() = runBlocking {
         signIn()
-        userRoutes(MockResponse().setResponseCode(500), "/Users/u1/Views" to """{"Items":[{"Id":"lib","Name":"Filme","CollectionType":"movies"}]}""")
+        userRoutes(MockResponse().setResponseCode(500), "GET /Users/u1/Views" to """{"Items":[{"Id":"lib","Name":"Filme","CollectionType":"movies"}]}""")
         assertEquals("lib", client.views().single().id)
         assertEquals("lib", client.views().single().id)
         assertEquals(

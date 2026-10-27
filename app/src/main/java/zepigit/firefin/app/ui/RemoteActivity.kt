@@ -50,11 +50,11 @@ class RemoteActivity : AppCompatActivity() {
         refresh()
     }
 
-    private fun showState(message: String?, retry: Boolean) {
+    private fun showState(message: String?) {
         findViewById<View>(R.id.stateView).visibility = if (message == null) View.GONE else View.VISIBLE
         findViewById<TextView>(R.id.stateText).text = message.orEmpty()
-        findViewById<Button>(R.id.stateRetry).visibility = if (retry) View.VISIBLE else View.GONE
-        if (message != null && retry) findViewById<Button>(R.id.stateRetry).requestFocus()
+        findViewById<Button>(R.id.stateRetry).visibility = if (message == null) View.GONE else View.VISIBLE
+        if (message != null) findViewById<Button>(R.id.stateRetry).requestFocus()
     }
 
     private fun refresh() {
@@ -65,11 +65,11 @@ class RemoteActivity : AppCompatActivity() {
                 val sessions = ServiceLocator.client.sessions()
                     .filter { it.controllable && it.deviceId != ServiceLocator.session.deviceId }
                 adapter.submit(sessions)
-                showState(if (sessions.isEmpty()) getString(R.string.empty_remote) else null, retry = sessions.isEmpty())
+                showState(if (sessions.isEmpty()) getString(R.string.empty_remote) else null)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                showState(errorMessage(e), retry = true)
+                showState(errorMessage(e))
             } finally {
                 findViewById<android.widget.ProgressBar>(R.id.progress).visibility = View.GONE
             }

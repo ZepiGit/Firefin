@@ -80,7 +80,7 @@ class PlaybackEngine(context: Context, callFactory: okhttp3.Call.Factory) {
             .build()
     }
 
-    fun prepare(url: String, startMs: Long, subtitleUrl: String? = null, subtitleMime: String? = null) {
+    fun prepare(url: String, startMs: Long, subtitleUrl: String? = null, subtitleMime: String? = null, playWhenReady: Boolean = true) {
         currentUrl = url
         externalSubtitlePending = subtitleUrl != null && subtitleMime != null
         val isHls = url.contains(".m3u8") || url.contains("/hls/")
@@ -95,7 +95,7 @@ class PlaybackEngine(context: Context, callFactory: okhttp3.Call.Factory) {
             }.build()
         player.setMediaItem(mediaItem, startMs)
         player.prepare()
-        player.playWhenReady = true
+        player.playWhenReady = playWhenReady
     }
 
     /**
@@ -115,14 +115,6 @@ class PlaybackEngine(context: Context, callFactory: okhttp3.Call.Factory) {
                 return
             }
         }
-    }
-
-    fun attach(surface: SurfaceView) {
-        player.setVideoSurfaceView(surface)
-    }
-
-    fun release() {
-        player.release()
     }
 
     private companion object {

@@ -20,10 +20,7 @@ data class StoredPreferences(
 
 data class EffectiveDevicePreferences(
     val stored: StoredPreferences,
-    // Device-enforced runtime limits — deliberately NOT stored and NOT synced.
-    val cardFocusExpansion: Boolean = false,
-    val mediaBarEnabled: Boolean = false,
-    val blurAmount: Int = 0,
+    // Device-enforced runtime limits, deliberately not stored and not synced.
     val maxVideoWidth: Int,
     val maxVideoHeight: Int,
     val maxStreamingBitrate: Long,
@@ -43,16 +40,4 @@ fun deriveEffective(
     maxVideoWidth = minOf(maxVideoWidth, if (stored.preferredHeight in 1..480) 854 else if (stored.preferredHeight <= 720) 1280 else 1920),
     maxVideoHeight = minOf(maxVideoHeight, stored.preferredHeight.takeIf { it > 0 } ?: maxVideoHeight),
     maxStreamingBitrate = minOf(maxStreamingBitrate, stored.preferredBitrate.takeIf { it > 0 } ?: maxStreamingBitrate),
-)
-
-/** Serializes ONLY stored preferences (device limits are excluded by type). */
-fun serializeStored(prefs: StoredPreferences): Map<String, String> = mapOf(
-    "backdropEnabled" to prefs.backdropEnabled.toString(),
-    "homeSectionOrder" to prefs.homeSectionOrder.joinToString(","),
-    "preferredBitrate" to prefs.preferredBitrate.toString(),
-    "preferredHeight" to prefs.preferredHeight.toString(),
-    "audioLanguage" to prefs.audioLanguage,
-    "subtitleLanguage" to prefs.subtitleLanguage,
-    "subtitleSize" to prefs.subtitleSize.toString(),
-    "autoPlayNext" to prefs.autoPlayNext.toString(),
 )

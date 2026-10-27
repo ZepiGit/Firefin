@@ -7,9 +7,13 @@ import zepigit.firefin.app.playback.DeviceProfile
 
 class PreferenceStore(private val prefs: android.content.SharedPreferences, private val session: SessionStore) {
     constructor(context: Context, session: SessionStore) : this(context.getSharedPreferences("firefin_preferences", Context.MODE_PRIVATE), session)
+    /** The account hash is reused across keys; every settings row reads all preferences at once. */
+    private var hashedAccount: Pair<String, String>? = null
     private fun key(name: String): String {
         val account = session.serverUrl + "\u0000" + session.userId
-        val hash = MessageDigest.getInstance("SHA-256").digest(account.toByteArray()).joinToString("") { "%02x".format(it) }
+        val cached = hashedAccount
+        val hash = if (cached?.first == account) cached.second
+            else MessageDigest.getInstance("SHA-256").digest(account.toByteArray()).joinToString("") { "%02x".format(it) }.also { hashedAccount = account to it }
         return "$hash:$name"
     }
     fun stored(): StoredPreferences = StoredPreferences(

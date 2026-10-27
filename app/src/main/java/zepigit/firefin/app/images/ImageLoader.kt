@@ -189,11 +189,12 @@ class ImageLoader(context: Context, http: () -> okhttp3.OkHttpClient, cacheName:
         if (file.delete()) diskBytes -= size
     }
 
+    /** Trims to three quarters of the cap, so a full cache lists the folder once per 12 MB of new artwork, not per image. */
     private fun trimDiskCache() = synchronized(diskLock) {
-        val files = diskDir.listFiles()?.sortedBy { it.lastModified() }.orEmpty()
+        val files = diskDir.listFiles()?.map { it to it.lastModified() }?.sortedBy { it.second }?.map { it.first }.orEmpty()
         var total = files.sumOf { it.length() }
         for (file in files) {
-            if (total <= diskCacheCapBytes) break
+            if (total <= diskCacheCapBytes * 3 / 4) break
             val size = file.length()
             if (file.delete()) total -= size
         }

@@ -141,8 +141,9 @@ class SeerrDetailActivity : AppCompatActivity() {
         findViewById<Button>(R.id.playButton).isEnabled = false
         scope.launch {
             try {
-                val result = try { client.request(loaded, seasons) } catch (e: zepigit.firefin.app.data.SeerrException) {
-                    if (e.status in 400..499) preferences.edit().remove(key).apply()
+                val result = try { client.request(loaded, seasons) } catch (e: Exception) {
+                    // A refused request (4xx or an expired session) must not leave the duplicate-request lock behind.
+                    if (e is SessionExpiredException || e is zepigit.firefin.app.data.SeerrException && e.status in 400..499) preferences.edit().remove(key).apply()
                     throw e
                 }
                 if (result != SeerrClient.RequestResult.UNKNOWN) preferences.edit().remove(key).apply()

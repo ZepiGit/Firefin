@@ -20,7 +20,7 @@ import java.io.IOException
 import java.net.URLEncoder
 
 /** Jellyfin REST client using one origin-bound, cancellable ServerTransport. */
-class JellyfinClient(private val session: SessionStore, trust: Lazy<HandshakeCertificates?> = lazyOf(null), private val seerrBridgeTimeoutMs: Long = SEERR_BRIDGE_TIMEOUT_MS, private val quickConnectPollMs: Long = 5_000, private val quickConnectTimeoutMs: Long = 300_000, private val preferences: () -> zepigit.firefin.app.preferences.EffectiveDevicePreferences = {
+class JellyfinClient(private val session: SessionStore, trust: Lazy<HandshakeCertificates?> = lazyOf(null), private val seerrBridgeTimeoutMs: Long = SEERR_BRIDGE_TIMEOUT_MS, private val quickConnectPollMs: Long = 5_000, private val quickConnectTimeoutMs: Long = QUICK_CONNECT_TIMEOUT_MS, private val preferences: () -> zepigit.firefin.app.preferences.EffectiveDevicePreferences = {
     zepigit.firefin.app.preferences.deriveEffective(zepigit.firefin.app.preferences.StoredPreferences(), DeviceProfile.MAX_WIDTH, DeviceProfile.MAX_HEIGHT, DeviceProfile.MAX_BITRATE)
 }) {
     private val transport = ServerTransport(
@@ -39,7 +39,7 @@ class JellyfinClient(private val session: SessionStore, trust: Lazy<HandshakeCer
      * server address and corrected when a route answers 404, so a wrong guess
      * costs one request.
      */
-    private enum class Routes { MODERN, LEGACY, UNKNOWN }
+    private enum class Routes { MODERN, LEGACY }
     private val routesByServer = java.util.concurrent.ConcurrentHashMap<String, Routes>()
     private val majorByServer = java.util.concurrent.ConcurrentHashMap<String, Int>()
 
@@ -65,14 +65,14 @@ class JellyfinClient(private val session: SessionStore, trust: Lazy<HandshakeCer
             val version = JSONObject(bound.json("System/Info/Public")).optString("Version").split('.')
             val major = version.getOrNull(0)?.toIntOrNull()
             val minor = version.getOrNull(1)?.toIntOrNull()
-            if (major == null || minor == null) Routes.UNKNOWN else {
+            if (major == null || minor == null) Routes.MODERN else {
                 majorByServer[server] = major
                 if (major == 10 && minor < 9) Routes.LEGACY else Routes.MODERN
             }
         } catch (e: CancellationException) {
             throw e
         } catch (_: Exception) {
-            Routes.UNKNOWN
+            Routes.MODERN
         }
         routesByServer[server] = probed
         return probed
@@ -94,8 +94,7 @@ class JellyfinClient(private val session: SessionStore, trust: Lazy<HandshakeCer
         }
     }
 
-    private suspend fun userJson(modern: String, legacy: String, method: String = "GET", body: String? = null, bound: ServerTransport? = null) =
-        JSONObject(userText(modern, legacy, method, body, bound))
+    private suspend fun userJson(modern: String, legacy: String) = JSONObject(userText(modern, legacy))
 
     val okHttp: okhttp3.OkHttpClient get() = transport.mediaHttp
     val baseUrl: String get() = session.serverUrl
@@ -324,11 +323,12 @@ class JellyfinClient(private val session: SessionStore, trust: Lazy<HandshakeCer
         val subtitlePath = subtitle?.optString("DeliveryUrl")?.takeIf { it.isNotBlank() }
         PlaybackSource(
             json.optString("PlaySessionId"), id, url, transcode != null,
-            transcode?.contains(".m3u8", ignoreCase = true) == true, source.optString("Container"),
+            transcode?.contains(".m3u8", ignoreCase = true) == true,
             source.optString("LiveStreamId").takeIf { it.isNotBlank() } ?: "",
             tracks = zepigit.firefin.app.playback.StreamSelection.tracks(streams),
             subtitleUrl = subtitlePath?.let { Urls.resolveRelative(credentials.serverUrl, it) },
-            subtitleMime = when (subtitle?.optString("Codec")) { "srt" -> "application/x-subrip"; "vtt", "webvtt" -> "text/vtt"; else -> null },
+            // The server converts to the format the profile asked for; the delivered file name says which, the source codec ("subrip", "ass") does not.
+            subtitleMime = when (subtitlePath?.substringBefore('?')?.substringAfterLast('.')?.lowercase()) { "srt" -> "application/x-subrip"; "vtt" -> "text/vtt"; else -> null },
             playMethod = if (transcode == null) "DirectPlay" else if (source.optBoolean("SupportsDirectStream") && !source.optBoolean("SupportsDirectPlay")) "DirectStream" else "Transcode",
             audioIndex = selectedAudio,
             subtitleIndex = selectedSubtitle,
@@ -387,5 +387,6 @@ class JellyfinClient(private val session: SessionStore, trust: Lazy<HandshakeCer
         const val CHILD_PAGE_SIZE = 60
         /** Upper bound for the whole optional Seerr step (probe plus sign-in) after a Jellyfin login. */
         const val SEERR_BRIDGE_TIMEOUT_MS = 10_000L
+        const val QUICK_CONNECT_TIMEOUT_MS = 300_000L
     }
 }
