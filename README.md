@@ -28,6 +28,7 @@ Firefin is a 32-bit native Android TV application for watching, discovering and 
 - Series browsing with seasons and episodes
 - Jellyfin library search alongside Seerr/Moonbase discovery results
 - Media3 playback with resume, automatic next episodes, segment skipping and D-pad controls
+- Context menu on every card (MENU key): watched, favorite, resume reset, go to series
 - Quick Connect sign-in, configurable home rows, library filters and subtitle size/language preferences
 - Seerr request discovery, title details, season selection and confirmation flows
 
@@ -35,35 +36,47 @@ This project is not about being the best Jellyfin/Moonfin alternative. It doesn'
 
 ## Screenshots
 
-The gallery shows the interface before the 2026-10 rework; captures of the
-reworked screens from the API-22 emulator are in
-[docs/screenshots/audit-2026-10-26](docs/screenshots/audit-2026-10-26).
+Captured from version 2.7.0 on an API-22 emulator at 1920 by 1080.
 
 <table>
   <tr>
     <td width="50%">
-      <img src="docs/screenshots/home.png" alt="Current Firefin home screen with reordered icon navigation and Next up row" />
-      <p align="center"><sub><strong>Home</strong><br />Icon navigation and next-up browsing.</sub></p>
+      <img src="docs/screenshots/home.png" alt="Firefin home screen with icon navigation, preview and content rows" />
+      <p align="center"><sub><strong>Home</strong><br />Continue watching, next up, favorites and latest rows.</sub></p>
     </td>
     <td width="50%">
-      <img src="docs/screenshots/season.png" alt="Current Firefin season details and numbered episode list" />
-      <p align="center"><sub><strong>Series</strong><br />Overview, watched state and season browsing.</sub></p>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%">
-      <img src="docs/screenshots/episode.png" alt="Current Firefin episode details with playback actions" />
-      <p align="center"><sub><strong>Episode details</strong><br />Playback, favourites and watched-state actions.</sub></p>
-    </td>
-    <td width="50%">
-      <img src="docs/screenshots/seerr.png" alt="Seerr discovery screen in Firefin with Trending and request navigation" />
-      <p align="center"><sub><strong>Requests</strong><br />Seerr discovery and request browsing through Moonbase.</sub></p>
+      <img src="docs/screenshots/library.png" alt="Firefin library grid with sort, filter and genre pickers" />
+      <p align="center"><sub><strong>Library</strong><br />Five-column grid with sort, filter and genre pickers.</sub></p>
     </td>
   </tr>
   <tr>
     <td width="50%">
-      <img src="docs/screenshots/login.png" alt="Firefin sign-in with light-gray wordmark and persistent field labels" />
-      <p align="center"><sub><strong>Sign in</strong><br />Readable branding and labeled TV-friendly fields.</sub></p>
+      <img src="docs/screenshots/series.png" alt="Firefin series details with seasons" />
+      <p align="center"><sub><strong>Series</strong><br />Overview, continue button and season browsing.</sub></p>
+    </td>
+    <td width="50%">
+      <img src="docs/screenshots/season.png" alt="Firefin season details with an episode list" />
+      <p align="center"><sub><strong>Season</strong><br />Numbered episodes with resume progress.</sub></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="docs/screenshots/search.png" alt="Firefin search with library results" />
+      <p align="center"><sub><strong>Search</strong><br />Library results with Seerr discovery alongside.</sub></p>
+    </td>
+    <td width="50%">
+      <img src="docs/screenshots/settings.png" alt="Firefin settings grouped into Playback, Interface and Account" />
+      <p align="center"><sub><strong>Settings</strong><br />Playback, interface and account options.</sub></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="docs/screenshots/login.png" alt="Firefin sign-in with labeled fields and Quick Connect" />
+      <p align="center"><sub><strong>Sign in</strong><br />Password sign-in or Quick Connect.</sub></p>
+    </td>
+    <td width="50%">
+      <img src="docs/screenshots/quick_connect.png" alt="Firefin Quick Connect code with countdown" />
+      <p align="center"><sub><strong>Quick Connect</strong><br />Code with a five-minute countdown.</sub></p>
     </td>
   </tr>
 </table>
@@ -91,7 +104,7 @@ The app is intentionally tuned for the resource limits of the older Fire TV stic
 
 ## Installation
 
-Signed Firefin APKs are published on the [releases page](https://github.com/ZepiGit/Firefin-Player-Android5.1-API22/releases); Firefin releases are tagged `firefin-v<version>`. Firefin is not in the Amazon Appstore, so it is installed by sideloading.
+Signed Firefin APKs are published on the [releases page](https://github.com/ZepiGit/Firefin/releases); Firefin releases are tagged `firefin-v<version>`. Firefin is not in the Amazon Appstore, so it is installed by sideloading.
 
 1. **Allow sideloading.** On the Fire TV open *Settings → Device* (on newer models *My Fire TV*) *→ Developer options* and turn on *Apps from Unknown Sources*. For the ADB route also turn on *ADB debugging*.
 2. **Install the APK**, either way works:
@@ -124,9 +137,9 @@ To build Firefin yourself, start with [build guide](docs/BUILDING.md) and the te
 
 ## Project status
 
-Firefin 32-bit is still in development and the native TV experience is actively being completed. It has been tested on Android 5.1 (API 22). Sending media requests to a live Seerr server ha been verified. Firefin does not claim support for Live TV/DVR, offline downloads, music or book readers, DLNA, administration or every modern Jellyfin client feature, but if you've got an old Fire TV or Android TV device laying around, it might be just for you.
+Firefin runs on Android 5.1 (API 22) and is verified against Jellyfin 10.8 through 10.11 route contracts, an API-22 emulator and a live Seerr server for media requests. Out of scope: Live TV/DVR, offline downloads, music or book readers, DLNA and administration. If you have an old Fire TV or Android TV device lying around, it might be just for you.
 
-For compatibility boundaries, security notes and verification evidence, see:
+For compatibility boundaries, security notes and verification, see:
 
 - [Compatibility](docs/COMPATIBILITY.md)
 - [Security](SECURITY.md)

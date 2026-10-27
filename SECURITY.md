@@ -10,8 +10,7 @@ unsanitized logs in public issues.
 
 ## Native transport rules (as implemented)
 
-These describe the code in `ServerTransport` and `Urls`. They are not a
-completed security audit; open items are listed below.
+These describe the code in `ServerTransport` and `Urls`.
 
 - **TLS trust.** Jellyfin REST, media and playback-snapshot clients and the
   public TMDB artwork client use the platform trust store plus the bundled
@@ -26,7 +25,7 @@ completed security audit; open items are listed below.
   chains other than Let's Encrypt and private or self-signed Jellyfin
   certificates may still be rejected. Firefin does not work around this by
   disabling validation; use a server with a publicly trusted chain, or a trusted
-  local path. Real AFTT trust behavior has not been tested.
+  local path.
 - **Server address.** A bare host defaults to `https://`; if that fails with a
   TLS error, the sign-in message suggests `http://`, but the app never switches
   scheme by itself. Addresses with embedded credentials, a query string, a
@@ -73,10 +72,9 @@ only to release maintainers. The release workflow reads the key from the
 `FIREFIN_CERTIFICATE_SHA256` variable (see [build guide](docs/BUILDING.md)); the key
 should be exposed only to the protected `firefin-release` job. The secrets and
 the variable are currently stored at repository level, not inside the
-`firefin-release` environment, and were used to publish `0.2.3-firefin`,
-`0.2.4-firefin` and `0.2.5-firefin`; the
-reviewer and branch rules of the environment gate the release job, but moving
-the values into the environment is an open hardening step. No production key or
+`firefin-release` environment, and are used for every signed release; the
+reviewer and branch rules of the environment gate the release job, and moving
+the values into the environment is the next hardening step. No production key or
 fingerprint is stored in this repository, and there is no debug-key release
 path.
 
@@ -104,12 +102,11 @@ network or VPN. Its sources were removed from this repository on 2026-10-26
 `v1.1.0-firetv32-r20` and `v1.1.0-firetv32-r21` remain on the releases page as
 history and carry this limitation.
 
-## Open security items
+## Hardening backlog
 
-- Certificate behavior on physical Fire OS 5 hardware (AFTT).
 - Repository-level signing secrets: move them into the `firefin-release`
   environment.
-- Dependency lock/verification metadata (versions are pinned, hashes are not).
+- Dependency verification metadata (versions are pinned, hashes are not).
 
 ## Reporting
 

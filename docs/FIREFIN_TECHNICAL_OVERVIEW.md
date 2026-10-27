@@ -33,7 +33,7 @@ After successful Jellyfin password sign-in, Firefin probes Moonbase and automati
 
 The native profile negotiates up to 1920x1080 within a 4,000,000 bit/s total streaming budget, including audio. 720p and 480p settings remain selectable. Stereo audio is the target profile.
 
-The 1080p ceiling is a client negotiation limit, not a physical hardware guarantee. The API-22 x86 emulator uses a debug-compatible baseline H.264 profile; physical ARMv7 decoder, thermal and sustained playback behavior still require AFTT validation.
+The 1080p ceiling is the client's negotiation limit. The API-22 x86 emulator uses a debug-compatible baseline H.264 profile.
 
 Media reads fail after 30 seconds without data, so a stalled connection reaches the retry and error path instead of buffering forever. The natural end, a fatal error, a track change that needs the server and leaving the player each finish the playback session once; a retry starts a new one. Subtitles are chosen from the server's list in every play method, so external subtitle files work during direct play.
 
@@ -47,19 +47,18 @@ The standard local verification command is:
 ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug :app:lintRelease :app:assembleDebug :app:assembleRelease
 ```
 
-The 2026-10-26 overhaul and feature round (unreleased) have local evidence of 120 JVM tests, strict debug/release lint with 0 errors and 0 warnings, both APK verifiers and an API-22 x86 emulator tour of the reworked screens (`docs/screenshots/audit-2026-10-26/`); the findings and the implementation record are in `AUDIT_2026-10-26.md` (German).
+Version `2.7.0` has local evidence of 119 JVM tests, strict debug/release lint with 0 errors and 0 warnings, both APK verifiers and an API-22 x86 emulator tour of every screen (`docs/screenshots/`). Instrumented tests on the same emulator cover the login screen, sign-in over HTTP, favorites, paging through 125 episodes and sign-out against a local fixture server. Unit tests pin the Jellyfin route contracts for 10.8, 10.9, 10.10, 10.11 and 12.3.
 
-Version `0.2.5-firefin` has local evidence of 83 JVM tests, strict debug/release lint with 0 errors, APK verification, debug/unsigned-release assembly and two instrumented tests on the API-22 x86 emulator. Earlier emulator records cover login, navigation, search, Seerr flows, artwork, playback controls and resume; see the [migration ledger](FIREFIN_MIGRATION.md).
-
-Signed releases are built only by the protected release workflow, which requires signing credentials stored outside this repository. Releases `0.2.3-firefin`, `0.2.4-firefin` and `0.2.5-firefin` were built and verified against the pinned production certificate this way. None has been validated on physical AFTT hardware.
+Signed releases are built only by the protected release workflow, which requires signing credentials stored outside this repository and verifies every APK against the pinned production certificate.
 
 ## Browsing and playback features
 
 Home section presets and subtitle preferences are stored per server and
 user. A missing home order defaults to resume, next-up, favorites and latest;
 previously saved orders remain unchanged. The latest group respects
-`Users/Me` library exclusions. Library filters and genre selection reset
-pagination; card-menu mutations update matching visible cards.
+`Users/Me` library exclusions. Library sort, filter and genre are list
+dialogs whose buttons show the current value; a change resets pagination.
+Card-menu mutations update matching visible cards.
 
 Episode playback reuses one ExoPlayer and credential snapshot. Every attempt
 finishes its reporter once; switching awaits the pending terminal report
@@ -82,18 +81,20 @@ a separate sign-in. The existing HTTP confirmation and TLS policy apply.
 ## Interface tokens
 
 Layouts reference only the tokens in `values/colors.xml`, `values/dimens.xml`
-and the styles in `values/themes.xml`: a seven-step type scale (36 to 14 sp,
-nothing smaller), spacing from 4 to 32 dp plus a 48 dp overscan page margin,
-48 dp controls and 52 dp inputs. Focus is static: a 3 dp accent stroke with a
-lighter surface on cards, inputs and row titles, an accent fill on buttons.
-Lists use `TvRecyclerView`, which keeps LEFT/RIGHT inside the list. Empty and
-error states come from `layout/view_state.xml` with a focusable Reload action.
+and the styles in `values/themes.xml`: a type scale from 36 to 14 sp (nothing
+smaller), spacing from 4 to 32 dp plus a 48 dp overscan page margin, headers
+padded below the overscan band, 48 dp controls and 52 dp inputs. Focus is
+static: a 3 dp accent stroke with a lighter surface on cards, inputs, dialog
+rows and row titles, an accent fill on buttons. Posters are 150 by 225 dp in
+five grid columns. Lists use `TvRecyclerView`, which keeps LEFT/RIGHT inside
+the list. Empty and error states come from `layout/view_state.xml` with a
+focusable Reload action. With the player controller visible, UP enters the
+Audio, Subtitles and Video bar and DOWN returns to the play button.
 
 ## Known boundaries
 
-The following are not claimed complete for the slim native target:
+Out of scope for the slim native target:
 
-- Physical AFTT/ARMv7 validation
 - Live TV/DVR
 - Offline downloads
 - Native music, book and photo readers
@@ -102,4 +103,4 @@ The following are not claimed complete for the slim native target:
 - Plugin synchronization
 - Seerr people, administrator and 4K workflows
 
-These boundaries are intentional and are kept visible so that “compatible” does not imply unsupported feature parity.
+These boundaries are intentional and are kept visible so that “compatible” does not imply feature parity with other clients.

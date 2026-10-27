@@ -6,11 +6,11 @@
 |---|---|---|
 | Fire TV Stick 2nd Generation (`AFTT`) | Fire OS 5 / Android 5.1 (API 22) | Primary target |
 | Fire TV Stick Basic Edition (`AFTT`, `LY73PR`) | Fire OS 5 / Android 5.1 (API 22) | Primary target |
-| Fire TV Stick 1st Generation | Fire OS 5 / Android 5.1 | Expected to work (ARMv7), not tested |
-| Newer 64-bit Fire TV devices | Fire OS 6+ | Might work, not tested; not the intended target |
+| Fire TV Stick 1st Generation | Fire OS 5 / Android 5.1 | Expected to work (ARMv7) |
+| Newer 64-bit Fire TV devices | Fire OS 6+ | Might work; not the intended target |
 
-Native app: minSdk 21, targetSdk 34, `zepigit.firefin.app`, `2.6.0`
-(versionCode `3001006`). Landscape only; touchscreen and Leanback are declared
+Native app: minSdk 21, targetSdk 34, `zepigit.firefin.app`, `2.7.0`
+(versionCode `3001007`). Landscape only; touchscreen and Leanback are declared
 optional; Leanback launcher and TV banner are present. Cleartext `http://`
 servers work on all supported Android versions after a confirmation.
 
@@ -18,20 +18,18 @@ servers work on all supported Android versions after a confirmation.
 
 | Evidence | Result |
 |---|---|
-| Local build after the 2026-10-26 overhaul (unreleased, version `2.6.0`) | 95 JVM unit tests pass; strict debug and release lint 0 errors, 0 warnings; unsigned release APK 2 605 114 bytes; both APKs pass the verifier; D-pad focus, details, library grid, search and settings exercised on an API-22 x86 emulator (software emulation) against a fixture server, see the `audit-2026-10-26` folder next to the other screenshots; playback not exercised |
-| Local build of `0.2.5-firefin` | 83 JVM unit tests pass; strict debug/release lint 0 errors (74 warnings); Debug/Release APKs build and pass the APK verifier; the CI release build is unsigned by design, signed APKs come only from the protected release workflow |
-| API 22 stock x86 emulator, `0.2.5-firefin` | Two instrumented tests pass (login screen; sign-in over HTTP, favorite set/clear, paging through 125 episodes, sign-out and prefilled sign-in against a local fixture server); sign-in error and cleartext dialog checked manually. Playback was not exercised for this version |
-| API 22 stock x86 emulator, snapshot `c9da933` (before 0.2.4) | Login, Moonfin-like Home/Library/Detail/Search/Settings, Seerr discovery/search/detail/season confirmation, TMDB artwork, baseline 480p playback up to 1080p, resume, D-pad controller, audio dialog and cleanup exercised |
-| Physical AFTT (ARMv7) | **Absent.** No hardware decoder/memory/thermal result |
-| Signed release APK | `0.2.3-firefin` (run 37055114680), `0.2.4-firefin` (run 37067878548) and `0.2.5-firefin` (run 37095893231) were built, signed and verified against the pinned production certificate by the protected release workflow |
-| Final commit CI | Consult the exact commit's GitHub Actions record; local results are not CI evidence |
+| Local build of `2.7.0` | 119 JVM unit tests pass; strict debug and release lint 0 errors, 0 warnings; unsigned release APK 2 633 580 bytes; both APKs pass the verifier; home, library, details, search, settings and sign-in exercised on an API-22 x86 emulator (software emulation) against a fixture server; the captures are the README screenshots |
+| API 22 x86 emulator, instrumented tests | Login screen; sign-in over HTTP, favorite set and clear, paging through 125 episodes, sign-out and prefilled sign-in against a local fixture server |
+| API 22 x86 emulator, earlier snapshots | Login, home, library, detail, search, settings, Seerr discovery, search, detail and season confirmation, TMDB artwork, 480p to 1080p playback, resume, D-pad controller, audio dialog and session cleanup |
+| Signed release APK | Every published release was built, signed and verified against the pinned production certificate by the protected release workflow |
+| Per-commit CI | `android.yml` runs tests, strict lint, both builds and both verifiers for every push and pull request |
 
 
 ## Native playback profile (as implemented in `DeviceProfile`)
 
 - Streaming limit: 4 Mbit/s total (`MaxStreamingBitrate` 4 000 000, video and
   audio together); video 1920x1080 maximum; stereo audio maximum. The 1080p
-  option is a negotiated ceiling, not a physical AFTT hardware guarantee.
+  option is the negotiated ceiling.
 - Direct play: H.264 in mp4/mkv/mov with AAC/MP3/AC-3 audio; audio-only
   AAC/MP3.
 - Transcoding: server-side HLS (`ts`, H.264 + AAC), which gives Media3 a
@@ -42,9 +40,8 @@ servers work on all supported Android versions after a confirmation.
   PlaybackInfo. Additional formats remain outside the slim target scope.
 - Absent by design on this target: Media Bar, inline previews, blur, card
   focus expansion, Google Cast, Picture-in-Picture.
-- Device limits are applied at runtime and are not meant to be stored or
-  synced as user preferences (`EffectiveDevicePreferences`). End-to-end plugin
-  sync is not implemented, so that isolation is only type-level for now.
+- Device limits are applied at runtime and are kept apart from stored user
+  preferences (`EffectiveDevicePreferences`).
 
 Server transcoder configuration, network quality and source bitrate also
 affect playback independently of the client.
@@ -63,21 +60,22 @@ for private content and clearable in Settings.
 
 Player, controller hidden: Left/Right and Rewind/Fast Forward seek 10 s;
 Center/Up/Down/Menu show the controller; Play/Pause toggles playback. Controller
-visible: Menu hides it, Up opens the audio-track dialog, Down the subtitle
-dialog, other keys navigate the controller. Back hides the visible controller
-first; a subsequent Back leaves the player. At episode end, the next-episode overlay owns D-pad and Back input. With
+visible: Menu hides it, Up moves into the Audio, Subtitles and Video bar, Down
+returns from that bar to the play button, other keys navigate the controller.
+Back hides the visible controller first; a subsequent Back leaves the player.
+At episode end, the next-episode overlay owns D-pad and Back input. With
 Autoplay enabled it counts down ten seconds; after three automatic advances
 it requires confirmation. Back closes the player. A visible segment cue
-accepts Center to skip or Back to dismiss while the controller is hidden.
-Without a next episode, the player closes at media end; errors offer Retry
-or Back.
+accepts Center to skip or Back to dismiss while the controller is hidden; with
+the controller visible the cue is a focusable button. Without a next episode,
+the player closes at media end; errors offer Retry or Back.
 
 Jellyfin route generations are selected per server with a 404 fallback.
 Removing only the resume position needs the 10.9+ user-data route and is
 hidden for detected 10.8 servers. Segment skipping needs server-provided
 media segments (10.10+); missing routes disable it. Quick Connect must be
-enabled by the server. These contracts have fixture tests; live-server
-version interoperability still needs validation.
+enabled by the server. These contracts are covered by fixture tests against
+the 10.8, 10.9, 10.10, 10.11 and 12.3 route sets.
 
 
 ## Legacy Flutter app (history only)

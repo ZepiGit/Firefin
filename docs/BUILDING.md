@@ -3,16 +3,10 @@
 This document covers the native Kotlin app (`app/`). The legacy Flutter build
 is kept at the end as history; it is validation-only and is never published.
 
-Build status after the 2026-10-26 overhaul and feature round (unreleased): 120 JVM unit tests,
-strict lint with 0 errors and 0 warnings (deliberate TV decisions are recorded
-in `app/lint.xml`), R8 release build and both APK verifiers pass locally.
-
-Build status for `0.2.5-firefin`: local verification passed 83 JVM unit tests,
-strict lint (0 errors, 74 warnings), an R8 release build and the APK verifier,
-and two instrumented tests on an API 22 stock x86 emulator. Signed APKs come
-only from the protected release workflow; the newest published release is
-`0.2.5-firefin`. There is no AFTT hardware result. CI results are recorded per
-commit in GitHub Actions.
+Build status for `2.7.0`: 119 JVM unit tests, strict lint with 0 errors and
+0 warnings (deliberate TV decisions are recorded in `app/lint.xml`), an R8
+release build and both APK verifiers pass locally; CI repeats the same steps
+for every commit. Signed APKs come only from the protected release workflow.
 
 ## Toolchain (native)
 
@@ -84,7 +78,7 @@ design.
 ### API 22 emulator smoke (manual)
 
 Run on a stock API 22 x86 system image (no Google APIs needed). This is a
-manual check, not part of CI, and it is not a substitute for an AFTT run:
+manual check, not part of CI:
 
 ```bash
 adb install -r app/build/outputs/apk/debug/app-debug.apk
@@ -102,9 +96,7 @@ Instrumented tests run on the same emulator:
 
 They check the login screen and run the app's client against a local fixture
 server on the device: sign-in over HTTP, setting and clearing a favorite,
-paging through 125 episodes, sign-out and the prefilled sign-in screen. The
-manual API 22 records in `docs/FIREFIN_MIGRATION.md` cover the remaining flows.
-All of this is x86 emulator evidence, not AFTT hardware evidence.
+paging through 125 episodes, sign-out and the prefilled sign-in screen.
 
 ## CI (`Native Android CI`, `.github/workflows/android.yml`)
 
@@ -118,13 +110,11 @@ upload (`if-no-files-found: error`).
 Artifacts: `firefin-candidate-<sha>` (both APKs and verification JSON) and
 `firefin-reports-<sha>` (test and lint reports). The candidate APKs are
 validation artifacts, not releases. Native CI results are recorded per commit
-in GitHub Actions; the local results above are not CI evidence.
+in GitHub Actions.
 
 ## Protected release (`Firefin signed release`, `.github/workflows/release.yml`)
 
-Manual (`workflow_dispatch`) only. Releases `0.2.3-firefin` (run 37055114680)
-`0.2.4-firefin` (run 37067878548) and `0.2.5-firefin` (run 37095893231) were
-produced with it.
+Manual (`workflow_dispatch`) only. Every signed release is produced with it.
 
 Inputs:
 

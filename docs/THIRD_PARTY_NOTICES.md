@@ -15,8 +15,7 @@ Firefin descends from the Moonfin FireTV32 backport of Moonfin Core 1.1.0:
 - Project license: GNU General Public License version 2
 
 The repaired git history preserves the upstream commits and their authors (the
-replayed SHAs and committer metadata are reconstructed; see
-[FIREFIN_MIGRATION.md](FIREFIN_MIGRATION.md)). Firefin is an
+replayed SHAs and committer metadata are reconstructed). Firefin is an
 independent project and is not affiliated with or endorsed by Moonfin.
 
 The native Kotlin app in `app/` is new code written for Firefin. The

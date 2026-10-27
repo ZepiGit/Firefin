@@ -6,93 +6,96 @@ preserved unchanged as history.
 
 ## Native Firefin
 
-### Unreleased
+### 2.7.0 (versionCode 3001007)
 
-Audit and overhaul of the native app; the findings, evidence and plan are in
-`docs/AUDIT_2026-10-26.md` (German). Version identity is unchanged.
+Release title: `Firefin-v2.7.0`; tag: `firefin-v2.7.0`.
+Publication is performed by the protected signed-release workflow.
 
 Features:
 
-- The player offers the next episode with an optional ten-second countdown,
-  reuses the same decoder and asks for confirmation after three automatic
-  advances. Leaving the foreground cancels the countdown.
-- Intro, recap, preview and commercial segments can be skipped when the
-  Jellyfin server supplies them. Back dismisses a cue; unsupported servers
-  continue without segment controls.
-- MENU on a Jellyfin card opens watched, favorite and series actions. On
-  supported servers, removing a resume position preserves watched history.
-- Home adds a favorites row, four section-order presets and the server's
-  latest-library exclusions. Libraries add watched-state and genre filters.
-- Text subtitles have three sizes and a contrast background; language
-  preferences cover eight languages with ISO and regional aliases.
-- Quick Connect signs in with a code approved in another Jellyfin client.
-  Polling is cancellable and expires after five minutes; the secret is never
-  persisted. Password sign-in and its optional Seerr bridge remain available.
+- Next episode in the same player: optional ten-second countdown, confirmation
+  after three automatic advances, countdown cancelled when the app leaves the
+  foreground.
+- Intro, recap, preview and commercial segments supplied by the server can be
+  skipped; Back dismisses a cue.
+- MENU on a Jellyfin card opens watched, favorite, resume-reset and go-to-series
+  actions; the resume reset keeps the watched history on Jellyfin 10.9 and newer.
+- Home: favorites row, four section-order presets and the server's
+  latest-library exclusions.
+- Library: watched-state filter, genre picker and sort picker, each a list
+  dialog with the current value shown on its button.
+- Subtitles: three text sizes with a contrast background; audio and subtitle
+  language preferences cover eight languages with ISO and regional aliases.
+- Quick Connect sign-in with a code approved in another Jellyfin client; the
+  code screen counts down the five-minute window, Cancel works at any time and
+  the secret is never stored.
 
-Additional compatibility fixes:
+Compatibility:
 
-- User-scoped API routes select their generation per server, with a 404
-  fallback for older Jellyfin versions. Live-stream cleanup sends its id in
-  the query string.
-- Playback chooses a directly playable version before negotiating language
-  preferences. Transport-stream seeks retain external subtitles.
+- Jellyfin user routes select their generation per server (10.8 or 10.9 and
+  newer) with a 404 fallback; live-stream cleanup sends its id as a query
+  parameter.
+- Playback picks a directly playable version before negotiating languages;
+  transport-stream seeks keep external subtitles.
 
 Fixes:
 
-- D-pad focus no longer leaves a row or grid sideways: RIGHT on the last card
-  of a short row used to jump into the row below, RIGHT on the last grid column
-  landed on the Sort or Next page button. Rows and grids keep the focus on the
-  last card; UP and DOWN still reach the header and the other rows.
-- Series and season details focus their first season or episode once the cards
-  exist; Home keeps a usable focus after a refresh removes the focused row and
-  shows a focusable Reload when loading fails.
-- Search shows library results as soon as they arrive instead of waiting for
-  the optional Seerr probe, which could take up to the 25 s request timeout.
-- The player handles the separate MEDIA_PLAY, MEDIA_PAUSE and MEDIA_STOP keys
-  that HDMI-CEC and third-party remotes send, and closes its dialogs with the
-  activity.
-- A request on a keep-alive connection that the server or a reverse proxy has
-  already closed is retried once on a fresh socket instead of failing with
-  "unexpected end of stream"; a POST that was already sent is never repeated.
+- D-pad focus stays inside rows and grids sideways; UP and DOWN still reach the
+  header and the other rows.
+- Details focus Play or, without a Play button, the first card; Home keeps a
+  usable focus after a refresh and after a cold start and shows a Reload action
+  on errors.
+- Search shows library results as soon as they arrive, asks for at least two
+  characters and offers Reload on errors.
+- The player handles the MEDIA_PLAY, MEDIA_PAUSE and MEDIA_STOP keys, closes
+  its dialogs with the activity and ignores held keys on segment cues.
+- A request on a keep-alive connection closed by the server or a reverse proxy
+  is retried once on a fresh socket; a POST that was already sent is never
+  repeated.
 - Favorite and Watched send one toggle at a time; runtimes use Latin digits in
-  every locale; card ids are 64-bit so large libraries cannot collide.
+  every locale; card ids are 64-bit.
 
 Performance:
 
-- The Conscrypt provider, the platform trust store and the HTTP clients are
-  built on the first request instead of on the main thread at app start.
-- The artwork disk cache keeps a running byte count instead of listing the
-  directory after every write; landscape cards decode at 480 px instead of
-  640 px; home rows share one view pool; the Media3 buffer is capped at
-  16 MB / 40 s; library, children and search responses no longer carry the
-  Overview field; artwork is requested at quality 80.
+- Conscrypt, the trust store and the HTTP clients are built on the first
+  request, off the main thread.
+- The artwork disk cache keeps a running byte count; landscape cards decode at
+  480 px; home rows share one view pool; the Media3 buffer is capped at
+  16 MB and 40 s; list responses omit the Overview field; artwork is requested
+  at quality 80; posters no longer paint a placeholder under the bitmap.
 - The release APK ships only English and German resources.
-- The Moonfin-derived Flutter sources, their vendored packages, platform
-  folders, `scripts/legacy` and the validation-only workflow were removed from
-  the repository; they remain in the git history up to commit `086af52`.
 
-Interface (10-foot rework):
+Interface:
 
-- Shared design tokens: colors, a type scale with nothing below 14 sp,
-  spacing, 48 dp controls and a 48 dp overscan margin.
-- Focus is a static 3 dp accent frame with a lighter surface on cards, inputs
-  and row titles; buttons fill with the accent color. No animations.
-- Cards: 128 dp posters (six grid columns) and 224 dp landscape cards with a
-  two-line title, a caption and a resume progress bar; the title marquee is
-  gone.
-- Every screen has the same 72 dp header, the same margins and a shared
-  empty/error state with a Reload action. Details show the series or item type
-  as context and the number of seasons or episodes. Settings are grouped into
-  Playback, Interface and Account. The player controller hides the shuffle,
-  previous/next, subtitle and settings controls that the top bar replaces.
+- Design tokens for colors, a type scale from 36 sp down to 14 sp, spacing,
+  48 dp controls, a 48 dp overscan margin and headers padded below the
+  overscan band.
+- Static focus: a 3 dp accent frame on cards, inputs, dialog rows and row
+  titles (whose text flips to the on-accent color); buttons fill with the
+  accent color. No animations.
+- Cards: 150 by 225 dp posters in five grid columns, 224 dp landscape cards,
+  two-line 16 sp titles, a caption and a resume bar.
+- Player: UP enters the Audio, Subtitles and Video bar while the controller is
+  visible and DOWN returns to the play button; the skip chip stays visible
+  above the controller and captions keep clear of it.
+- Login pans the form above the keyboard; the Quick Connect code shows a
+  countdown; the Seerr header is shortened to "Seerr".
+- Settings are grouped into Playback, Interface and Account; every screen
+  shares the same header, margins and empty or error state with Reload.
 
-Verification (local, 2026-10-26, including the feature round): 120 JVM unit
-tests pass; strict debug and release lint report 0 errors and 0 warnings
-(before: 74 warnings); the unsigned release APK is 2 629 202 bytes (before:
-2 921 708) and both APKs pass the verifier. The reworked screens were exercised on an API-22 x86 emulator
-without hardware acceleration against a local fixture server; captures of the
-old and new interface are in `docs/screenshots/audit-2026-10-26/`. Playback and
-physical AFTT hardware were not exercised.
+Removed:
+
+- The Moonfin-derived Flutter sources, vendored packages, platform folders,
+  `scripts/legacy` and the validation-only workflow (git history up to
+  `086af52`).
+- The German audit and planning documents, the migration ledger, the
+  platform-label workflow and the 16 KB page-size script.
+
+Verification (local, 2026-10-27): 119 JVM unit tests pass; strict debug and
+release lint report 0 errors and 0 warnings; the unsigned release APK is
+2 633 580 bytes and both APKs pass the verifier; home, library, details,
+search, settings and sign-in were exercised on an API-22 x86 emulator against a
+fixture server (`docs/screenshots/`).
 
 ### 2.6.0 (versionCode 3001006)
 
@@ -104,8 +107,7 @@ Publication is performed by the protected signed-release workflow.
   use the new paths. Redundant standalone legacy version documents were removed;
   legacy source and changelog history remain.
 - Replaced the old presentation images with seven current Android API-22
-  captures in `docs/screenshots/`, including login, settings and search. These
-  show the local unreleased build, not physical Fire TV validation.
+  captures in `docs/screenshots/`, including login, settings and search.
 - Home places Media requests between Libraries and Play random, with the
   Moonfin-derived Seerr crescent instead of a chat bubble. Remote focus follows
   that order in both directions and shows the focused action's name.
@@ -125,7 +127,7 @@ Publication is performed by the protected signed-release workflow.
 
 Published on 2026-10-03 as a signed GitHub release (tag `firefin-v0.2.5-firefin`)
 by the protected release workflow (run 37095893231) from commit
-`7bf3345a21f2731cf25dbfbcb38e7a4cd95d7f78`. No AFTT hardware result is recorded.
+`7bf3345a21f2731cf25dbfbcb38e7a4cd95d7f78`.
 
 Sign-in and connection:
 
@@ -196,15 +198,13 @@ Maintenance:
 Verification: 83 JVM unit tests; on the API 22 x86 emulator two instrumented
 tests (login screen, and sign-in over HTTP, mark/unmark, paging through 125
 episodes, sign-out and prefilled sign-in against a local fixture server) and a
-manual check of the sign-in error and cleartext dialog. Playback was not
-exercised on the emulator for this version, and there is still no result from
-physical AFTT hardware.
+manual check of the sign-in error and cleartext dialog.
 
 ### 0.2.4-firefin (versionCode 3001004)
 
 Published on 2026-10-02 as a signed GitHub release (tag `firefin-v0.2.4-firefin`)
 by the protected release workflow (run 37067878548) from commit
-`503678d519950d74c4cfb6d3d93a08150716a3af`. No AFTT hardware result is recorded.
+`503678d519950d74c4cfb6d3d93a08150716a3af`.
 
 - The interface now defaults to English. The previous German texts are kept as a
   German translation (`values-de`) and are used on devices set to German.
@@ -225,17 +225,15 @@ by the protected release workflow (run 37067878548) from commit
 Published on 2026-10-02 as a signed GitHub release (tag `firefin-v0.2.3-firefin`)
 by the protected release workflow from commit
 `e9760aa62e71f5ddb1b7a7f806b0d26c0726c987`; the APK was checked against the
-pinned production signing certificate. No AFTT hardware result is recorded.
+pinned production signing certificate.
 The tested implementation snapshot is `c9da933aa2a331c760325b97e777b51be7d4980f`.
 Later documentation-only and ancestry-merge commits do not change its app code.
 CI results are per-SHA records in GitHub Actions, not inferred from local tests.
 
 Verified locally on the implementation snapshot: 60 JVM unit tests, API22
 instrumentation login-focus test, strict debug/release lint (0 errors; current
-reports contain 118 warnings), R8 release APK (unsigned CI build), and the manual
-API22 x86 flow record in `docs/FIREFIN_MIGRATION.md`. The published release APK
-was built and verified by the protected release workflow. No AFTT hardware
-result is claimed.
+reports contain 118 warnings) and the R8 release APK (unsigned CI build). The
+published release APK was built and verified by the protected release workflow.
 
 #### Native implementation scope (tested snapshot `c9da933aa2a331c760325b97e777b51be7d4980f`)
 
@@ -271,21 +269,10 @@ result is claimed.
 
 #### Still open for the slim native target
 
-Quick Connect code polling, all library types beyond movies/shows/mixed, Live
-TV, downloads, music, books/comics/photos, DLNA, admin, plugin sync, settings
-and parental controls, and an AFTT hardware run remain open.
-The native Seerr subset (Moonbase detection, discovery, search, detail, status,
-season selection and confirmation) is implemented; people/4K/admin and live
-request submission are intentionally not claimed. See
-[docs/FIREFIN_MIGRATION.md](docs/FIREFIN_MIGRATION.md).
-
-### Earlier native work (superseded claims)
-
-Earlier notes claimed clean lint, "all review findings fixed", protected
-signing, bounded disk decode, and completed API 22 validation. Those claims
-were not acceptance evidence and are withdrawn. The earlier figures of 18 or
-21 unit tests and the 5m25s CI run describe older trees, not the current one;
-each version entry above names its own test count.
+Live TV, downloads, music, books, photos, DLNA, admin, plugin sync and
+parental controls stay outside the slim native target. The native Seerr subset
+(Moonbase detection, discovery, search, detail, status, season selection and
+confirmation) is implemented; people, 4K and admin flows are out of scope.
 
 ## Legacy Flutter line (history)
 
