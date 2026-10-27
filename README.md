@@ -36,7 +36,7 @@ This project is not about being the best Jellyfin/Moonfin alternative. It doesn'
 
 ## Screenshots
 
-Captured from version 2.7.0 on an API-22 emulator at 1920 by 1080.
+Captured from version 2.7.0 on an API-22 emulator at 1920 by 1080; the same build was checked on a Fire TV Stick 2nd generation.
 
 <table>
   <tr>
@@ -95,7 +95,7 @@ Firefin does not require a second media server. It connects to the Jellyfin serv
 
 | Device or platform | Status |
 |---|---|
-| **Fire TV Stick 2nd Generation (AFTT)** | Primary target; Fire OS 5 / Android API 22 / ARMv7. |
+| **Fire TV Stick 2nd Generation (AFTT)** | Primary target; Fire OS 5 / Android API 22 / ARMv7. Release 2.7.0 was installed and checked on this device. |
 | **Fire TV Stick Basic Edition (LY73PR)** | Primary target; Fire OS 5 / Android API 22 / ARMv7. |
 | **Fire TV Stick 1st Generation** | Expected to work (Fire OS 5 / ARMv7). |
 | **Newer 64-bit Fire TV devices** | Might work, but for God's sake, use something else please. |
@@ -137,7 +137,7 @@ To build Firefin yourself, start with [build guide](docs/BUILDING.md) and the te
 
 ## Project status
 
-Firefin runs on Android 5.1 (API 22) and is verified against Jellyfin 10.8 through 10.11 route contracts, an API-22 emulator and a live Seerr server for media requests. Out of scope: Live TV/DVR, offline downloads, music or book readers, DLNA and administration. If you have an old Fire TV or Android TV device lying around, it might be just for you.
+Firefin runs on Android 5.1 (API 22). Release 2.7.0 was checked on a Fire TV Stick 2nd generation; the route contracts for Jellyfin 10.8 through 10.11 are covered by tests, and media requests were checked against a live Seerr server. Out of scope: Live TV/DVR, offline downloads, music or book readers, DLNA and administration. If you have an old Fire TV or Android TV device lying around, it might be just for you.
 
 For compatibility boundaries, security notes and verification, see:
 

@@ -47,7 +47,7 @@ The standard local verification command is:
 ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug :app:lintRelease :app:assembleDebug :app:assembleRelease
 ```
 
-Version `2.7.0` has local evidence of 119 JVM tests, strict debug/release lint with 0 errors and 0 warnings, both APK verifiers and an API-22 x86 emulator tour of every screen (`docs/screenshots/`). Instrumented tests on the same emulator cover the login screen, sign-in over HTTP, favorites, paging through 125 episodes and sign-out against a local fixture server. Unit tests pin the Jellyfin route contracts for 10.8, 10.9, 10.10, 10.11 and 12.3.
+Release `2.7.0` was installed and checked by the maintainer on a Fire TV Stick 2nd generation. Version `2.7.0` has local evidence of 119 JVM tests, strict debug/release lint with 0 errors and 0 warnings, both APK verifiers and an API-22 x86 emulator tour of every screen (`docs/screenshots/`). Instrumented tests on the same emulator cover the login screen, sign-in over HTTP, favorites, paging through 125 episodes and sign-out against a local fixture server. Unit tests pin the Jellyfin route contracts for 10.8, 10.9, 10.10, 10.11 and 12.3.
 
 Signed releases are built only by the protected release workflow, which requires signing credentials stored outside this repository and verifies every APK against the pinned production certificate.
 

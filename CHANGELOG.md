@@ -6,6 +6,15 @@ preserved unchanged as history.
 
 ## Native Firefin
 
+### 2.7.1 (versionCode 3001008)
+
+Release title: `Firefin-v2.7.1`; tag: `firefin-v2.7.1`.
+Publication is performed by the protected signed-release workflow.
+
+- Documentation release on the 2.7.0 code: README, compatibility and
+  overview record that release 2.7.0 was installed and checked on a
+  Fire TV Stick 2nd generation (Fire OS 5).
+
 ### 2.7.0 (versionCode 3001007)
 
 Release title: `Firefin-v2.7.0`; tag: `firefin-v2.7.0`.

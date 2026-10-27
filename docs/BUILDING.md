@@ -3,7 +3,7 @@
 This document covers the native Kotlin app (`app/`). The legacy Flutter build
 is kept at the end as history; it is validation-only and is never published.
 
-Build status for `2.7.0`: 119 JVM unit tests, strict lint with 0 errors and
+Build status for `2.7.1` (documentation release on the `2.7.0` code): 119 JVM unit tests, strict lint with 0 errors and
 0 warnings (deliberate TV decisions are recorded in `app/lint.xml`), an R8
 release build and both APK verifiers pass locally; CI repeats the same steps
 for every commit. Signed APKs come only from the protected release workflow.

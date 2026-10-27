@@ -4,13 +4,13 @@
 
 | Device | Fire OS / Android | Status for native Firefin |
 |---|---|---|
-| Fire TV Stick 2nd Generation (`AFTT`) | Fire OS 5 / Android 5.1 (API 22) | Primary target |
+| Fire TV Stick 2nd Generation (`AFTT`) | Fire OS 5 / Android 5.1 (API 22) | Primary target; release 2.7.0 checked on the device |
 | Fire TV Stick Basic Edition (`AFTT`, `LY73PR`) | Fire OS 5 / Android 5.1 (API 22) | Primary target |
 | Fire TV Stick 1st Generation | Fire OS 5 / Android 5.1 | Expected to work (ARMv7) |
 | Newer 64-bit Fire TV devices | Fire OS 6+ | Might work; not the intended target |
 
-Native app: minSdk 21, targetSdk 34, `zepigit.firefin.app`, `2.7.0`
-(versionCode `3001007`). Landscape only; touchscreen and Leanback are declared
+Native app: minSdk 21, targetSdk 34, `zepigit.firefin.app`, `2.7.1`
+(versionCode `3001008`). Landscape only; touchscreen and Leanback are declared
 optional; Leanback launcher and TV banner are present. Cleartext `http://`
 servers work on all supported Android versions after a confirmation.
 
@@ -18,6 +18,7 @@ servers work on all supported Android versions after a confirmation.
 
 | Evidence | Result |
 |---|---|
+| Fire TV Stick 2nd Generation, release `2.7.0` | Installed from the signed release and checked by the maintainer on the device: the app works on Fire OS 5 |
 | Local build of `2.7.0` | 119 JVM unit tests pass; strict debug and release lint 0 errors, 0 warnings; unsigned release APK 2 633 580 bytes; both APKs pass the verifier; home, library, details, search, settings and sign-in exercised on an API-22 x86 emulator (software emulation) against a fixture server; the captures are the README screenshots |
 | API 22 x86 emulator, instrumented tests | Login screen; sign-in over HTTP, favorite set and clear, paging through 125 episodes, sign-out and prefilled sign-in against a local fixture server |
 | API 22 x86 emulator, earlier snapshots | Login, home, library, detail, search, settings, Seerr discovery, search, detail and season confirmation, TMDB artwork, 480p to 1080p playback, resume, D-pad controller, audio dialog and session cleanup |
