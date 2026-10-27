@@ -1,4 +1,4 @@
-<p align="center">
+I<p align="center">
   <img src="app/src/main/res/drawable-nodpi/firefin_mark.png" width="128" height="128" alt="Firefin logo" />
 </p>
 
@@ -102,7 +102,7 @@ Firefin does not require a second media server. It connects to the Jellyfin serv
 
 | Device or platform | Status |
 |---|---|
-| **Fire TV Stick 2nd Generation (AFTT)** | Primary target; Fire OS 5 / Android API 22 / ARMv7. Release 2.7.0 was installed and checked on this device. |
+| **Fire TV Stick 2nd Generation (AFTT)** | Primary target; Fire OS 5 / Android API 22 / ARMv7. |
 | **Fire TV Stick Basic Edition (LY73PR)** | Primary target; Fire OS 5 / Android API 22 / ARMv7. |
 | **Fire TV Stick 1st Generation** | Expected to work (Fire OS 5 / ARMv7). |
 | **Newer 64-bit Fire TV devices** | Might work, but for God's sake, use something else please. |
