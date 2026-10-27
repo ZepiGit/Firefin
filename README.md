@@ -36,13 +36,13 @@ This project is not about being the best Jellyfin/Moonfin alternative. It doesn'
 
 ## Screenshots
 
-Captured from version 2.7.0 on an API-22 emulator at 1920 by 1080; the same build was checked on a Fire TV Stick 2nd generation.
+Captured from version 2.7.1 on an API-22 emulator at 1920 by 1080, signed in to a real Jellyfin server via Quick Connect. The series shots show South Park season 29.
 
 <table>
   <tr>
     <td width="50%">
       <img src="docs/screenshots/home.png" alt="Firefin home screen with icon navigation, preview and content rows" />
-      <p align="center"><sub><strong>Home</strong><br />Continue watching, next up, favorites and latest rows.</sub></p>
+      <p align="center"><sub><strong>Home</strong><br />Backdrop preview of the focused title above the content rows.</sub></p>
     </td>
     <td width="50%">
       <img src="docs/screenshots/library.png" alt="Firefin library grid with sort, filter and genre pickers" />
@@ -51,18 +51,18 @@ Captured from version 2.7.0 on an API-22 emulator at 1920 by 1080; the same buil
   </tr>
   <tr>
     <td width="50%">
-      <img src="docs/screenshots/series.png" alt="Firefin series details with seasons" />
-      <p align="center"><sub><strong>Series</strong><br />Overview, continue button and season browsing.</sub></p>
+      <img src="docs/screenshots/series.png" alt="Firefin South Park series page with the season row scrolled to season 29" />
+      <p align="center"><sub><strong>Series</strong><br />Overview, continue button and the season row.</sub></p>
     </td>
     <td width="50%">
-      <img src="docs/screenshots/season.png" alt="Firefin season details with an episode list" />
-      <p align="center"><sub><strong>Season</strong><br />Numbered episodes with resume progress.</sub></p>
+      <img src="docs/screenshots/season.png" alt="Firefin South Park season 29 with three episodes" />
+      <p align="center"><sub><strong>Season</strong><br />Numbered episodes with resolution and audio badges.</sub></p>
     </td>
   </tr>
   <tr>
     <td width="50%">
       <img src="docs/screenshots/search.png" alt="Firefin search with library results" />
-      <p align="center"><sub><strong>Search</strong><br />Library results with Seerr discovery alongside.</sub></p>
+      <p align="center"><sub><strong>Search</strong><br />Library results as soon as the server answers.</sub></p>
     </td>
     <td width="50%">
       <img src="docs/screenshots/settings.png" alt="Firefin settings grouped into Playback, Interface and Account" />
@@ -78,6 +78,13 @@ Captured from version 2.7.0 on an API-22 emulator at 1920 by 1080; the same buil
       <img src="docs/screenshots/quick_connect.png" alt="Firefin Quick Connect code with countdown" />
       <p align="center"><sub><strong>Quick Connect</strong><br />Code with a five-minute countdown.</sub></p>
     </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="docs/screenshots/player.png" alt="Firefin player showing the Skip intro button during a South Park episode" />
+      <p align="center"><sub><strong>Player</strong><br />Skip intro cue from the server's media segments.</sub></p>
+    </td>
+    <td width="50%"></td>
   </tr>
 </table>
 
