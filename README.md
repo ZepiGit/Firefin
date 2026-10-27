@@ -36,7 +36,7 @@ This project is not about being the best Jellyfin/Moonfin alternative. It doesn'
 
 ## Screenshots
 
-Captured from version 2.7.1 on an API-22 emulator at 1920 by 1080, signed in to a real Jellyfin server via Quick Connect. The series shots show South Park season 29.
+Captured from version 2.7.1. 
 
 <table>
   <tr>
