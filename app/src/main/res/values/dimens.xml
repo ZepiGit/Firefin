@@ -7,7 +7,6 @@
     <dimen name="text_subheading">20sp</dimen>
     <dimen name="text_body">18sp</dimen>
     <dimen name="text_label">16sp</dimen>
-    <dimen name="text_card">15sp</dimen>
     <dimen name="text_caption">14sp</dimen>
 
     <!-- Spacing (dp). page_margin keeps content inside the TV overscan area. -->
@@ -25,12 +24,18 @@
     <dimen name="focus_stroke">3dp</dimen>
     <dimen name="corner_radius">6dp</dimen>
     <dimen name="preview_height">160dp</dimen>
+    <dimen name="button_radius">24dp</dimen>
+    <dimen name="panel_radius">16dp</dimen>
+    <!-- Lists start one card gap inside the page margin so card edges land on the margin line. -->
+    <dimen name="row_inset">40dp</dimen>
+    <!-- Page margin plus the 60 dp Media3 controller, so the skip chip clears the visible bar. -->
+    <dimen name="player_chip_bottom">108dp</dimen>
 
-    <!-- Cards: six poster columns fit the 864 dp content width; decode buckets 320 / 480. -->
+    <!-- Cards: five poster columns fit the 880 dp grid width; decode buckets 320 / 480. -->
     <dimen name="card_gap">8dp</dimen>
     <dimen name="card_padding">3dp</dimen>
-    <dimen name="card_poster_width">128dp</dimen>
-    <dimen name="card_poster_image_height">192dp</dimen>
+    <dimen name="card_poster_width">150dp</dimen>
+    <dimen name="card_poster_image_height">225dp</dimen>
     <dimen name="card_landscape_width">224dp</dimen>
     <dimen name="card_landscape_image_height">126dp</dimen>
     <dimen name="card_progress_height">4dp</dimen>

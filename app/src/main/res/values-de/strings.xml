@@ -53,9 +53,10 @@
     <string name="error_login_response">Die Anmeldeantwort des Servers ist unvollständig.</string>
     <string name="empty_library">Diese Bibliothek ist leer</string>
     <string name="empty_search">Keine Ergebnisse</string>
+    <string name="search_min_chars">Mindestens 2 Zeichen eingeben</string>
     <string name="empty_remote">Keine steuerbaren Sitzungen</string>
     <string name="empty_home">Keine Inhalte verfügbar</string>
-    <string name="library_title">%1$s (%2$d · %3$s)</string>
+    <string name="library_title">%1$s (%2$d)</string>
     <string name="sort_name">Name</string>
     <string name="sort_date_added">Hinzugefügt</string>
     <string name="sort_year">Jahr</string>
@@ -165,7 +166,7 @@
     <string name="cache_cleared">Bildcache geleert (%1$d KiB)</string>
 
     <!-- Seerr discovery and requests -->
-    <string name="seerr_header">Seerr · Entdecken und anfragen</string>
+    <string name="seerr_header">Seerr</string>
     <string name="seerr_discover">Entdecken</string>
     <string name="seerr_trending">Trending</string>
     <string name="seerr_movies">Filme</string>

@@ -31,8 +31,8 @@
                 android:layout_marginLeft="@dimen/space_s"
                 android:fontFamily="sans-serif-black"
                 android:text="@string/app_name"
-                android:textColor="#D9DCE3"
-                android:textSize="42sp" />
+                android:textColor="@color/wordmark"
+                android:textSize="@dimen/text_display" />
         </LinearLayout>
 
         <LinearLayout

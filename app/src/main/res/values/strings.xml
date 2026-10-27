@@ -53,9 +53,10 @@
     <string name="error_login_response">The server\'s sign-in response is incomplete.</string>
     <string name="empty_library">This library is empty</string>
     <string name="empty_search">No results</string>
+    <string name="search_min_chars">Type at least 2 characters</string>
     <string name="empty_remote">No controllable sessions</string>
     <string name="empty_home">No content available</string>
-    <string name="library_title">%1$s (%2$d · %3$s)</string>
+    <string name="library_title">%1$s (%2$d)</string>
     <string name="sort_name">Name</string>
     <string name="sort_date_added">Date added</string>
     <string name="sort_year">Year</string>
@@ -165,7 +166,7 @@
     <string name="cache_cleared">Image cache cleared (%1$d KiB)</string>
 
     <!-- Seerr discovery and requests -->
-    <string name="seerr_header">Seerr · Discover and request</string>
+    <string name="seerr_header">Seerr</string>
     <string name="seerr_discover">Discover</string>
     <string name="seerr_trending">Trending</string>
     <string name="seerr_movies">Movies</string>

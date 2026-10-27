@@ -37,6 +37,7 @@ class DetailActivity : AppCompatActivity() {
     private var startingPlayback = false
     private var childCursor = PageCursor()
     private var childAdapter: MediaCardAdapter? = null
+    private var openedChildId: String? = null
 
     private lateinit var backdrop: ImageView
     private lateinit var contextLabel: TextView
@@ -81,7 +82,7 @@ class DetailActivity : AppCompatActivity() {
     /** Re-queries user data on return from the player so resume/watch state stays current. */
     override fun onResume() {
         super.onResume()
-        if (firstResume) firstResume = false else refreshUserData()
+        if (firstResume) firstResume = false else { refreshUserData(); refreshOpenedChild() }
     }
 
     private fun loadItem() {
@@ -140,11 +141,9 @@ class DetailActivity : AppCompatActivity() {
                 )
                 if (ServiceLocator.preferences.effective().stored.backdropEnabled) ServiceLocator.images.load(backdropUrl, ArtworkPolicy.decodeBucket(ArtworkPolicy.BACKDROP_WIDTH), backdrop)
                 else ServiceLocator.images.cancel(backdrop)
-                if (!loaded.isPlayable && reloadChildren) {
-                    showChildren(loaded)
-                } else if (reloadChildren) {
-                    play.requestFocus()
-                }
+                if (!loaded.isPlayable && reloadChildren) showChildren(loaded)
+                // Initial focus stays on Play; a container without one focuses its first child once loaded.
+                if (reloadChildren && play.visibility == View.VISIBLE) play.requestFocus()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -165,6 +164,16 @@ class DetailActivity : AppCompatActivity() {
             catch (e: CancellationException) { throw e }
             catch (e: Exception) { Toast.makeText(this@DetailActivity, errorMessage(e), Toast.LENGTH_LONG).show() }
             finally { favorite.isEnabled = true; watched.isEnabled = true }
+        }
+    }
+
+    /** The card the user came back from re-queries its user data, so its resume and watched marks match the header. */
+    private fun refreshOpenedChild() {
+        val id = openedChildId ?: return
+        scope.launch {
+            try { childAdapter?.replace(ServiceLocator.client.item(id)) }
+            catch (e: CancellationException) { throw e }
+            catch (_: Exception) { /* The header reload reports errors; the card keeps its last state. */ }
         }
     }
 
@@ -204,7 +213,7 @@ class DetailActivity : AppCompatActivity() {
             inSeason = container.type == "Season",
             onFocus = { child -> childAdapter?.let { if (cursor.nearEnd(it.positionOf(child))) loadChildPage(container, cursor) } },
             onMenu = { child -> CardMenu.show(this, scope, child) { fresh -> childAdapter?.replace(fresh) } },
-            onClick = { child -> start(this, child.id) },
+            onClick = { child -> openedChildId = child.id; start(this, child.id) },
         )
         childAdapter = adapter
         children.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
@@ -238,7 +247,7 @@ class DetailActivity : AppCompatActivity() {
                 childAdapter?.appendItems(page)
                 childrenTitle.text = getString(R.string.children_count, getString(childrenLabel(container)), cursor.total)
                 // The inserted cards exist only after the next layout pass; a plain post() runs before it.
-                if (focusFirst && page.isNotEmpty()) children.afterNextLayout { children.getChildAt(0)?.requestFocus() }
+                if (focusFirst && page.isNotEmpty() && play.visibility != View.VISIBLE) children.afterNextLayout { children.getChildAt(0)?.requestFocus() }
             } catch (e: CancellationException) {
                 cursor.failed()
                 throw e

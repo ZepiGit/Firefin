@@ -13,4 +13,11 @@
     <color name="text_muted">#7D8699</color>
     <color name="error">#FF6B6B</color>
     <color name="overlay">#99000000</color>
+    <color name="wordmark">#D9DCE3</color>
+    <color name="panel">#CC141A2A</color>
+    <color name="login_gradient_start">#0A0D16</color>
+    <color name="login_gradient_end">#16213E</color>
+    <color name="scrim_strong">#F20F1420</color>
+    <color name="scrim_mid">#C00F1420</color>
+    <color name="scrim_weak">#550F1420</color>
 </resources>

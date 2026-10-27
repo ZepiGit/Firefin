@@ -17,6 +17,6 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:clipToPadding="false"
-        android:paddingLeft="40dp"
-        android:paddingRight="40dp" />
+        android:paddingLeft="@dimen/row_inset"
+        android:paddingRight="@dimen/row_inset" />
 </LinearLayout>

@@ -18,9 +18,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import zepigit.firefin.app.R
 import zepigit.firefin.app.ServiceLocator
+import zepigit.firefin.app.data.JellyfinClient
 import zepigit.firefin.app.util.Urls
 
 class LoginActivity : AppCompatActivity() {
@@ -127,9 +129,19 @@ class LoginActivity : AppCompatActivity() {
         closeDialog()
         val panel = layoutInflater.inflate(R.layout.view_quick_connect, null)
         panel.findViewById<TextView>(R.id.quickConnectCode).text = code
+        val timer = panel.findViewById<TextView>(R.id.quickConnectTimer)
+        // Counts down the client's own deadline so the five-minute hint is visibly ticking.
+        val ticker = scope.launch {
+            for (left in (JellyfinClient.QUICK_CONNECT_TIMEOUT_MS / 1_000).toInt() downTo 1) {
+                timer.text = String.format(java.util.Locale.ROOT, "%d:%02d", left / 60, left % 60)
+                delay(1_000)
+            }
+            timer.setText(R.string.quick_connect_timeout)
+        }
         dialog = AlertDialog.Builder(this).setTitle(R.string.quick_connect_button).setView(panel)
             .setNegativeButton(R.string.cancel) { _, _ -> cancelAttempt(); quickButton.requestFocus() }
             .setOnCancelListener { cancelAttempt(); quickButton.requestFocus() }.show().also {
+                it.setOnDismissListener { ticker.cancel() }
                 it.getButton(AlertDialog.BUTTON_NEGATIVE).requestFocus()
             }
     }

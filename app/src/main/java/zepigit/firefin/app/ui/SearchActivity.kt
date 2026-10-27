@@ -40,6 +40,7 @@ class SearchActivity : AppCompatActivity() {
         val stateView = findViewById<View>(R.id.stateView)
         val empty = findViewById<TextView>(R.id.stateText)
         val progress = findViewById<android.widget.ProgressBar>(R.id.progress)
+        val stateRetry = findViewById<android.widget.Button>(R.id.stateRetry)
         val seerrClient = SeerrClient(ServiceLocator.client.transportSnapshot())
         lateinit var rows: SearchRowsAdapter
         rows = SearchRowsAdapter(
@@ -49,63 +50,68 @@ class SearchActivity : AppCompatActivity() {
         )
         results.layoutManager = LinearLayoutManager(this)
         results.adapter = rows
+        fun search(q: String) {
+            queryJob?.cancel()
+            val generation = queryGate.next()
+            if (q.length < 2) {
+                rows.submit(emptyList(), emptyList())
+                progress.visibility = View.GONE
+                stateRetry.visibility = View.GONE
+                empty.text = getString(R.string.search_min_chars)
+                stateView.visibility = if (q.isEmpty()) View.GONE else View.VISIBLE
+                return
+            }
+            queryJob = scope.launch {
+                delay(400); progress.visibility = View.VISIBLE
+                // Each source publishes as soon as it answers: the Seerr probe can take
+                // several seconds, and the library results must not wait for it.
+                var local: List<zepigit.firefin.app.data.MediaItem>? = null
+                var remote: List<SeerrMedia>? = null
+                var failure: Exception? = null
+                fun publish() {
+                    if (!queryGate.isCurrent(generation)) return
+                    rows.submit(local.orEmpty(), remote.orEmpty())
+                    val done = local != null && remote != null
+                    if (done) progress.visibility = View.GONE
+                    val error = failure
+                    empty.text = if (error != null) errorMessage(error) else getString(R.string.empty_search)
+                    stateRetry.visibility = if (error != null) View.VISIBLE else View.GONE
+                    stateView.visibility = if (error != null || done && local!!.isEmpty() && remote!!.isEmpty()) View.VISIBLE else View.GONE
+                    if (error != null) stateRetry.requestFocus()
+                }
+                launch {
+                    try {
+                        local = ServiceLocator.client.items(searchTerm = q, includeTypes = "Movie,Series,Episode").first
+                        publish()
+                    } catch (e: CancellationException) { throw e }
+                    catch (e: SessionExpiredException) {
+                        if (queryGate.isCurrent(generation)) {
+                            ServiceLocator.session.clear()
+                            LoginActivity.startFresh(this@SearchActivity)
+                        }
+                    }
+                    catch (e: Exception) { local = emptyList(); failure = e; publish() }
+                }
+                launch(Dispatchers.IO) {
+                    val found = if (seerrProbeUnavailable) emptyList() else try {
+                        if (seerrClient.connect()) seerrClient.page("", 1, q).items
+                        else { seerrProbeUnavailable = true; emptyList() }
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (_: Exception) {
+                        seerrProbeUnavailable = true
+                        emptyList()
+                    }
+                    withContext(Dispatchers.Main) { remote = found; publish() }
+                }
+            }
+        }
         box.addTextChangedListener(object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit
             override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit
-            override fun afterTextChanged(s: android.text.Editable?) {
-                queryJob?.cancel()
-                val generation = queryGate.next()
-                val q = s?.toString()?.trim().orEmpty()
-                if (q.length < 2) {
-                    rows.submit(emptyList(), emptyList())
-                    stateView.visibility = View.GONE
-                    progress.visibility = View.GONE
-                    return
-                }
-                queryJob = scope.launch {
-                    delay(400); progress.visibility = View.VISIBLE
-                    // Each source publishes as soon as it answers: the Seerr probe can take
-                    // several seconds, and the library results must not wait for it.
-                    var local: List<zepigit.firefin.app.data.MediaItem>? = null
-                    var remote: List<SeerrMedia>? = null
-                    var failure: Exception? = null
-                    fun publish() {
-                        if (!queryGate.isCurrent(generation)) return
-                        rows.submit(local.orEmpty(), remote.orEmpty())
-                        val done = local != null && remote != null
-                        if (done) progress.visibility = View.GONE
-                        val error = failure
-                        empty.text = if (error != null) errorMessage(error) else getString(R.string.empty_search)
-                        stateView.visibility = if (error != null || done && local!!.isEmpty() && remote!!.isEmpty()) View.VISIBLE else View.GONE
-                    }
-                    launch {
-                        try {
-                            local = ServiceLocator.client.items(searchTerm = q, includeTypes = "Movie,Series,Episode").first
-                            publish()
-                        } catch (e: CancellationException) { throw e }
-                        catch (e: SessionExpiredException) {
-                            if (queryGate.isCurrent(generation)) {
-                                ServiceLocator.session.clear()
-                                LoginActivity.startFresh(this@SearchActivity)
-                            }
-                        }
-                        catch (e: Exception) { local = emptyList(); failure = e; publish() }
-                    }
-                    launch(Dispatchers.IO) {
-                        val found = if (seerrProbeUnavailable) emptyList() else try {
-                            if (seerrClient.connect()) seerrClient.page("", 1, q).items
-                            else { seerrProbeUnavailable = true; emptyList() }
-                        } catch (e: CancellationException) {
-                            throw e
-                        } catch (_: Exception) {
-                            seerrProbeUnavailable = true
-                            emptyList()
-                        }
-                        withContext(Dispatchers.Main) { remote = found; publish() }
-                    }
-                }
-            }
+            override fun afterTextChanged(s: android.text.Editable?) = search(s?.toString()?.trim().orEmpty())
         })
+        stateRetry.setOnClickListener { search(box.text.toString().trim()) }
         box.setOnEditorActionListener { _, _, _ -> (getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager).hideSoftInputFromWindow(box.windowToken, 0); results.requestFocus(); true }
         box.requestFocus()
     }

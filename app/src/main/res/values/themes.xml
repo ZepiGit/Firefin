@@ -33,6 +33,13 @@
         <item name="android:buttonBarButtonStyle">@style/Firefin.Button.Dialog</item>
         <item name="listPreferredItemHeightSmall">@dimen/control_height</item>
         <item name="android:listPreferredItemHeightSmall">@dimen/control_height</item>
+        <item name="alertDialogStyle">@style/Firefin.AlertDialog</item>
+    </style>
+    <!-- Own list rows: the stock rows rely on the list selector, which stays invisible on the dialog list. -->
+    <style name="Firefin.AlertDialog" parent="AlertDialog.AppCompat">
+        <item name="listItemLayout">@layout/item_dialog_choice</item>
+        <item name="singleChoiceItemLayout">@layout/item_dialog_single_choice</item>
+        <item name="multiChoiceItemLayout">@layout/item_dialog_multi_choice</item>
     </style>
 
     <!-- Root of the dotted style names; carries nothing itself. -->
@@ -77,6 +84,7 @@
     <!-- Row titles can be focusable (library link); the focus state uses the same stroke as cards. -->
     <style name="Firefin.Text.RowTitle" parent="Firefin.Text.Subheading">
         <item name="android:background">@drawable/row_title_background</item>
+        <item name="android:textColor">@color/row_title_text</item>
         <item name="android:paddingLeft">@dimen/space_s</item>
         <item name="android:paddingRight">@dimen/space_s</item>
         <item name="android:paddingTop">@dimen/space_xs</item>
@@ -128,10 +136,11 @@
         <item name="android:paddingRight">@dimen/space_m</item>
         <item name="android:singleLine">true</item>
     </style>
-    <!-- Page header: title on the left, actions on the right, overscan-safe margins. -->
+    <!-- Page header: title on the left, actions on the right, overscan-safe margins; the top padding keeps controls below the 5 % overscan band. -->
     <style name="Firefin.Header">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">@dimen/header_height</item>
+        <item name="android:paddingTop">@dimen/space_l</item>
         <item name="android:orientation">horizontal</item>
         <item name="android:gravity">center_vertical</item>
         <item name="android:paddingLeft">@dimen/page_margin</item>

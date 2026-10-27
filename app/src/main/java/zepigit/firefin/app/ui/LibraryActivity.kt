@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
 import zepigit.firefin.app.R
 import zepigit.firefin.app.ServiceLocator
 
-/** Library grid with paging and a cycling sort control; no full refresh per scroll tick. */
+/** Library grid with paging and sort, filter and genre pickers; no full refresh per scroll tick. */
 class LibraryActivity : AppCompatActivity() {
 
     private val scope = CoroutineScope(Dispatchers.Main + Job())
@@ -104,12 +104,11 @@ class LibraryActivity : AppCompatActivity() {
             }
         })
         findViewById<Button>(R.id.sortButton).setOnClickListener {
-            sortByIndex = (sortByIndex + 1) % sortOptions.size
-            reload()
+            choose(R.string.sort_button, sortOptions.map { getString(it.label) }) { sortByIndex = it; reload() }
         }
         findViewById<Button>(R.id.filterButton).apply {
             visibility = if (favoritesGrid) View.GONE else View.VISIBLE
-            setOnClickListener { filterIndex = (filterIndex + 1) % filters.size; reload() }
+            setOnClickListener { choose(R.string.filter_button, resources.getStringArray(R.array.library_filter_options).toList()) { filterIndex = it; reload() } }
         }
         findViewById<Button>(R.id.genreButton).apply {
             visibility = if (favoritesGrid) View.GONE else View.VISIBLE
@@ -128,12 +127,17 @@ class LibraryActivity : AppCompatActivity() {
         loadMore()
     }
 
+    /** The header keeps name and count; each picker button carries its own current value. */
     private fun updateTitle() {
-        val labels = resources.getStringArray(R.array.library_filter_options)
-        val details = listOfNotNull(getString(sortOptions[sortByIndex].label),
-            labels[filterIndex].takeUnless { favoritesGrid }, genre?.name).joinToString(" · ")
-        titleView.text = getString(R.string.library_title, intent.getStringExtra(EXTRA_TITLE).orEmpty(), total.coerceAtLeast(0), details)
-        findViewById<Button>(R.id.filterButton).text = labels[filterIndex]
+        titleView.text = getString(R.string.library_title, intent.getStringExtra(EXTRA_TITLE).orEmpty(), total.coerceAtLeast(0))
+        findViewById<Button>(R.id.sortButton).text = getString(R.string.setting_value, getString(R.string.sort_button), getString(sortOptions[sortByIndex].label))
+        findViewById<Button>(R.id.filterButton).text = getString(R.string.setting_value, getString(R.string.filter_button), resources.getStringArray(R.array.library_filter_options)[filterIndex])
+        findViewById<Button>(R.id.genreButton).text = genre?.let { getString(R.string.setting_value, getString(R.string.genre_button), it.name) } ?: getString(R.string.genre_button)
+    }
+
+    /** One list dialog per picker: a visible focused row beats cycling values with repeated presses. */
+    private fun choose(title: Int, labels: List<String>, onChosen: (Int) -> Unit) {
+        androidx.appcompat.app.AlertDialog.Builder(this).setTitle(title).setItems(labels.toTypedArray()) { _, index -> onChosen(index) }.show()
     }
 
     private fun showGenres() {
@@ -144,8 +148,7 @@ class LibraryActivity : AppCompatActivity() {
                 val choices = genres ?: ServiceLocator.client.genres(libraryId, includeTypes).also { genres = it }
                 if (isFinishing || isDestroyed) return@launch
                 val labels = listOf(getString(R.string.genre_all)) + choices.map { it.name }
-                androidx.appcompat.app.AlertDialog.Builder(this@LibraryActivity).setTitle(R.string.genre_button)
-                    .setItems(labels.toTypedArray()) { _, index -> genre = choices.getOrNull(index - 1); reload() }.show()
+                choose(R.string.genre_button, labels) { genre = choices.getOrNull(it - 1); reload() }
             } catch (e: kotlinx.coroutines.CancellationException) { throw e }
             catch (e: Exception) { Toast.makeText(this@LibraryActivity, errorMessage(e), Toast.LENGTH_LONG).show() }
             finally { genresLoading = false }
@@ -207,7 +210,7 @@ class LibraryActivity : AppCompatActivity() {
     companion object {
         private const val EXTRA_LIBRARY = "library.id"
         private const val EXTRA_TITLE = "library.title"
-        private const val GRID_SPAN = 6
+        private const val GRID_SPAN = 5
 
         fun start(context: Context, libraryId: String, title: String, collectionType: String = "", favorites: Boolean = false) {
             context.startActivity(

@@ -63,6 +63,7 @@ class PlayerActivity : AppCompatActivity() {
     private var consumedCenter = false
     private lateinit var skipButton: android.widget.Button
     private lateinit var nextOverlay: android.view.View
+    private lateinit var playerActions: android.view.View
     private lateinit var nextPlay: android.widget.Button
     private var isTranscode = false
     private var isHls = false
@@ -137,6 +138,8 @@ class PlayerActivity : AppCompatActivity() {
                 android.graphics.Color.TRANSPARENT, androidx.media3.ui.CaptionStyleCompat.EDGE_TYPE_NONE,
                 android.graphics.Color.BLACK, null))
             setApplyEmbeddedStyles(false)
+            // Captions clear the skip chip above the page margin.
+            setBottomPaddingFraction(0.12f)
         }
         subtitleUrl = intent.getStringExtra(EXTRA_SUBTITLE_URL)
         subtitleMime = intent.getStringExtra(EXTRA_SUBTITLE_MIME)
@@ -152,9 +155,8 @@ class PlayerActivity : AppCompatActivity() {
         findViewById<android.widget.Button>(R.id.playerAudio).setOnClickListener { showTrackDialog(C.TRACK_TYPE_AUDIO, getString(R.string.track_audio)) }
         findViewById<android.widget.Button>(R.id.playerSubtitles).setOnClickListener { showTrackDialog(C.TRACK_TYPE_TEXT, getString(R.string.track_subtitles)) }
         findViewById<android.widget.Button>(R.id.playerVideo).setOnClickListener { showTrackDialog(C.TRACK_TYPE_VIDEO, getString(R.string.track_video)) }
-        playerView.setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { visibility ->
-            findViewById<android.view.View>(R.id.playerActions).visibility = visibility
-        })
+        playerActions = findViewById(R.id.playerActions)
+        playerView.setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { visibility -> playerActions.visibility = visibility })
         // The snapshot's client is resolved on Media3's loader thread, so a cold restore straight
         // into the player never waits for the lazy TLS stack on the main thread.
         session.start(SessionReporter(playbackTransport, itemId, playSessionId, sourceId, playMethod, intent.getStringExtra(EXTRA_LIVE_STREAM).orEmpty(), ServiceLocator.client.cleanupEncodings()))
@@ -201,8 +203,7 @@ class PlayerActivity : AppCompatActivity() {
         val rebuilt = Urls.withStartTimeTicks(url, Ticks.fromMs(targetAbsolute))
         transcodeOffsetMs = targetAbsolute
         val playing = player.playWhenReady
-        engine?.prepare(rebuilt, 0L, subtitleUrl, subtitleMime)
-        player.playWhenReady = playing && resumed
+        engine?.prepare(rebuilt, 0L, subtitleUrl, subtitleMime, playWhenReady = playing && resumed)
     }
 
     private fun seekAbsolute(absoluteMs: Long) = seekTo(PlaybackTimeline.relative(absoluteMs, transcodeOffsetMs))
@@ -219,7 +220,7 @@ class PlayerActivity : AppCompatActivity() {
                 if (ownAttempt != attempt || segments.isEmpty()) return@launch
                 while (isActive && ownAttempt == attempt) {
                     val p = engine?.player ?: break
-                    currentSegment = if (session.active && !switching && !playerView.isControllerFullyVisible)
+                    currentSegment = if (session.active && !switching)
                         zepigit.firefin.app.playback.SegmentCue.active(segments, actualPositionMs(p), dismissedSegments) else null
                     val cue = currentSegment
                     skipButton.visibility = if (cue == null) android.view.View.GONE else android.view.View.VISIBLE
@@ -362,6 +363,12 @@ class PlayerActivity : AppCompatActivity() {
         session.progress(Ticks.fromMs(actualPositionMs(p)), true)
     }
 
+    /** API 22 has no multi-window: a stopped player would only hold the decoder, 16 MB of buffer and the server session. */
+    override fun onStop() {
+        super.onStop()
+        if (!isChangingConfigurations) finish()
+    }
+
     override fun onDestroy() {
         dialog?.setOnDismissListener(null)
         dialog?.dismiss()
@@ -428,6 +435,9 @@ class PlayerActivity : AppCompatActivity() {
         }
         if (controllerVisible) {
             if (event.action == KeyEvent.ACTION_DOWN) {
+                // The track bar sits outside the PlayerView: UP enters it, DOWN returns to the play button,
+                // and every move inside it re-arms the controller timeout so the bar does not vanish mid-use.
+                val inTrackBar = playerActions.hasFocus()
                 when (keyCode) {
                     KeyEvent.KEYCODE_MENU -> {
                         playerView.hideController()
@@ -439,13 +449,16 @@ class PlayerActivity : AppCompatActivity() {
                         return true
                     }
                     KeyEvent.KEYCODE_DPAD_UP -> {
-                        showTrackDialog(C.TRACK_TYPE_AUDIO, getString(R.string.track_audio))
+                        if (!inTrackBar) findViewById<android.view.View>(R.id.playerAudio).requestFocus()
+                        playerView.showController()
                         return true
                     }
-                    KeyEvent.KEYCODE_DPAD_DOWN -> {
-                        showTrackDialog(C.TRACK_TYPE_TEXT, getString(R.string.track_subtitles))
+                    KeyEvent.KEYCODE_DPAD_DOWN -> if (inTrackBar) {
+                        (playerView.findViewById<android.view.View>(androidx.media3.ui.R.id.exo_play_pause) ?: playerView).requestFocus()
+                        playerView.showController()
                         return true
                     }
+                    KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> if (inTrackBar) playerView.showController()
                 }
             }
             return super.dispatchKeyEvent(event)
@@ -558,8 +571,7 @@ class PlayerActivity : AppCompatActivity() {
                 automaticPending = automatic
                 subtitleUrl = source.subtitleUrl
                 subtitleMime = source.subtitleMime
-                engine?.prepare(url, timeline.preparePositionMs, source.subtitleUrl, source.subtitleMime)
-                player.playWhenReady = resumePlaying && resumed
+                engine?.prepare(url, timeline.preparePositionMs, source.subtitleUrl, source.subtitleMime, playWhenReady = resumePlaying && resumed)
                 loadNextEpisode()
                 loadSegments()
             } catch (e: kotlinx.coroutines.TimeoutCancellationException) {

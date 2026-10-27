@@ -6,6 +6,10 @@
         style="@style/Firefin.Text.Heading"
         android:layout_width="match_parent" android:layout_height="wrap_content"
         android:gravity="center" android:saveEnabled="false" android:textSize="36sp" />
+    <TextView android:id="@+id/quickConnectTimer"
+        style="@style/Firefin.Text.Label"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_s" android:gravity="center" />
     <TextView style="@style/Firefin.Text.Body"
         android:layout_width="match_parent" android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/space_m" android:text="@string/quick_connect_hint" />

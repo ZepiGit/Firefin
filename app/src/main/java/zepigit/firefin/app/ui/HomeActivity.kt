@@ -189,7 +189,8 @@ class HomeActivity : AppCompatActivity() {
         if (::rowsAdapter.isInitialized && !backdropsEnabled) ServiceLocator.images.cancel(previewImage)
         // Refresh resume/next-up after returning from Detail or Player. The adapter
         // preserves stable row/card ids and the saved vertical position.
-        if (::rowsAdapter.isInitialized && homeLoaded && !loadingHome) loadHome(refreshOnly = loadedOrder == ServiceLocator.preferences.stored().homeSectionOrder)
+        // Only a changed set of sections needs the libraries again; a reordered set reuses the cached rows.
+        if (::rowsAdapter.isInitialized && homeLoaded && !loadingHome) loadHome(refreshOnly = loadedOrder.toSet() == ServiceLocator.preferences.stored().homeSectionOrder.toSet())
         else if (::rowsAdapter.isInitialized && !homeLoaded && !loadingHome) loadHome()
     }
 
@@ -211,7 +212,8 @@ class HomeActivity : AppCompatActivity() {
         emptyView.text = if (empty) getString(R.string.empty_home) else ""
         stateView.visibility = if (empty) View.VISIBLE else View.GONE
         retryButton.visibility = View.GONE
-        if (hadRowFocus) rowsView.afterNextLayout {
+        // The first bind also pulls focus off the toolbar icon a cold start lands on.
+        if (hadRowFocus || !homeLoaded) rowsView.afterNextLayout {
             // A key press since the submit means the user moved on purpose; otherwise the framework
             // may have parked focus nowhere, on the list itself or on the toolbar.
             if (lastKeyUptime > submittedAt) return@afterNextLayout

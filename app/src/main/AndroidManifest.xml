@@ -36,7 +36,8 @@
         <activity
             android:name=".ui.LoginActivity"
             android:exported="false"
-            android:screenOrientation="landscape" />
+            android:screenOrientation="landscape"
+            android:windowSoftInputMode="adjustPan" />
         <activity
             android:name=".ui.LibraryActivity"
             android:exported="false"

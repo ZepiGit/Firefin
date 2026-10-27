@@ -44,6 +44,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginLeft="@dimen/space_m"
+            android:nextFocusLeft="@id/playerAudio"
+            android:nextFocusUp="@id/playerAudio"
             android:text="@string/track_audio" />
 
         <Button
@@ -51,6 +53,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginLeft="@dimen/space_s"
+            android:nextFocusUp="@id/playerSubtitles"
             android:text="@string/track_subtitles" />
 
         <Button
@@ -58,6 +61,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginLeft="@dimen/space_s"
+            android:nextFocusRight="@id/playerVideo"
+            android:nextFocusUp="@id/playerVideo"
             android:text="@string/track_video" />
     </LinearLayout>
     <Button
@@ -65,7 +70,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|right"
-        android:layout_margin="@dimen/page_margin"
+        android:layout_marginRight="@dimen/page_margin"
+        android:layout_marginBottom="@dimen/player_chip_bottom"
         android:text="@string/skip_intro"
         android:visibility="gone" />
 
@@ -83,7 +89,9 @@
             android:id="@+id/nextTitle"
             style="@style/Firefin.Text.Subheading"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="2" />
         <Button
             android:id="@+id/nextPlay"
             android:layout_width="match_parent"

@@ -110,18 +110,17 @@ class SeerrActivity : AppCompatActivity() {
 
     private fun loginDialog() {
         status.setText(R.string.seerr_login_needed)
-        val density = resources.displayMetrics.density
-        fun dp(value: Int) = (value * density).toInt()
-        val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(24), dp(16), dp(24), dp(8)) }
+        fun px(dimen: Int) = resources.getDimensionPixelSize(dimen)
+        val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(px(R.dimen.space_l), px(R.dimen.space_m), px(R.dimen.space_l), px(R.dimen.space_s)) }
         fun field(labelRes: Int, ime: Int, configure: EditText.() -> Unit): EditText {
             val input = EditText(this).apply {
                 id = View.generateViewId()
                 isSingleLine = true
                 imeOptions = ime
-                textSize = 18f
-                minimumHeight = dp(48)
+                setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, resources.getDimension(R.dimen.text_body))
+                minimumHeight = px(R.dimen.control_height)
                 setBackgroundResource(R.drawable.input_background)
-                setPadding(dp(12), dp(12), dp(12), dp(12))
+                setPadding(px(R.dimen.space_m), px(R.dimen.space_s), px(R.dimen.space_m), px(R.dimen.space_s))
                 setTextColor(ContextCompat.getColor(this@SeerrActivity, R.color.text_primary))
                 setHintTextColor(ContextCompat.getColor(this@SeerrActivity, R.color.text_secondary))
                 configure()
@@ -129,9 +128,9 @@ class SeerrActivity : AppCompatActivity() {
             box.addView(TextView(this).apply {
                 setText(labelRes)
                 labelFor = input.id
-                textSize = 14f
+                setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, resources.getDimension(R.dimen.text_label))
                 setTextColor(ContextCompat.getColor(this@SeerrActivity, R.color.text_secondary))
-                setPadding(0, if (box.childCount == 0) 0 else dp(8), 0, dp(4))
+                setPadding(0, if (box.childCount == 0) 0 else px(R.dimen.space_s), 0, px(R.dimen.space_xs))
             })
             box.addView(input, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
             return input

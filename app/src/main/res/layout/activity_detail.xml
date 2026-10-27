@@ -25,7 +25,7 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:paddingLeft="@dimen/page_margin"
-            android:paddingTop="@dimen/space_l"
+            android:paddingTop="@dimen/page_margin"
             android:paddingRight="@dimen/page_margin"
             android:paddingBottom="@dimen/space_m">
 

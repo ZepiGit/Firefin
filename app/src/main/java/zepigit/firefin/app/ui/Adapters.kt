@@ -50,9 +50,15 @@ class MediaCardAdapter(
     override fun getItemId(position: Int) = stableId(items[position].id)
     /** Poster and landscape holders must never be swapped through a shared pool. */
     override fun getItemViewType(position: Int) = if (posterStyle) TYPE_POSTER else TYPE_LANDSCAPE
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder = Holder(
-        LayoutInflater.from(parent.context).inflate(if (posterStyle) R.layout.item_card else R.layout.item_card_landscape, parent, false),
-    )
+    /** One card layout; landscape cards only differ in width and artwork height. */
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_card, parent, false)
+        if (!posterStyle) {
+            view.layoutParams.width = parent.resources.getDimensionPixelSize(R.dimen.card_landscape_width)
+            view.findViewById<View>(R.id.artwork).layoutParams.height = parent.resources.getDimensionPixelSize(R.dimen.card_landscape_image_height)
+        }
+        return Holder(view)
+    }
     override fun onBindViewHolder(holder: Holder, position: Int) {
         val item = items[position]
         holder.name.text = when {
@@ -92,8 +98,7 @@ class MediaCardAdapter(
                 if (keyCode == KeyEvent.KEYCODE_MENU && event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) { menu(item); true } else false
             }
         })
-        // Card focus expansion is locked off on this target (EffectiveDevicePreferences);
-        // the static background selector is the whole focus effect.
+        // No focus scale or animation on this target; the static background selector is the whole focus effect.
         holder.card.setOnFocusChangeListener { _, focused -> if (focused) onFocus(item) }
     }
     override fun onViewRecycled(holder: Holder) {

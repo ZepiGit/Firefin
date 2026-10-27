@@ -7,10 +7,11 @@
     <LinearLayout
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="64dp"
+        android:layout_height="@dimen/header_height"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingLeft="@dimen/page_margin"
+        android:paddingTop="@dimen/space_l"
         android:paddingRight="@dimen/page_margin">
 
         <ImageView
